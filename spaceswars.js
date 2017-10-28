@@ -307,16 +307,12 @@ function can_load_in_page(script) {
 // Adds separators to a number string
 // "10000000" -> "10.000.000"
 function get_slashed_nb(nStr) {
-    var temp = Math.ceil(nStr);
-    nStr = temp + "";
-    var x = nStr.split(".");
-    var x1 = x[0];
-    var x2 = x.length > 1 ? "." + x[1] : "";
+    nStr =  Math.ceil(nStr).toString();
     var rgx = /(\d+)(\d{3})/;
-    while (rgx.test(x1)) {
-        x1 = x1.replace(rgx, "$1" + "." + "$2");
+    while (rgx.test(nStr)) {
+        nStr = nStr.replace(rgx, "$1" + "." + "$2");
     }
-    return x1 + x2;
+    return nStr;
 }
 
 function set_dictionary() {
@@ -576,13 +572,15 @@ function set_dictionary() {
     return tab;
 }
 
+// Maps building/research/fleet to corresponding
+// value in the merchant page.
 function setMerchantMap() {
     var m = {};
 
     // Buildings
     m["Metal Mine"] = 1;
     m["Crystal Mine"] = 2;
-    m["Deut Synthesizer"] = 3;
+    m["Deuterium Synthesizer"] = 3;
     m["Solar Plant"] = 4;
     m["Fusion Reactor"] = 12;
     m["Robotics Factory"] = 14;
