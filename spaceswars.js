@@ -176,21 +176,11 @@ var advancedAutoAttack = autoAttack; // No longer used?
 var nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
-
-// Unused links, no longer working :(
-// var configLink = "http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/config.php";
-// var versionLink = "http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/version.php?user=" + user;
 var gmicon = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 
 // Language dictionary. FR and EN
 var L_ = [];
 var lang = "en";
-
-// NiArK is Dead
-// var zeroclipboard = "http://niark.spaceswars.fr/zeroclipboard/";
-// var scripts_icons = "http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/images/";
-// var scripts_scripts = "http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/scripts/";
-// var carto_link = "http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/carto.php";
 
 var infos_version, infos_scripts;
 try {
@@ -304,8 +294,14 @@ function can_load_in_page(script) {
     return false;
 }
 
-// Adds separators to a number string
-// "10000000" -> "10.000.000"
+/**
+ * Adds thousands separators to the given string
+ *
+ * "123456789" -> "123.456.789"
+ *
+ * @param nStr - String to translate
+ * @returns {string|*}
+ */
 function get_slashed_nb(nStr) {
     nStr =  Math.ceil(nStr).toString();
     var rgx = /(\d+)(\d{3})/;
@@ -315,6 +311,11 @@ function get_slashed_nb(nStr) {
     return nStr;
 }
 
+/**
+ * Creates and returns the language dictionary.
+ *
+ * @returns {{}} The dictionary
+ */
 function set_dictionary() {
     var tab = [];
     switch (lang) {
@@ -572,8 +573,12 @@ function set_dictionary() {
     return tab;
 }
 
-// Maps building/research/fleet to corresponding
-// value in the merchant page.
+/**
+ * Maps buildings/research/fleet with their
+ * corresponding ids in the merchang page.
+ *
+ * @returns {{}} Merchant map
+ */
 function setMerchantMap() {
     var m = {};
 
@@ -659,19 +664,30 @@ function setMerchantMap() {
     return m;
 }
 
+/**
+ * Sets the default userscript info. Not written by
+ * me and not really used anymore.
+ *
+ * @returns {*}
+ */
 function set_infos_version() {
     var date = new Date();
     var tab = {};
     tab.version = "4.1";
     tab.language = "fr";
     tab.news = "";
-    tab.nbUnis = 17;
+    tab.nbUnis = 18;
     tab.toUp = false;
     tab.lastCheck = date.getTime();
     GM_setValue("infos_version", JSON.stringify(tab));
     return tab[0];
 }
 
+/**
+ * Sets the default script states (all set to active)
+ *
+ * @returns the list of top-level script options
+ */
 function set_infos_scripts() {
     var list = {};
     list.RConverter = 1;
@@ -693,6 +709,12 @@ function set_infos_scripts() {
     return list;
 }
 
+/**
+ * Sets the default values for the top-level scripts
+ *
+ * @param uni - current universe
+ * @returns {{}} - the script config
+ */
 function set_config_scripts(uni) {
     if (uni > infos_version.nbUnis) {
         infos_version.nbUnis = uni;
@@ -708,14 +730,18 @@ function set_config_scripts(uni) {
         list.RConverter.destroyed = "";
         list.RConverter.result = "";
         list.RConverter.renta = "";
+
         list.EasyFarm = {};
         list.EasyFarm.minPillage = 0;
         list.EasyFarm.colorPill = "871717";
         list.EasyFarm.minCDR = 0;
         list.EasyFarm.colorCDR = "178717";
-        list.Carto = "";
+
+        list.Carto = ""; // No longer used
+
         list.TChatty = {};
         list.TChatty.color = "FFFFFF";
+
         list.NoAutoComplete = {};
         list.NoAutoComplete.galaxy = true;
         list.NoAutoComplete.fleet = true;
@@ -726,6 +752,7 @@ function set_config_scripts(uni) {
         list.NoAutoComplete.sims = true;
         list.NoAutoComplete.marchand = true;
         list.NoAutoComplete.scrapdealer = true;
+
         list.Markit = {};
         list.Markit.color = {};
         list.Markit.color["default"] = "FFFFFF";
@@ -737,12 +764,15 @@ function set_config_scripts(uni) {
         list.Markit.ranks = 1;
         list.Markit.topX = 50;
         list.Markit.topColor = "FF2626";
+
         list.GalaxyRanks = {};
         list.GalaxyRanks.ranks = [5, 25, 50, 200];
         list.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
+
         list.BetterEmpire = {};
         list.BetterEmpire.byMainSort = 1;
         list.BetterEmpire.moonsLast = 1;
+
         list.More = {};
         list.More.moonsList = 1;
         list.More.convertDeut = 1;
@@ -760,6 +790,7 @@ function set_config_scripts(uni) {
         list.ClicNGo.universes = [];
         list.ClicNGo.usernames = [];
         list.ClicNGo.passwords = [];
+
         list.More = {};
         list.More.traductor = 1;
     }
@@ -767,24 +798,35 @@ function set_config_scripts(uni) {
     return list;
 }
 
+/**
+ * Determine where we are in the game, and what universe we're in.
+ *
+ * @returns {{}} the page information
+ */
 function get_infos_from_page() {
     var list = {};
-    if (/spaceswars\.(?:fr|com)/.test(window.location.href)) {
-        list.loc = "index";
-    }
-    if (/spaceswars\.(?:fr|com)\/univers[0-9]{1,2}\/(.*)\.php/.test(window.location.href)) {
-        list.loc = /spaceswars\.(?:fr|com)\/univers[0-9]{1,2}\/(.*)\.php/.exec(window.location.href)[1];
-    }
     if (/niark/.test(window.location.href)) {
         list.loc = "niark";
-    }
-    if (/spaceswars\.(?:fr|com)\/forum*/.test(window.location.href)) {
+    } else if (/spaceswars\.(?:fr|com)\/forum*/.test(window.location.href)) {
         list.loc = "forum";
+    } else if (/spaceswars\.(?:fr|com)\/univers[0-9]{1,2}\/(.*)\.php/.test(window.location.href)) {
+        list.loc = /spaceswars\.(?:fr|com)\/univers[0-9]{1,2}\/(.*)\.php/.exec(window.location.href)[1];
+    } else if (/spaceswars\.(?:fr|com)/.test(window.location.href)) {
+        list.loc = "index";
     }
+
     list.universe = (/univers([0-9]{1,2})/.test(window.location.href)) ? /univers([0-9]{1,2})/.exec(window.location.href)[1] : 0;
     return list;
 }
 
+/**
+ * Get dom elements based on an xpath and return a specific result
+ *
+ * @param xpath - the xpath expression
+ * @param inDom - document to search
+ * @param row - the row to return (optionally -1 to return all and -42 to return the last)
+ * @returns {*} the desired dom element(s)
+ */
 function get_dom_xpath(xpath, inDom, row) {
     var tab = [];
     var alltags = document.evaluate(xpath, inDom, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -796,6 +838,39 @@ function get_dom_xpath(xpath, inDom, row) {
     else return tab[row];
 }
 
+/**
+ * Parses a number represented by a string with comma separators
+ * @param sw_stringnumber - the String to parse
+ * @returns {Number}
+ */
+function sw_to_number_rc(sw_stringnumber) { //Spécial pour les RC ( virgules à la place des points) {
+    return parseInt(sw_stringnumber.replace(/,/g, ''));
+}
+
+/**
+ * Returns a number represented by the given array
+ *
+ * ["100", "042"] -> 100042
+ *
+ * @param tab - an array of string digits
+ * @returns {Number} The number resulting in parsing the concatenation of @tab
+ */
+function get_nb_from_stringtab(tab) {
+    return parseInt(tab.join(''));
+}
+
+/**
+ * Creates the given element.
+ *
+ * Ex: build_node('div',
+ * @param type - The type of node to create
+ * @param attr - The attributes to set
+ * @param attrValue - The values of the attributes
+ * @param content - The innerHTML
+ * @param event - The type of event
+ * @param eventFunc - The event callback
+ * @returns {Element}
+ */
 function build_node(type, attr, attrValue, content, event, eventFunc) {
     var elem = document.createElement(type);
     for (var i = 0; i < attr.length; i++)
@@ -805,42 +880,14 @@ function build_node(type, attr, attrValue, content, event, eventFunc) {
     return elem;
 }
 
-function sw_to_number_rc(sw_stringnumber) { //Spécial pour les RC ( virgules à la place des points) {
-    return parseInt(sw_stringnumber.replace(/,/g, ''));
-}
-
-function get_nb_from_stringtab(tab) {
-    var result = "";
-    for (var k = 0; k < tab.length; k++)
-        result += tab[k];
-    return parseInt(result);
-}
-
-// Page doesn't exist anymore...
-// function send_datas_to_carto() {
-//     if (this.GM_xmlhttpRequest.toString().indexOf("not supported") > -1)
-//         alert(L_["cant_xml"]);
-//     var infos = encodeURIComponent(config.Carto);
-//     document.getElementById("loader").style.display = "inline-block";
-//     document.getElementById("Carto_send").style.display = "none";
-//     GM_xmlhttpRequest({
-//         method: "POST",
-//         url: carto_link,
-//         data: "univers=" + uni + "&data=" + infos,
-//         headers: {
-//             "Content-Type": "application/x-www-form-urlencoded"
-//         },
-//         onload: function(response) {
-//             document.getElementById("loader").style.display = "none";
-//             document.getElementById("Carto_send").style.display =
-//                 "inline-block";
-//             if (response.responseText !== "") {
-//                 alert(response.responseText);
-//             }
-//         }
-//     });
-// }
-
+/**
+ * Creates a top level script with the given name, script number, and tooltip text
+ *
+ * @param name - The name of the script
+ * @param n - The script index
+ * @param tooltiptext - The tooltip text to display
+ * @returns {Element}
+ */
 function create_script_activity(name, n, tooltiptext) {
     var scr = build_node("div", ["class"], ["script"], "");
     var scr_title = build_node("div", ["class"], ["script_title"], "");
@@ -862,6 +909,16 @@ function create_script_activity(name, n, tooltiptext) {
     return scr;
 }
 
+/**
+ * Creates an array of elements that when put in a container
+ * will display something of the form
+ *
+ *     niceName: [] Activate  [] Deactivate
+ *
+ * @param name - the underlying name of the radio button
+ * @param niceName - the "nice" name to display
+ * @returns {Array} - The array of radio button elements
+ */
 function create_script_option_radio(name, niceName) {
     var arr = [];
     arr.push(document.createTextNode(niceName + " : "));
@@ -872,6 +929,14 @@ function create_script_option_radio(name, niceName) {
     return arr;
 }
 
+/**
+ * Builds an array of elements that represent the options of a script
+ * @param types - Array of element types
+ * @param attributes - Array of attribute arrays
+ * @param values - Array of attribute value arrays
+ * @param contents - Array of element contents
+ * @returns {Array} - The list of built nodes
+ */
 function create_script_option(types, attributes, values, contents) {
     var result = [];
     for (var i = 0; i < types.length; i++) {
@@ -880,9 +945,16 @@ function create_script_option(types, attributes, values, contents) {
     return result;
 }
 
+/**
+ * Build the list of GalaxyRanks options
+ * @param len - The number of color choices
+ * @returns {Array}
+ */
 function createRankOptions(len) {
     var result = [], option, i, j;
     for (i = 0; i < len; i++) {
+        // Top [   x   ] : [   #color   ]
+        // Uses JSColor
         option = create_script_option(["label", "input", "label", "input"], [
             ["for"],
             ["type", "id", "style"],
@@ -899,6 +971,8 @@ function createRankOptions(len) {
         }
         result.push(document.createElement("br"));
     }
+
+    // All others : [   #color   ]
     option = create_script_option(["label", "input"], [
         ["for"],
         ["type", "id", "class"]
@@ -912,6 +986,12 @@ function createRankOptions(len) {
     return result;
 }
 
+/**
+ * Creates and returns a list of checkboxes with the given names
+ * @param names - Array of names to use
+ * @param width - The width of each item
+ * @returns {Array}
+ */
 function createCheckBoxItems(names, width) {
     var result = [];
     for (var i = 0; i < names.length; i++) {
@@ -924,6 +1004,8 @@ function createCheckBoxItems(names, width) {
     return result;
 }
 
+// Ugh, global stuff
+// Is this actually necessary anymore?
 // checking...
 if (infos_version === undefined || infos_version === null || infos_version.version !== thisVersion) {
     // ... 1st install ?
@@ -994,6 +1076,12 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
     }
 }
 
+/**
+ * Returns the desired GET parameter from a URL
+ * @param name - the parameter to find
+ * @param url - the URL to search
+ * @returns {*} - The parameter value, or null if not found
+ */
 function getParameterByName(name, url) {
     if (!url) url = window.location.href;
     name = name.replace(/[\[\]]/g, "\\$&");
@@ -1004,6 +1092,7 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
 
+// More globals...
 // the variable name 'location' makes Opera bugging
 info = get_infos_from_page();
 page = info.loc;
@@ -1013,6 +1102,7 @@ L_ = set_dictionary();
 var MerchantMap = setMerchantMap();
 var nbUnis = infos_version.nbUnis;
 
+// Try to grab the config scripts for the universe, otherwise set them ourselves
 if (uni !== 0 && uni !== undefined && uni !== null) {
     try {
         config = JSON.parse(GM_getValue("config_scripts_uni_" + uni));
@@ -1023,6 +1113,7 @@ if (uni !== 0 && uni !== undefined && uni !== null) {
     }
 }
 
+// Try to get general info scripts, set to default otherwise
 try {
     infos_scripts = JSON.parse(GM_getValue("infos_scripts"));
     if (infos_scripts === null || infos_scripts === undefined)
@@ -1031,6 +1122,7 @@ try {
     infos_scripts = set_infos_scripts();
 }
 
+// uni_0 indicates index or forum, use that config
 if (page === "forum" || page === "index") {
     try {
         config = JSON.parse(GM_getValue("config_scripts_uni_0"));
@@ -1040,6 +1132,7 @@ if (page === "forum" || page === "index") {
     }
 }
 
+// Persistent left menu
 if (page === "leftmenu") {
     // NV for SW ?
     if (document.getElementsByClassName("lm_lang")[0] === undefined) {
@@ -1077,25 +1170,31 @@ if (page === "leftmenu") {
 
     $(sfm_check).prop("checked", spyForMe);
     $(aa_check).prop("checked", autoAttack);
-    // NV for script ?
-    //check_new_version();
 }
 
+// SpacesWars did away with userscripts, and along with it the
+// configurating page that used to be built in. To work around it,
+// redirect to the "bonus" page when the GM icon is clicked and set a
+// flag that tells us to overwrite the page with our custom content below
 if (page === "achatbonus" && window.location.search.includes("config=1")) {
     createAndLoadConfigurationPage();
 }
 
-// Create the configuration page. Since we have to build everything with
-// JS, it's quite long and bad looking
+/**
+ * Overwrites the "Bonus" page with our script config page. So ugly,
+ * but when you build up an entire page of elements using mostly vanilla
+ * JS, that's what you get.
+ */
 function createAndLoadConfigurationPage() {
     var main = document.getElementById("main");
     main.innerHTML = "";
     main.removeAttribute("id");
     main.className = "mainSettings";
 
-    uni = getParameterByName('uni');
+    uni = getParameterByName('uni'); // Why can't I just use the `uni` that we already defined?
 
     (function() {
+        // Set custom CSS inline in JS, because why not
         var style = document.createElement('style');
         //noinspection JSAnnotator,JSAnnotator
         style.appendChild(document.createTextNode(
@@ -1393,6 +1492,7 @@ function createAndLoadConfigurationPage() {
         infos_scripts = set_infos_scripts();
     }
 
+    // Fill page with current settings
     for (var i = 0; i < nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
         (infos_scripts[script]) ? actives[i].checked = true: actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
@@ -1511,6 +1611,14 @@ function createAndLoadConfigurationPage() {
     }
 }
 
+/**
+ * Attach the script options to the top leve script
+ *
+ * @param header - The main option - "ScriptName      [x] Activate [] Deactivate"
+ * @param options - The container that hold the script options
+ * @param id - The id for the script
+ * @returns {Element}
+ */
 function pack_script(header, options, id) {
     var div = document.createElement("div");
     div.className = "script_container";
@@ -1521,6 +1629,10 @@ function pack_script(header, options, id) {
     return div;
 }
 
+/**
+ * Create the options for RConverter
+ * @returns {Array}
+ */
 function createRConvOptions() {
     var result = [];
     var text = ['Intro picture', "'BOOM' picture", "'Destroyed' picture", "'Result' picture", "Retentability picture"];
@@ -1535,6 +1647,10 @@ function createRConvOptions() {
     return result;
 }
 
+/**
+ * Create the options for EasyFarm
+ * @returns {Array}
+ */
 function createEasyFarmOptions() {
     var result = [];
     var text = ["Looting level", "Looting color", "Field ruins level", "Field ruins color"];
@@ -1564,6 +1680,10 @@ function createEasyFarmOptions() {
     return result;
 }
 
+/**
+ * Create the options for Markit
+ * @returns {Array}
+ */
 function createMarkitOptions() {
     var result = [], i, j;
     var text = ["'Fridge' color", "'Bunker' color", "'To attack' color", "'To not attack' color"];
@@ -1583,10 +1703,8 @@ function createMarkitOptions() {
 }
 
 
-// When "Saved" is clicked...
-
+// When "Save" is clicked...
 function saveSettings() {
-    //this.src = scripts_icons + "loading.gif";
     var saveButton = $("#save")[0];
     saveButton.value = "Saving";
     var inputs;
@@ -1679,6 +1797,11 @@ if (can_load_in_page("ClicNGo")) { // doesn't count as a script (no option to de
     loadClickNGo()
 }
 
+/**
+ * Pretty sure this is broken. Used to be a universe manager of sorts
+ * in the index page. Maybe I'll get around to fixing it, but I don't
+ * really have any use for it.
+ */
 function loadClickNGo() {
     document.getElementsByTagName("body")[0].appendChild(build_node("script", [
         "type"
@@ -1781,6 +1904,10 @@ if (can_load_in_page("RConverter") && infos_scripts.RConverter) {
     loadRConverter();
 }
 
+/**
+ * Creates nicely formatted battle reports. Not written by me, but has
+ * been tweaked so as not to break anything
+ */
 function loadRConverter() {
     var couleurs_rc = {
         0: "#0000FF",
@@ -1958,6 +2085,10 @@ if (can_load_in_page("EasyFarm") && infos_scripts.EasyFarm) {
     loadEasyFarm();
 }
 
+/**
+ * Highlights spy reports that have lots of resources/fleet,
+ * among other things
+ */
 function loadEasyFarm() {
     if (parseInt(GM_getValue("redirToSpy")) === 1) {
         GM_deleteValue("redirToSpy");
@@ -1976,6 +2107,8 @@ function loadEasyFarm() {
     var attackIndex = -1;
     var aaIndex = parseInt(GM_getValue("AutoAttackIndex"));
 
+    // Build up a list of planets we should avoid spying next time because
+    // they have very little resources
     var doNotSpy;
     try {
         doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + uni));
@@ -1988,6 +2121,7 @@ function loadEasyFarm() {
             }
         }
     }
+
     if (isNaN(aaIndex))
         aaIndex = -1;
     for (i = 0; i < messages.length; i++) {
@@ -2090,6 +2224,7 @@ function loadEasyFarm() {
             "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
         messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
 
+        // Definitely not a bot... I don't know what you're talking about
         if (autoAttack) {
             var href = messages[i].getElementsByTagName("a")[2].href;
             (function(count, res, href) {
@@ -2107,6 +2242,7 @@ function loadEasyFarm() {
             }
         }
     }
+
     if (!autoAttack) {
         GM_deleteValue("AutoAttackWaves");
         GM_deleteValue("AutoAttackMC");
@@ -2131,9 +2267,12 @@ function loadEasyFarm() {
 //////////////////////////
 //                      //
 // Start of new scripts //
-//                      //
+//        (kinda)       //
 //////////////////////////
 
+// I wrote this, but I don't know where the magic number
+// 22 is coming from. It replaces '?' in the simulator
+// with whatever values are available though
 if (page === 'simulator') {
     if ($('.simu_120').length === 22) {
         var a109 = $('#a109');
@@ -2201,6 +2340,17 @@ if (can_load_in_page('InactiveStats') && (infos_scripts.InactiveStats || infos_s
     loadInactiveStatsAndFleetPoints(infos_scripts);
 }
 
+/**
+ * Display who's inactive in the statistics page, as well
+ * as build up a database of current points for given categories,
+ * which allows us to determine their fleet points, which is
+ * otherwise unavailable to us.
+ *
+ * This is only the beginning of my awfulness...
+ *
+ * @param infos_scripts - The current script settings
+ *
+ */
 function loadInactiveStatsAndFleetPoints(infos_scripts) {
     var lst;
     var fp;
@@ -2415,6 +2565,14 @@ if (can_load_in_page("More_deutRow") && infos_scripts.More && config.More.deutRo
     loadDeutRow();
 }
 
+/**
+ * Display a planet's resources in deut
+ *
+ *     Metal : 8
+ *     Crystal : 2
+ *     Deuterium : 2
+ *     AllInDeut: 5
+ */
 function loadDeutRow() {
     var header = $('.default_1c1b');
     var m = parseInt((header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
@@ -2459,6 +2617,9 @@ if (can_load_in_page('More_deutRow') && infos_scripts.More && config.More.conver
     loadConvertClick();
 }
 
+/**
+ * Convert all resources to the one clicked on in the header
+ */
 function loadConvertClick() {
     var header = $('.default_1c1b');
     header[0].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'metalClick');
@@ -2491,7 +2652,6 @@ function loadConvertClick() {
 
     $('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
         var item = $(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
-        console.log("ITEM: " + item);
         GM_setValue("MerchantItem", item);
         GM_setValue("ResourceRedirect", window.location.href);
         window.location = "marchand.php";
@@ -2502,6 +2662,10 @@ if (page === 'fleet' && infos_scripts.More && config.More.mcTransport && uni ===
     loadMcTransport();
 }
 
+/**
+ * Estimate the number of Massive Cargos needed to transport the current resources
+ * on the planet. Numbers are very specific to uni 17.
+ */
 function loadMcTransport() {
     var header = $('.default_1c1b');
     var m = parseInt((header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
@@ -2544,6 +2708,10 @@ if (can_load_in_page("empireTotal") && infos_scripts.BetterEmpire) {
     loadBetterEmpire(config);
 }
 
+/**
+ * Organizes Empire view to optionally show totals first and moons last
+ * @param config
+ */
 function loadBetterEmpire(config) {
     var space, i, j, row, planets;
     var spaceSelector = $('.space0');
@@ -2644,6 +2812,12 @@ function loadBetterEmpire(config) {
     }
 }
 
+/**
+ * Converts a hex string value into an rgba object
+ *
+ * @param hex - the hex value. Must be 6 hex digits preceded by #
+ * @returns {*} - The rgba object, or null if given a bad string
+ */
 function hexToRgb(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -2658,6 +2832,17 @@ if (can_load_in_page("EasyTarget")) {
     loadEasyTargetAndMarkit(infos_scripts, config);
 }
 
+/**
+ * Beginnings of an attempt to remove JQuery dependencies. Animates the given elements' background
+ * to the new color
+ *
+ * @param element - The element to animate
+ * @param newColor - One of
+ *                   - rgba object
+ *                   - Hex string (#ABCDEF) - Must be full 6 values
+ *                   - "transparent"
+ * @param duration - How long the transition should last
+ */
 function animateBackground(element, newColor, duration) {
     var steps = Math.round(duration / (50/3));
     var oldColorTemp = getComputedStyle(element).backgroundColor;
@@ -2694,7 +2879,7 @@ function animateBackground(element, newColor, duration) {
  * The main processor while in the galaxy view, including Markit and EasyTarget
  *
  * Looking back, I'm surprised I was able to make this when I did. Lots of little hitches,
- * but for the most part very robust and feature rich.
+ * but for the most part very robust and feature rich. (Minus the god-awful style/maintainability)
  * @param infos_scripts
  * @param config
  */
@@ -3235,7 +3420,12 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 }
 
 /**
- * Sort galaxy coordinates from smallest to largest
+ * Custom sorter to rank strings of the form A:B:C, in which
+ * A takes precedent over B which takes precedent over C
+ *
+ * @param a
+ * @param b
+ * @returns {number}
  */
 function galaxySort(a, b) {
     var a1 = parseInt(a.substring(0, 1)),
@@ -3257,6 +3447,19 @@ function galaxySort(a, b) {
     }
 }
 
+/**
+ * Transitions us to the given new coordinates and highlights the
+ * desired planet. Is now smart enough to know not to reload a page
+ * if the planet is in the same system.
+ *
+ * @param oldCoords
+ * @param newCoords
+ * @param rows - Array of rows containing the planets in the current system
+ * @param name - TODO
+ * @param infos_scripts - The current script settings
+ * @param markit - the script markit data
+ * @returns {string}
+ */
 function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, markit) {
     var oldTemp = oldCoords;
     var oldGal = oldCoords.substring(0, oldCoords.indexOf(":"));
@@ -3312,6 +3515,11 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
     }
 }
 
+/**
+ * Returns whether we should disable autocomplete for the given page
+ * @param p - the page
+ * @returns {boolean}
+ */
 function auto_complete_selected(p) {
     var pages = config.NoAutoComplete;
     if (pages[p]) return true;
@@ -3321,6 +3529,7 @@ function auto_complete_selected(p) {
     return false;
 }
 
+// Disable autocomplete on all qualifying input fields
 if (infos_scripts.NoAutoComplete && auto_complete_selected(page)) {
     elements = document.getElementsByTagName('input');
     for (i = 0; i < elements.length; i++) {
@@ -3332,6 +3541,9 @@ if (can_load_in_page("AllinDeut") && infos_scripts.AllinDeut) {
     loadAllinDeut();
 }
 
+/**
+ * Show how much research/buildings cost in al deut
+ */
 function loadAllinDeut() {
     var xpath_pages = {
         "buildings": "//div[@class='buildings_1b']/div[@class='buildings_1b1'][3]",
@@ -3384,6 +3596,9 @@ if (can_load_in_page("iFly") && infos_scripts.iFly) {
     loadiFly();
 }
 
+/**
+ *
+ */
 function loadiFly() {
     var i = 1,
         ressources, metal, cristal, deut, metal_total = 0,
@@ -3422,6 +3637,9 @@ if (can_load_in_page("TChatty") && infos_scripts.TChatty) {
     loadTChatty()
 }
 
+/**
+ * Improved chat
+ */
 function loadTChatty() {
     var color = config.TChatty.color;
     var toolbar = get_dom_xpath("//div[@class='toolbar']", document, 0);
@@ -3490,6 +3708,10 @@ if (page === "fleet") {
     saveFleetPage();
 }
 
+/**
+ * Autoattack handler, as well as defining some
+ * keyboard shortcuts
+ */
 function saveFleetPage() {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
@@ -3580,6 +3802,9 @@ if (page === "floten1") {
     continueAttack();
 }
 
+/**
+ * More autoattack and keyboard shortcuts
+ */
 function continueAttack() {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
@@ -3620,6 +3845,9 @@ function sendAttack() {
     }
 }
 
+/**
+ * Entry point for loading the scripts located under the "more" config category
+ */
 function loadMore() {
     if (can_load_in_page("More_moonsList") && config.More.moonsList) {
         var options = document.getElementById("changeplanet").getElementsByTagName("option");
@@ -3628,6 +3856,7 @@ function loadMore() {
                 "SteelBlue";
     }
 
+    // More conversion options on the merchant page
     if (can_load_in_page("More_convertDeut") && config.More.convertDeut) {
         if (document.getElementById('marchand_suba') !== null) {
 
@@ -3675,6 +3904,7 @@ function loadMore() {
         }
     }
 
+    // Translator?
     if (can_load_in_page("More_traductor") && config.More.traductor) {
         function to_translate(word, lang1, lang2) {
             GM_xmlhttpRequest({
@@ -3745,6 +3975,7 @@ function loadMore() {
         document.getElementsByTagName("body")[0].appendChild(div);
     }
 
+    // Select production percentage for all resources
     if (can_load_in_page("More_resources") && config.More.resources) {
         html = "<div class='ressources_sub1a' style='float:left'>" + L_[
             "More_allTo"] + "</div>";
@@ -3764,6 +3995,8 @@ function loadMore() {
             "space0 ressources_font_little ressources_bordert")[0]);
     }
 
+    // Quickly return to the main fleet page after sending an attack, and remember
+    // the previous coordinates
     if (can_load_in_page("More_redirectFleet") && config.More.redirectFleet) {
         window.onload = function() {
             var fullLoc = false;
@@ -3788,14 +4021,16 @@ function loadMore() {
         };
     }
 
+    // Make return fleets transparent in the overview
     if (can_load_in_page("More_returns") && config.More.returns) {
         var returns = document.getElementsByClassName('curvedtot return');
         for (i = 0; i < returns.length; i++)
             returns[i].style.opacity = "0.6";
     }
 
+    // Make the arrows larger
     if (can_load_in_page("More_arrows") && config.More.arrows) {
-        document.getElementById("previousplanet").value = "<<<<<";
+        document.getElementById("previousplanet").value = "<<<<<<br><<<<<";
         document.getElementById("nextplanet").value = ">>>>>";
     }
 }
