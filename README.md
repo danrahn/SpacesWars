@@ -1,0 +1,1 @@
+Watch me attempt to make this Tampermonkey script monstrosity somewhat manageable
