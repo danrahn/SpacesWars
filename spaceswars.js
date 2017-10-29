@@ -149,7 +149,7 @@ try {
 
 var info, page, config, uni, i, j;
 
-function can_load_in_page(script) {
+function canLoadInPage(script) {
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
     var can_load = null;
@@ -255,7 +255,7 @@ function can_load_in_page(script) {
  * @param nStr - String to translate
  * @returns {string|*}
  */
-function get_slashed_nb(nStr) {
+function getSlashedNb(nStr) {
     nStr =  Math.ceil(nStr).toString();
     var rgx = /(\d+)(\d{3})/;
     while (rgx.test(nStr)) {
@@ -269,7 +269,7 @@ function get_slashed_nb(nStr) {
  *
  * @returns {{}} The dictionary
  */
-function set_dictionary() {
+function setDictionary() {
     var tab = [];
     switch (lang) {
         case "fr":
@@ -623,7 +623,7 @@ function setMerchantMap() {
  *
  * @returns {*}
  */
-function set_infos_version() {
+function setInfosVersion() {
     var date = new Date();
     var tab = {};
     tab.version = "4.1";
@@ -641,7 +641,7 @@ function set_infos_version() {
  *
  * @returns the list of top-level script options
  */
-function set_infos_scripts() {
+function setInfosScripts() {
     var list = {};
     list.RConverter = 1;
     list.EasyFarm = 1;
@@ -668,7 +668,7 @@ function set_infos_scripts() {
  * @param uni - current universe
  * @returns {{}} - the script config
  */
-function set_config_scripts(uni) {
+function setConfigScripts(uni) {
     if (uni > infos_version.nbUnis) {
         infos_version.nbUnis = uni;
         GM_setValue("infos_version", JSON.stringify(infos_version));
@@ -756,7 +756,7 @@ function set_config_scripts(uni) {
  *
  * @returns {{}} the page information
  */
-function get_infos_from_page() {
+function getInfosFromPage() {
     var list = {};
     if (/niark/.test(window.location.href)) {
         list.loc = "niark";
@@ -780,7 +780,7 @@ function get_infos_from_page() {
  * @param row - the row to return (optionally -1 to return all and -42 to return the last)
  * @returns {*} the desired dom element(s)
  */
-function get_dom_xpath(xpath, inDom, row) {
+function getDomXpath(xpath, inDom, row) {
     var tab = [];
     var alltags = document.evaluate(xpath, inDom, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
     for (var i = 0; i < alltags.snapshotLength; i++) {
@@ -796,7 +796,7 @@ function get_dom_xpath(xpath, inDom, row) {
  * @param sw_stringnumber - the String to parse
  * @returns {Number}
  */
-function sw_to_number_rc(sw_stringnumber) { //Spécial pour les RC ( virgules à la place des points) {
+function swToNumberRc(sw_stringnumber) { //Spécial pour les RC ( virgules à la place des points) {
     return parseInt(sw_stringnumber.replace(/,/g, ''));
 }
 
@@ -808,7 +808,7 @@ function sw_to_number_rc(sw_stringnumber) { //Spécial pour les RC ( virgules à
  * @param tab - an array of string digits
  * @returns {Number} The number resulting in parsing the concatenation of @tab
  */
-function get_nb_from_stringtab(tab) {
+function getNbFromStringtab(tab) {
     return parseInt(tab.join(''));
 }
 
@@ -817,10 +817,10 @@ function get_nb_from_stringtab(tab) {
 // checking...
 if (infos_version === undefined || infos_version === null || infos_version.version !== thisVersion) {
     // ... 1st install ?
-    page = get_infos_from_page().loc;
+    page = getInfosFromPage().loc;
     if (infos_version === undefined || infos_version === null) {
-        infos_version = set_infos_version();
-        infos_scripts = set_infos_scripts();
+        infos_version = setInfosVersion();
+        infos_scripts = setInfosScripts();
         // get a message if can't have the gm icon without F5 refresh (frames)
         if (infos_version.version === thisVersion && page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
             alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
@@ -842,8 +842,8 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
             GM_deleteValue("options_script6");
             GM_deleteValue("options_script7");
             GM_deleteValue("options_script8");
-            infos_version = set_infos_version();
-            infos_scripts = set_infos_scripts();
+            infos_version = setInfosVersion();
+            infos_scripts = setInfosScripts();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
             if (page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
@@ -851,7 +851,7 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
         }
         if (infos_version.version === "4.0") {
             GM_deleteValue("config_scripts_uni_0");
-            set_config_scripts(0);
+            setConfigScripts(0);
             for (i = 1; i <= 17; i++) {
                 try {
                     config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
@@ -873,10 +873,10 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
                     GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
                 }
             }
-            infos_version = set_infos_version();
+            infos_version = setInfosVersion();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
-            page = get_infos_from_page().loc;
+            page = getInfosFromPage().loc;
             if (page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames") {
                 alert("Script mis à jour.\n\nScript updated.");
             }
@@ -902,11 +902,11 @@ function getParameterByName(name, url) {
 
 // More globals...
 // the variable name 'location' makes Opera bugging
-info = get_infos_from_page();
+info = getInfosFromPage();
 page = info.loc;
 uni = info.universe;
 lang = infos_version.language;
-L_ = set_dictionary();
+L_ = setDictionary();
 var MerchantMap = setMerchantMap();
 var nbUnis = infos_version.nbUnis;
 
@@ -915,9 +915,9 @@ if (uni !== 0 && uni !== undefined && uni !== null) {
     try {
         config = JSON.parse(GM_getValue("config_scripts_uni_" + uni));
         if (config === null || config === undefined)
-            config = set_config_scripts(uni);
+            config = setConfigScripts(uni);
     } catch (ex) {
-        config = set_config_scripts(uni);
+        config = setConfigScripts(uni);
     }
 }
 
@@ -925,18 +925,18 @@ if (uni !== 0 && uni !== undefined && uni !== null) {
 try {
     infos_scripts = JSON.parse(GM_getValue("infos_scripts"));
     if (infos_scripts === null || infos_scripts === undefined)
-        infos_scripts = set_infos_scripts();
+        infos_scripts = setInfosScripts();
 } catch (ex) {
-    infos_scripts = set_infos_scripts();
+    infos_scripts = setInfosScripts();
 }
 
 // uni_0 indicates index or forum, use that config
 if (page === "forum" || page === "index") {
     try {
         config = JSON.parse(GM_getValue("config_scripts_uni_0"));
-        if (config === undefined) config = set_config_scripts(0);
+        if (config === undefined) config = setConfigScripts(0);
     } catch (ex) {
-        config = set_config_scripts(0);
+        config = setConfigScripts(0);
     }
 }
 
@@ -948,7 +948,7 @@ if (page === "leftmenu") {
         // return;
     }
     // get lang
-    var logout_box = get_dom_xpath("//a[@href='logout.php']", document, 0);
+    var logout_box = getDomXpath("//a[@href='logout.php']", document, 0);
     if (logout_box.innerHTML === "Logout") {
         infos_version.language = "en";
     } else {
@@ -957,13 +957,13 @@ if (page === "leftmenu") {
     GM_setValue("infos_version", JSON.stringify(infos_version));
     lang = infos_version.language;
     // gm_icon
-    var lang_box = get_dom_xpath("//div[@class='lm_lang']", document, 0);
-    var gm_icon = build_node("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
+    var lang_box = getDomXpath("//div[@class='lm_lang']", document, 0);
+    var gm_icon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
         "<a href='achatbonus.php?lang=" + lang + "&uni=" + uni +
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + gmicon + "' alt='GM'/></a>");
     lang_box.appendChild(gm_icon);
-    var sfm_check = build_node("input", ["type"], ["checkbox"]);
-    var aa_check = build_node("input", ["type"], ["checkbox"]);
+    var sfm_check = buildNode("input", ["type"], ["checkbox"]);
+    var aa_check = buildNode("input", ["type"], ["checkbox"]);
 
     $(sfm_check).change(function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
@@ -1007,7 +1007,7 @@ function createAndLoadConfigurationPage() {
 
     //First time using DTR's scripts, reset the config file.
     if (config.GalaxyRanks === undefined || config.NoAutoComplete === undefined) {
-        config = set_config_scripts(uni);
+        config = setConfigScripts(uni);
     }
     if (config.BetterEmpire === undefined) {
         config.BetterEmpire = {};
@@ -1015,16 +1015,16 @@ function createAndLoadConfigurationPage() {
         config.BetterEmpire.moonsLast = 1;
     }
     // Needed to get new tooltips to work
-    get_dom_xpath("//body", document, 0).appendChild(build_node("script", ["type"], ["text/javascript"],
+    getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
     ));
 
     var scripts = createScripts();
 
     // Attach main new scripts and their options
-    var save = build_node('input', ['type', 'id', 'value'], ['button', 'save', 'Save'], '');
+    var save = buildNode('input', ['type', 'id', 'value'], ['button', 'save', 'Save'], '');
     save.onclick = saveSettings;
-    var deleteAll = build_node('input', ['type', 'id', 'value'], ['button', 'delAll', 'Delete All Data'], '', 'click', function() {
+    var deleteAll = buildNode('input', ['type', 'id', 'value'], ['button', 'delAll', 'Delete All Data'], '', 'click', function() {
         if (confirm("Are you sure you want to delete all data across all universes?")) {
             deleteAllData();
             this.value = "Deleted";
@@ -1032,27 +1032,26 @@ function createAndLoadConfigurationPage() {
         }
     });
 
-    var col1 = build_node('div', ['class', 'id'], ['col', 'col1'], '');
-    var col2 = build_node('div', ['class', 'id'], ['col', 'col2'], '');
+    var col1 = buildNode('div', ['class', 'id'], ['col', 'col1'], '');
+    var col2 = buildNode('div', ['class', 'id'], ['col', 'col2'], '');
+    var col1Cutoff = 8;
     main.appendChild(save);
     main.appendChild(col1);
     main.appendChild(col2);
     main.appendChild(deleteAll);
-    col1.appendChild(scripts[0]);   // RConverter
-    col1.appendChild(scripts[1]);   // EasyFarm
-    col1.appendChild(scripts[2]);   // AllInDeut
-    col1.appendChild(scripts[3]);   // iFly
-    col1.appendChild(scripts[4]);   // TChatty
-    col1.appendChild(scripts[5]);   // InactiveStats
-    col1.appendChild(scripts[6]);   // EasyTarger
-    col1.appendChild(scripts[7]);   // NoAutoComplete
-    col2.appendChild(scripts[8]);   // Markit
-    col2.appendChild(scripts[9]);   // GalaxyRanks
-    col2.appendChild(scripts[10]);  // BetterEmpire
-    col2.appendChild(scripts[11]);  // FleetPoints
-    col2.appendChild(scripts[12]);  // More
+
+    // Current order: Col1: RConverter, EasyFarm, AllinDeut, iFly, TChatty, InactiveStats, EasyTarget, NoAutoComplete
+    //                Col2: Markit, GalaxyRanks, BetterEmpire, FleetPoints, More
+    for (var i = 0; i < scripts.length; i++) {
+        if (i < col1Cutoff)
+            col1.append(scripts[i]);
+        else
+            col2.append(scripts[i]);
+    }
+
     document.body.appendChild(main);
 
+    //
     $('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
         if (!this.checked) {
             var betterEmpId = $("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
@@ -1205,114 +1204,113 @@ function setStyle() {
  */
 function populateConfig() {
 
-    var actives = get_dom_xpath("//div[@class='script_active']/input[1]", document, -1),
+    var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1),
         script;
-    var options = get_dom_xpath("//div[@class='script_options']", document, -1),
+    var options = getDomXpath("//div[@class='script_options']", document, -1),
         inputs;
 
     if (infos_scripts === undefined || infos_scripts === null) {
         console.log("reset");
-        infos_scripts = set_infos_scripts();
+        infos_scripts = setInfosScripts();
     }
 
-    // Fill page with current settings
-    for (var i = 0; i < nbScripts; i++) {
-        var script = /(.*)_activate/.exec(actives[i].id)[1];
-        (infos_scripts[script]) ? actives[i].checked = true: actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
-        switch (script) {
-            case "RConverter":
-                inputs = options[0].getElementsByTagName("input");
-                inputs[0].value = config.RConverter.header;
-                inputs[1].value = config.RConverter.boom;
-                inputs[2].value = config.RConverter.destroyed;
-                inputs[3].value = config.RConverter.result;
-                inputs[4].value = config.RConverter.renta;
-                break;
-            case "EasyFarm":
-                inputs = options[1].getElementsByTagName("input");
-                inputs[0].value = config.EasyFarm.minPillage;
-                inputs[1].value = config.EasyFarm.colorPill;
-                inputs[2].value = config.EasyFarm.minCDR;
-                inputs[3].value = config.EasyFarm.colorCDR;
-                break;
-            case "EasyTarget":
-                inputs = options[2].getElementsByTagName('input');
-                inputs[0].addEventListener('click', function() {
-                    var easyTargetText = $('#EasyTarget_text')[0];
-                    var data = easyTargetText.value;
-                    try {
-                        JSON.parse(data);
-                    } catch (err) {
-                        alert('Invalid format, not changing');
-                        return;
-                    }
-                    if (data.length !== 0) {
-                        var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
-                        if (conf) GM_setValue('galaxy_data_' + uni, data);
-                        easyTargetText.value = '';
-                    }
-                });
-                inputs[1].addEventListener('click', function() {
-                    var easyTargetText = $('#EasyTarget_text')[0];
-                    easyTargetText.value = GM_getValue('galaxy_data_' + uni);
-                    easyTargetText.focus();
-                    easyTargetText.select();
-                });
-                break;
-            case "NoAutoComplete":
-                inputs = options[3].getElementsByTagName('input');
-                inputs[0].checked = config.NoAutoComplete.galaxy;
-                inputs[1].checked = config.NoAutoComplete.fleet;
-                inputs[2].checked = config.NoAutoComplete.floten1;
-                inputs[3].checked = config.NoAutoComplete.floten2;
-                inputs[4].checked = config.NoAutoComplete.build_fleet;
-                inputs[5].checked = config.NoAutoComplete.build_def;
-                inputs[6].checked = config.NoAutoComplete.sims;
-                inputs[7].checked = config.NoAutoComplete.marchand;
-                inputs[8].checked = config.NoAutoComplete.scrapdealer;
-                break;
-            case "Markit":
-                inputs = options[4].getElementsByTagName("input");
-                inputs[0].value = config.Markit.color.fridge;
-                inputs[1].value = config.Markit.color.bunker;
-                inputs[2].value = config.Markit.color.raidy;
-                inputs[3].value = config.Markit.color.dont;
-                inputs[4].addEventListener("click", function() {
-                    if (confirm("Reset ?")) {
-                        config.Markit.coord = {};
-                        GM_setValue('markit_data_' + uni, JSON.stringify({}));
-                        GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
-                    }
-                }, false);
-                break;
-            case "GalaxyRanks":
-                inputs = options[5].getElementsByTagName('input');
-                for (var j = 0; j < config.GalaxyRanks.ranks.length; j++) {
-                    inputs[j * 2].value = config.GalaxyRanks.ranks[j];
-                    inputs[j * 2 + 1].value = config.GalaxyRanks.values[j];
-                }
-                inputs[inputs.length - 3].value = config.GalaxyRanks.values[config.GalaxyRanks.values.length - 1];
-                if (config.GalaxyRanks.inactives) inputs[inputs.length - 2].checked = true;
-                break;
-            case "BetterEmpire":
-                inputs = options[6].getElementsByTagName('input');
-                if (config.BetterEmpire.byMainSort) inputs[0].checked = true;
-                if (config.BetterEmpire.moonsLast) inputs[1].checked = true;
-                break;
-            case "More":
-                inputs = options[7].getElementsByTagName("input");
-                if (config.More.moonsList) inputs[0].checked = true;
-                if (config.More.convertDeut) inputs[2].checked = true;
-                if (config.More.traductor) inputs[4].checked = true;
-                if (config.More.resources) inputs[6].checked = true;
-                if (config.More.redirectFleet) inputs[8].checked = true;
-                if (config.More.arrows) inputs[10].checked = true;
-                if (config.More.returns) inputs[12].checked = true;
-                if (config.More.deutRow) inputs[14].checked = true;
-                if (config.More.convertClick) inputs[16].checked = true;
-                if (config.More.mcTransport) inputs[18].checked = true;
-                break;
+    // RConverter
+    inputs = options[0].getElementsByTagName("input");
+    inputs[0].value = config.RConverter.header;
+    inputs[1].value = config.RConverter.boom;
+    inputs[2].value = config.RConverter.destroyed;
+    inputs[3].value = config.RConverter.result;
+    inputs[4].value = config.RConverter.renta;
+
+    // EasyFarm
+    inputs = options[1].getElementsByTagName("input");
+    inputs[0].value = config.EasyFarm.minPillage;
+    inputs[1].value = config.EasyFarm.colorPill;
+    inputs[2].value = config.EasyFarm.minCDR;
+    inputs[3].value = config.EasyFarm.colorCDR;
+
+    // EasyTarget
+    inputs = options[2].getElementsByTagName('input');
+    inputs[0].addEventListener('click', function() {
+        // EasyTarget import
+        var easyTargetText = $('#EasyTarget_text')[0];
+        var data = easyTargetText.value;
+        try {
+            JSON.parse(data);
+        } catch (err) {
+            alert('Invalid format, not changing');
+            return;
         }
+        if (data.length !== 0) {
+            var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
+            if (conf) GM_setValue('galaxy_data_' + uni, data);
+            easyTargetText.value = '';
+        }
+    });
+    inputs[1].addEventListener('click', function() {
+        var easyTargetText = $('#EasyTarget_text')[0];
+        easyTargetText.value = GM_getValue('galaxy_data_' + uni);
+        easyTargetText.focus();
+        easyTargetText.select();
+    });
+
+    // NoAutoComplete
+    inputs = options[3].getElementsByTagName('input');
+    inputs[0].checked = config.NoAutoComplete.galaxy;
+    inputs[1].checked = config.NoAutoComplete.fleet;
+    inputs[2].checked = config.NoAutoComplete.floten1;
+    inputs[3].checked = config.NoAutoComplete.floten2;
+    inputs[4].checked = config.NoAutoComplete.build_fleet;
+    inputs[5].checked = config.NoAutoComplete.build_def;
+    inputs[6].checked = config.NoAutoComplete.sims;
+    inputs[7].checked = config.NoAutoComplete.marchand;
+    inputs[8].checked = config.NoAutoComplete.scrapdealer;
+
+    // Markit
+    inputs = options[4].getElementsByTagName("input");
+    inputs[0].value = config.Markit.color.fridge;
+    inputs[1].value = config.Markit.color.bunker;
+    inputs[2].value = config.Markit.color.raidy;
+    inputs[3].value = config.Markit.color.dont;
+    inputs[4].addEventListener("click", function() {
+        if (confirm("Reset ?")) {
+            config.Markit.coord = {};
+            GM_setValue('markit_data_' + uni, JSON.stringify({}));
+            GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
+        }
+    }, false);
+
+    // GalaxyRanks
+    inputs = options[5].getElementsByTagName('input');
+    for (var j = 0; j < config.GalaxyRanks.ranks.length; j++) {
+        inputs[j * 2].value = config.GalaxyRanks.ranks[j];
+        inputs[j * 2 + 1].value = config.GalaxyRanks.values[j];
+    }
+    inputs[inputs.length - 3].value = config.GalaxyRanks.values[config.GalaxyRanks.values.length - 1];
+    if (config.GalaxyRanks.inactives) inputs[inputs.length - 2].checked = true;
+
+    // BetterEmpire
+    inputs = options[6].getElementsByTagName('input');
+    if (config.BetterEmpire.byMainSort) inputs[0].checked = true;
+    if (config.BetterEmpire.moonsLast) inputs[1].checked = true;
+
+    // More
+    inputs = options[7].getElementsByTagName("input");
+    if (config.More.moonsList) inputs[0].checked = true;
+    if (config.More.convertDeut) inputs[2].checked = true;
+    if (config.More.traductor) inputs[4].checked = true;
+    if (config.More.resources) inputs[6].checked = true;
+    if (config.More.redirectFleet) inputs[8].checked = true;
+    if (config.More.arrows) inputs[10].checked = true;
+    if (config.More.returns) inputs[12].checked = true;
+    if (config.More.deutRow) inputs[14].checked = true;
+    if (config.More.convertClick) inputs[16].checked = true;
+    if (config.More.mcTransport) inputs[18].checked = true;
+
+    // Top-level activate/deactivate
+    for (var i = 0; i < nbScripts; i++) {
+        script = /(.*)_activate/.exec(actives[i].id)[1];
+        (infos_scripts[script]) ? actives[i].checked = true : actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
     }
 }
 
@@ -1329,16 +1327,16 @@ function createScripts() {
     return [
         createRConvScript(),
         createEasyFarmScript(),
-        pack_script(create_script_activity("AllinDeut", 3, L_.allinDeutDescrip1 + spanText + L_.allinDeutDescrip2 + "</span>"), null, "AllinDeut"),
-        pack_script(create_script_activity("IFly", 4, "???" + spanText + "???</span>"), null, "IFly"),
-        pack_script(create_script_activity("TChatty", 5, L_.tChattyDescrip1 + spanText + L_.tChattyDescrip2 + "</span>"), null, "TChatty"),
-        pack_script(create_script_activity("InactiveStats", 9, L_.inactiveDescrip1 + spanText + L_.inactiveDescrip2 + "</span>"), null, "InactiveStats"),
+        packScript(createScriptActivity("AllinDeut", 3, L_.allinDeutDescrip1 + spanText + L_.allinDeutDescrip2 + "</span>"), null, "AllinDeut"),
+        packScript(createScriptActivity("IFly", 4, "???" + spanText + "???</span>"), null, "IFly"),
+        packScript(createScriptActivity("TChatty", 5, L_.tChattyDescrip1 + spanText + L_.tChattyDescrip2 + "</span>"), null, "TChatty"),
+        packScript(createScriptActivity("InactiveStats", 9, L_.inactiveDescrip1 + spanText + L_.inactiveDescrip2 + "</span>"), null, "InactiveStats"),
         createEasyTargetScript(),
         createAutoCompleteScript(),
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
-        pack_script(create_script_activity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + "</span>"), null, "FleetPoints"),
+        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + "</span>"), null, "FleetPoints"),
         createMoreScript()
     ];
 }
@@ -1353,13 +1351,13 @@ function createScripts() {
  * @returns {Element}
  */
 function createRConvScript() {
-    var rConverter = create_script_activity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
-    var converter_container = build_node('div', ['class'], ['script_options'], '');
+    var rConverter = createScriptActivity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
+    var converter_container = buildNode('div', ['class'], ['script_options'], '');
     var rConv_options = createRConvOptions();
     for (i = 0; i < rConv_options.length; i++) {
         converter_container.appendChild(rConv_options[i]);
     }
-    return pack_script(rConverter, converter_container, "RConverter");
+    return packScript(rConverter, converter_container, "RConverter");
 }
 
 /**
@@ -1367,13 +1365,13 @@ function createRConvScript() {
  * @returns {Element}
  */
 function createEasyFarmScript() {
-    var easyFarm = create_script_activity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
-    var easyFarm_container = build_node('div', ['class'], ['script_options'], '');
+    var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
+    var easyFarm_container = buildNode('div', ['class'], ['script_options'], '');
     var easyFarm_options = createEasyFarmOptions();
     for (i = 0; i < easyFarm_options.length; i++) {
         easyFarm_container.appendChild(easyFarm_options[i]);
     }
-    return pack_script(easyFarm, easyFarm_container, "EasyFarm");
+    return packScript(easyFarm, easyFarm_container, "EasyFarm");
 }
 
 /**
@@ -1381,16 +1379,16 @@ function createEasyFarmScript() {
  * @returns {Element}
  */
 function createEasyTargetScript() {
-    var easyTarget = create_script_activity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
-    var target_container = build_node('div', ['class'], ['script_options'], '');
-    var easyTarget_textArea = build_node('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
+    var easyTarget = createScriptActivity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
+    var target_container = buildNode('div', ['class'], ['script_options'], '');
+    var easyTarget_textArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
     ], '');
-    var imprt = build_node('input', ['type', 'value'], ['button', L_['import']], '');
-    var exprt = build_node('input', ['type', 'value'], ['button', L_['export']], '');
+    var imprt = buildNode('input', ['type', 'value'], ['button', L_['import']], '');
+    var exprt = buildNode('input', ['type', 'value'], ['button', L_['export']], '');
     target_container.appendChild(imprt);
     target_container.appendChild(exprt);
     target_container.appendChild(easyTarget_textArea);
-    return pack_script(easyTarget, target_container, "EasyTarget");
+    return packScript(easyTarget, target_container, "EasyTarget");
 }
 
 /**
@@ -1398,15 +1396,15 @@ function createEasyTargetScript() {
  * @returns {Element}
  */
 function createAutoCompleteScript() {
-    var autoComplete = create_script_activity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
+    var autoComplete = createScriptActivity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
     var auto_options = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
-    var width_constraint = build_node('div', ['style'], ['max-width:300px'], '');
-    var auto_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
+    var width_constraint = buildNode('div', ['style'], ['max-width:300px'], '');
+    var auto_container = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
     for (i = 0; i < auto_options.length; i++) {
         width_constraint.appendChild(auto_options[i]);
     }
     auto_container.appendChild(width_constraint);
-    return pack_script(autoComplete, auto_container, "NoAutoComplete");
+    return packScript(autoComplete, auto_container, "NoAutoComplete");
 }
 
 /**
@@ -1415,13 +1413,13 @@ function createAutoCompleteScript() {
  * @returns {Element}
  */
 function createMarkitScript() {
-    var markit = create_script_activity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.markitDescrip2 + "</span>");
-    var markit_container = build_node('div', ['class'], ['script_options'], '');
+    var markit = createScriptActivity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.markitDescrip2 + "</span>");
+    var markit_container = buildNode('div', ['class'], ['script_options'], '');
     var markit_options = createMarkitOptions();
     for (i = 0; i < markit_options.length; i++) {
         markit_container.appendChild(markit_options[i]);
     }
-    return pack_script(markit, markit_container, "Markit");
+    return packScript(markit, markit_container, "Markit");
 }
 
 /**
@@ -1429,19 +1427,19 @@ function createMarkitScript() {
  * @returns {Element}
  */
 function createGalaxyRanksScript() {
-    var galaxyRanks = create_script_activity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
-    var rank_container = build_node('div', ['class'], ['script_options'], '');
+    var galaxyRanks = createScriptActivity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
+    var rank_container = buildNode('div', ['class'], ['script_options'], '');
     var gRanks_options = createRankOptions(config.GalaxyRanks.ranks.length);
     for (i = 0; i < gRanks_options.length; i++) {
         rank_container.appendChild(gRanks_options[i]);
     }
 
     rank_container.appendChild(document.createElement('br'));
-    var rank_inactive = create_script_option_radio('ShowInactive', L_.galaxyRanksInactive);
+    var rank_inactive = createRadioScriptOption('ShowInactive', L_.galaxyRanksInactive);
     for (i = 0; i < rank_inactive.length; i++) {
         rank_container.appendChild(rank_inactive[i]);
     }
-    return pack_script(galaxyRanks, rank_container, "GalaxyRanks");
+    return packScript(galaxyRanks, rank_container, "GalaxyRanks");
 }
 
 /**
@@ -1449,13 +1447,13 @@ function createGalaxyRanksScript() {
  * @returns {Element}
  */
 function createBetterEmpireScript() {
-    var betterEmpire = create_script_activity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
-    var emp_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
+    var betterEmpire = createScriptActivity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
+    var emp_container = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
     var emp_options = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
     emp_options[0].style.clear = 'both';
     emp_container.appendChild(emp_options[0]);
     emp_container.appendChild(emp_options[1]);
-    return pack_script(betterEmpire, emp_container, "BetterEmpire");
+    return packScript(betterEmpire, emp_container, "BetterEmpire");
 }
 
 /**
@@ -1463,7 +1461,7 @@ function createBetterEmpireScript() {
  * @returns {Element}
  */
 function createMoreScript() {
-    var more = create_script_activity("More", 8, "Additional smaller scripts");
+    var more = createScriptActivity("More", 8, "Additional smaller scripts");
     
     // Currently contains moonList, convertDeut, traductor, resources, redirectFleet, arrows, returns, deutR, convertC, and mcTrans
     var moreItems = createMoreOptions();
@@ -1471,7 +1469,7 @@ function createMoreScript() {
 
     var descripContainer = document.createElement("ul");
 
-    var more_container = build_node("div", ["class"], ["script_options"], "");
+    var more_container = buildNode("div", ["class"], ["script_options"], "");
     for (i = 0; i < moreItems.length; i++) {
         for (j = 0; j < moreItems[i].length; j++)
             more_container.appendChild(moreItems[i][j]);
@@ -1482,7 +1480,7 @@ function createMoreScript() {
     }
 
     more.childNodes[0].childNodes[1].appendChild(descripContainer);
-    return pack_script(more, more_container, "More");
+    return packScript(more, more_container, "More");
 }
 
 // TODO: the mix of camelCase and snake_case is killing me. Apparently it didn't 5 years ago
@@ -1495,7 +1493,7 @@ function createMoreScript() {
  * @param id - The id for the script
  * @returns {Element}
  */
-function pack_script(header, options, id) {
+function packScript(header, options, id) {
     var div = document.createElement("div");
     div.className = "script_container";
     div.id = id;
@@ -1513,16 +1511,16 @@ function pack_script(header, options, id) {
  * @param tooltiptext - The tooltip text to display
  * @returns {Element}
  */
-function create_script_activity(name, n, tooltiptext) {
-    var scr = build_node("div", ["class"], ["script"], "");
-    var scr_title = build_node("div", ["class"], ["script_title"], "");
-    var tooltip = build_node("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
-    var tool_text = build_node("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
-    var activate = build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
-    var activate_label = build_node("label", ["for"], [name + "_activate"], L_['activate']);
-    var deactivate = build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
-    var deactivate_label = build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
-    var scr_active = build_node("div", ["class"], ["script_active"], "");
+function createScriptActivity(name, n, tooltiptext) {
+    var scr = buildNode("div", ["class"], ["script"], "");
+    var scr_title = buildNode("div", ["class"], ["script_title"], "");
+    var tooltip = buildNode("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
+    var tool_text = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
+    var activate = buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
+    var activate_label = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
+    var deactivate = buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
+    var deactivate_label = buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
+    var scr_active = buildNode("div", ["class"], ["script_active"], "");
     scr_active.appendChild(activate);
     scr_active.appendChild(activate_label);
     scr_active.appendChild(deactivate);
@@ -1537,7 +1535,7 @@ function create_script_activity(name, n, tooltiptext) {
 /**
  * Creates the given element.
  *
- * Ex: build_node('div',
+ * Ex: buildNode('div',
  * @param type - The type of node to create
  * @param attr - The attributes to set
  * @param attrValue - The values of the attributes
@@ -1546,7 +1544,7 @@ function create_script_activity(name, n, tooltiptext) {
  * @param eventFunc - The event callback
  * @returns {Element}
  */
-function build_node(type, attr, attrValue, content, event, eventFunc) {
+function buildNode(type, attr, attrValue, content, event, eventFunc) {
     var elem = document.createElement(type);
     for (var i = 0; i < attr.length; i++)
         elem.setAttribute(attr[i], attrValue[i]);
@@ -1563,10 +1561,10 @@ function build_node(type, attr, attrValue, content, event, eventFunc) {
  * @param contents - Array of element contents
  * @returns {Array} - The list of built nodes
  */
-function create_script_option(types, attributes, values, contents) {
+function createScriptOption(types, attributes, values, contents) {
     var result = [];
     for (var i = 0; i < types.length; i++) {
-        result.push(build_node(types[i], attributes[i], values[i], contents[i]));
+        result.push(buildNode(types[i], attributes[i], values[i], contents[i]));
     }
     return result;
 }
@@ -1581,13 +1579,13 @@ function create_script_option(types, attributes, values, contents) {
  * @param niceName - the "nice" name to display
  * @returns {Array} - The array of radio button elements
  */
-function create_script_option_radio(name, niceName) {
+function createRadioScriptOption(name, niceName) {
     var arr = [];
     arr.push(document.createTextNode(niceName + " : "));
-    arr.push(build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
-    arr.push(build_node("label", ["for"], [name + '_activate'], L_["activate"]));
-    arr.push(build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
-    arr.push(build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"] + "<br />"));
+    arr.push(buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
+    arr.push(buildNode("label", ["for"], [name + '_activate'], L_["activate"]));
+    arr.push(buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
+    arr.push(buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"] + "<br />"));
     return arr;
 }
 
@@ -1600,10 +1598,10 @@ function create_script_option_radio(name, niceName) {
 function createCheckBoxItems(names, width) {
     var result = [];
     for (var i = 0; i < names.length; i++) {
-        var div = build_node("div", ["style"], ["width : " + width + "px;float:left"], "");
+        var div = buildNode("div", ["style"], ["width : " + width + "px;float:left"], "");
         var condensed = names[i].replace(/ /, "");
-        div.appendChild(build_node("input", ["type", "name", "id"], ["checkbox", condensed + "_check", condensed + "_check"], ""));
-        div.appendChild(build_node("label", ["for"], [condensed + "_check"], names[i]));
+        div.appendChild(buildNode("input", ["type", "name", "id"], ["checkbox", condensed + "_check", condensed + "_check"], ""));
+        div.appendChild(buildNode("label", ["for"], [condensed + "_check"], names[i]));
         result.push(div);
     }
     return result;
@@ -1617,7 +1615,7 @@ function createRConvOptions() {
     var result = [];
     var text = ['Intro picture', "'BOOM' picture", "'Destroyed' picture", "'Result' picture", "Retentability picture"];
     for (var i = 0; i < 5; i++) {
-        var option = create_script_option(['input', 'label'], [['type', 'style', 'id'], ['for']], [['text', 'width:30%', 'RConvOpt_' + i], ['RConvOpt_' + i]], ['', text[i]]);
+        var option = createScriptOption(['input', 'label'], [['type', 'style', 'id'], ['for']], [['text', 'width:30%', 'RConvOpt_' + i], ['RConvOpt_' + i]], ['', text[i]]);
 
         for (var j = 0; j < option.length; j++) {
             result.push(option[j]);
@@ -1635,7 +1633,7 @@ function createEasyFarmOptions() {
     var result = [];
     var text = ["Looting level", "Looting color", "Field ruins level", "Field ruins color"];
     for (var i = 0; i < 2; i++) {
-        var option = create_script_option(['input', 'label', 'br', 'input', 'label'],
+        var option = createScriptOption(['input', 'label', 'br', 'input', 'label'],
             [
                 ['type', 'style', 'id'],
                 ['for'],
@@ -1668,14 +1666,14 @@ function createMarkitOptions() {
     var result = [], i, j;
     var text = ["'Fridge' color", "'Bunker' color", "'To attack' color", "'To not attack' color"];
     for (i = 0; i < 4; i++) {
-        var option = create_script_option(['input', 'label'], [['id', 'class', 'style'], ['for']], [['markit_' + i, 'jscolor', 'width:30%'], ['markit_' + i]], ['', text[i]]);
+        var option = createScriptOption(['input', 'label'], [['id', 'class', 'style'], ['for']], [['markit_' + i, 'jscolor', 'width:30%'], ['markit_' + i]], ['', text[i]]);
         for (j = 0; j < option.length; j++) {
             result.push(option[j]);
         }
         result.push(document.createElement('br'));
     }
     result.push(document.createElement('br'));
-    option = create_script_option(['label', 'input'], [['for'], ['type', 'id', 'value', 'style']], [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']], ['Markit coordinates : ', '']);
+    option = createScriptOption(['label', 'input'], [['for'], ['type', 'id', 'value', 'style']], [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']], ['Markit coordinates : ', '']);
     for (j = 0; j < option.length; j++) {
         result.push(option[j]);
     }
@@ -1692,7 +1690,7 @@ function createRankOptions(len) {
     for (i = 0; i < len; i++) {
         // Top [   x   ] : [   #color   ]
         // Uses JSColor
-        option = create_script_option(["label", "input", "label", "input"], [
+        option = createScriptOption(["label", "input", "label", "input"], [
             ["for"],
             ["type", "id", "style"],
             [],
@@ -1710,7 +1708,7 @@ function createRankOptions(len) {
     }
 
     // All others : [   #color   ]
-    option = create_script_option(["label", "input"], [
+    option = createScriptOption(["label", "input"], [
         ["for"],
         ["type", "id", "class"]
     ], [
@@ -1729,16 +1727,16 @@ function createRankOptions(len) {
  */
 function createMoreOptions() {
     return [
-        create_script_option_radio("More_moonsList", 'MoonsList'),
-        create_script_option_radio("More_convertDeuty", "ConvertDeut"),
-        create_script_option_radio("More_traductor", "Traductor"),
-        create_script_option_radio("More_resources", "Resources"),
-        create_script_option_radio("More_redirectFleet", "RedirectFleet"),
-        create_script_option_radio("More_arrows", "Arrows"),
-        create_script_option_radio("More_returns", "Returns"),
-        create_script_option_radio("More_deutRow", "DeutRow"),
-        create_script_option_radio("More_convertClick", "ConvertClick"),
-        create_script_option_radio("More_mcTransport", "mcTransport")
+        createRadioScriptOption("More_moonsList", 'MoonsList'),
+        createRadioScriptOption("More_convertDeuty", "ConvertDeut"),
+        createRadioScriptOption("More_traductor", "Traductor"),
+        createRadioScriptOption("More_resources", "Resources"),
+        createRadioScriptOption("More_redirectFleet", "RedirectFleet"),
+        createRadioScriptOption("More_arrows", "Arrows"),
+        createRadioScriptOption("More_returns", "Returns"),
+        createRadioScriptOption("More_deutRow", "DeutRow"),
+        createRadioScriptOption("More_convertClick", "ConvertClick"),
+        createRadioScriptOption("More_mcTransport", "mcTransport")
     ];
 }
 
@@ -1750,7 +1748,7 @@ function createMoreDesc() {
 
     var container = [];
     for (var i = 0; i < names.length; i++) {
-        container.push(build_node("li", [], [], names[i] + " : " + d1[i] + spanText + d2[i] + "</span>)"));
+        container.push(buildNode("li", [], [], names[i] + " : " + d1[i] + spanText + d2[i] + "</span>)"));
     }
 
     return container;
@@ -1762,8 +1760,8 @@ function saveSettings() {
     var saveButton = $("#save")[0];
     saveButton.value = "Saving";
     var inputs;
-    var actives = get_dom_xpath("//div[@class='script_active']/input[1]", document, -1);
-    var options = get_dom_xpath("//div[@class='script_options']", document, -1);
+    var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1);
+    var options = getDomXpath("//div[@class='script_options']", document, -1);
     for (var i = 0; i < nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
         infos_scripts[script] = actives[i].checked;
@@ -1847,7 +1845,7 @@ function saveSettings() {
 
 }
 
-if (can_load_in_page("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
+if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
     loadClickNGo()
 }
 
@@ -1857,7 +1855,7 @@ if (can_load_in_page("ClicNGo")) { // doesn't count as a script (no option to de
  * really have any use for it.
  */
 function loadClickNGo() {
-    document.getElementsByTagName("body")[0].appendChild(build_node("script", [
+    document.getElementsByTagName("body")[0].appendChild(buildNode("script", [
         "type"
     ], ["text/javascript"], function putLogs(uni, pseudo, pass) {
         document.getElementById("login_univers").value = uni;
@@ -1866,13 +1864,13 @@ function loadClickNGo() {
         document.getElementById("login_submit").disabled = "";
         document.getElementById("form_login").submit();
     }));
-    var clicngo = build_node("div", ["style", "id"], ["float:right;cursor:pointer;padding:4px 0 0 4px;", "clicngo"],
+    var clicngo = buildNode("div", ["style", "id"], ["float:right;cursor:pointer;padding:4px 0 0 4px;", "clicngo"],
         "<img src='" + scripts_icons + "Clic&Go/connecting_people.png'/>");
 
-    var script = build_node("script", ["type"], ["text/javascript"],
+    var script = buildNode("script", ["type"], ["text/javascript"],
         "$('#clicngo').click(function(){$('#clicngo_contents').css('display','block');$('body').css('opacity', '0.2');});");
 
-    var div = build_node("div", ["style", "id"], ["padding:5px;font:12px Times New Roman normal;width:40%;display:none;background-color:black" +
+    var div = buildNode("div", ["style", "id"], ["padding:5px;font:12px Times New Roman normal;width:40%;display:none;background-color:black" +
     "color:white;border-radius:5px 5px 5px 5px;border:1px solid white;position:absolute;top:10%;left:30%;",
         "clicngo_contents"
     ], "");
@@ -1880,7 +1878,7 @@ function loadClickNGo() {
     document.body.parentNode.appendChild(div);
 
     clicngo.appendChild(script);
-    get_dom_xpath("id('top_login_div')/div", document, 0).appendChild(clicngo);
+    getDomXpath("id('top_login_div')/div", document, 0).appendChild(clicngo);
     var clicngo_contents = document.getElementById("clicngo_contents");
     var html = "<div onclick='$(\"#clicngo_contents\").css(\"display\",\"none\");$(\"body\").css(\"opacity\", \"1\");'" +
         " style='padding-bottom:5px;cursor:pointer;text-align:center;color:#A6FF94;border-bottom:1px solid white;font-weight:bold;'>Clic & Go !</div>";
@@ -1905,14 +1903,14 @@ function loadClickNGo() {
         scripts_icons + "Clic&Go/add.png' alt='add'/></div>";
     clicngo_contents.innerHTML += html;
 
-    function insert_clicngo_contents() {
+    function insertClicNGoContents() {
         for (i = 0; i < config.ClicNGo.universes.length; i++) {
-            div = build_node("div", ["id", "name", "style"], ["clicngo_" + i, "clicngo_" + i, "margin:5px;"], "#" + (i + 1) + ": " + config.ClicNGo.usernames[i] +
+            div = buildNode("div", ["id", "name", "style"], ["clicngo_" + i, "clicngo_" + i, "margin:5px;"], "#" + (i + 1) + ": " + config.ClicNGo.usernames[i] +
                 " (" + L_["ClicNGo_universe"] + " " + config.ClicNGo.universes[i] + ")");
             document.getElementById("clicngo_id").appendChild(div);
         }
         for (i = 0; i < config.ClicNGo.universes.length; i++) {
-            var img = build_node("img", ["name", "src", "alt", "style"], ["clicngo_" + i, scripts_icons +
+            var img = buildNode("img", ["name", "src", "alt", "style"], ["clicngo_" + i, scripts_icons +
             "Clic&Go/login.png", "go", "margin-left:5px;cursor:pointer;position:absolute;"
             ], "");
             img.addEventListener("click", function() {
@@ -1925,7 +1923,7 @@ function loadClickNGo() {
             document.getElementById("clicngo_" + i).appendChild(img);
         }
     }
-    insert_clicngo_contents();
+    insertClicNGoContents();
     document.getElementById("add_submit").addEventListener("click", function() {
         var index = config.ClicNGo.universes.length;
         if (isNaN(parseInt(document.getElementById("add_universe").value)))
@@ -1936,7 +1934,7 @@ function loadClickNGo() {
         //localStorage["config_script_uni_0"] = JSON.stringify(config);
         GM_setValue("config_scripts_uni_0", JSON.stringify(config));
         document.getElementById("clicngo_id").innerHTML = "";
-        insert_clicngo_contents();
+        insertClicNGoContents();
     }, false);
 
     document.getElementById("remove_submit").addEventListener("click", function() {
@@ -1949,12 +1947,12 @@ function loadClickNGo() {
         GM_setValue("config_scripts_uni_0", JSON.stringify(config));
         //localStorage["config_scripts+_uni_0"] = JSON.stringify(config);
         document.getElementById("clicngo_id").innerHTML = "";
-        insert_clicngo_contents();
+        insertClicNGoContents();
     }, false);
 
 }
 
-if (can_load_in_page("RConverter") && infos_scripts.RConverter) {
+if (canLoadInPage("RConverter") && infos_scripts.RConverter) {
     loadRConverter();
 }
 
@@ -2103,14 +2101,14 @@ function loadRConverter() {
             for (j = 0; j < participants[2][i].length; j++) {
                 for (var k = 0; k < participants[1][i].length; k++) {
                     if (participants[2][i][j][0] === participants[1][i][k][0]) {
-                        difference = sw_to_number_rc(participants[1][i][k][1]) -
-                            sw_to_number_rc(participants[2][i][j][1]);
+                        difference = swToNumberRc(participants[1][i][k][1]) -
+                            swToNumberRc(participants[2][i][j][1]);
                         break;
                     }
                 }
                 rapport_converti += "[color=" + couleurs_rc[j] + "]" + participants[2][i][j][0] +
                     " " + participants[2][i][j][1] + "[/color][color=#FF0040]         -" +
-                    get_slashed_nb(difference) + "[/color]\n";
+                    getSlashedNb(difference) + "[/color]\n";
             }
             rapport_converti += "\n\n\n";
         }
@@ -2131,11 +2129,11 @@ function loadRConverter() {
     html +=
         "<input type='radio' onclick='document.getElementById(\"RConverter\").value+=\"[spoiler=lien][url]\"+window.location.href+\"[/url][/spoiler]\";" +
         " document.getElementById(\"RConverter\").select();'/>" + L_["RConverter_HoF"];
-    get_dom_xpath("//body", document, 0).appendChild(build_node("center", ["class", "style"], ["space1 curvedtot", "position:absolute; right:0; top:30px;"], html));
+    getDomXpath("//body", document, 0).appendChild(buildNode("center", ["class", "style"], ["space1 curvedtot", "position:absolute; right:0; top:30px;"], html));
     document.getElementById("RConverter").select();
 }
 
-if (can_load_in_page("EasyFarm") && infos_scripts.EasyFarm) {
+if (canLoadInPage("EasyFarm") && infos_scripts.EasyFarm) {
     loadEasyFarm();
 }
 
@@ -2156,8 +2154,8 @@ function loadEasyFarm() {
     var fleet_names = [L_["small_cargo"], L_["large_cargo"], L_["light_fighter"], L_["heavy_fighter"], L_["cruiser"], L_["battleship"], L_["colony_ship"], L_["recycler"], L_["espionage_probe"], L_["bomber"], L_["solar_satellite"], L_["destroyer"], L_["deathstar"], L_["battlecruiser"], L_["supernova"], L_["massive_cargo"], L_["collector"], L_["blast"], L_["extractor"]];
     var def_names = ["Rocket Launcher", "Light Laser", "Heavy Laser", "Gauss Cannon", "Ion Cannon", "Plasma Turret", "Small Shield Dome", "Large Shield Dome", "Ultimate guard"];
     var fleet_deut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
-    var messages = get_dom_xpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", document, -1);
-    get_dom_xpath("//body", document, 0).appendChild(build_node("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
+    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", document, -1);
+    getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
     var attackIndex = -1;
     var aaIndex = parseInt(GM_getValue("AutoAttackIndex"));
 
@@ -2183,18 +2181,18 @@ function loadEasyFarm() {
         var candidate = false;
         var regNb = /\s([0-9,.]+)/;
         // get metal crystal and deut
-        var metal = get_nb_from_stringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
-        var crystal = get_nb_from_stringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
-        var deut = get_nb_from_stringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
+        var metal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
+        var crystal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
+        var deut = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
         if ((metal / 4 + crystal / 2 + deut) / 2 >= config.EasyFarm.minPillage) {
             messages[i].setAttribute("style", "background-color:#" + config.EasyFarm.colorPill);
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
         }
         var html = "<div><span style='color:#FFCC33'>" + L_["EasyFarm_looting"] + " :</span><ul style='margin-top:0'>";
-        html += "<li>" + L_["massive_cargo"] + " : " + get_slashed_nb(Math.ceil(((metal + crystal + deut) / 2 / 10000000)));
-        html += "<li>" + L_["supernova"] + " : " + get_slashed_nb(Math.ceil(((metal + crystal + deut) / 2 / 2000000)));
-        html += "<li>" + L_["blast"] + " : " + get_slashed_nb(Math.ceil(((metal + crystal + deut) / 2 / 8000))) + "</ul>";
+        html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 10000000)));
+        html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 2000000)));
+        html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 8000))) + "</ul>";
         var classRank = 4,
             total = 0;
         var hasShips = false;
@@ -2203,7 +2201,7 @@ function loadEasyFarm() {
                 // get deut value of ship j
                 if (fleet_names[j] !== L_["solar_satellite"])
                     hasShips = true;
-                total += get_nb_from_stringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleet_deut[j];
+                total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleet_deut[j];
                 classRank++;
             }
         if (total * 0.6 >= config.EasyFarm.minCDR) {
@@ -2215,7 +2213,7 @@ function loadEasyFarm() {
         var totDef = 0;
         for (j = 0; j < def_names.length; j++) {
             if (messages[i].innerHTML.indexOf(def_names[j] + " : ") !== -1) {
-                var n = get_nb_from_stringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
+                var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
                 if (i !== 8)
                     totDef += n;
                 else
@@ -2224,7 +2222,7 @@ function loadEasyFarm() {
         }
         shouldAttack = shouldAttack && totDef < 500000;
 
-        html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + get_slashed_nb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
+        html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
         if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
             html += "<br/><div><span style='color:#55BBFF'>" + L_["EasyFarm_defenses"] + " :</span>";
             for (j = 0; j < messages[i].getElementsByClassName("message_space0")[2].getElementsByClassName("half_left").length; j++)
@@ -2252,7 +2250,7 @@ function loadEasyFarm() {
         }
 
         var deutTotal = allDeut;
-        var snb = get_slashed_nb;
+        var snb = getSlashedNb;
         var content = L_["massive_cargo"] + " : " + snb(res) + "<br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
@@ -2263,18 +2261,18 @@ function loadEasyFarm() {
         }
         var waves = (count === 1) ? " wave : " : " waves : ";
         content += "<br />" + count + waves + snb(deutTotal) + " Deut";
-        var div = build_node("div", [], [], content);
+        var div = buildNode("div", [], [], content);
         messages[i].getElementsByClassName("message_space0")[0].parentNode.appendChild(div);
-        div = build_node("div", ["style", "id"], ["display:none", "divToolTip"], "");
+        div = buildNode("div", ["style", "id"], ["display:none", "divToolTip"], "");
         document.getElementsByTagName("body")[0].appendChild(div);
-        div = build_node("div", ["style", "id"], ["display:none", "data_tooltip_" +
+        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" +
         i
         ], html);
         document.getElementsByTagName("body")[0].appendChild(div);
         var xpath = document.evaluate("//a[text()='" + L_.EasyFarm_attack + "']",
             document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
         xpath = xpath.snapshotItem(i);
-        div = build_node("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + i, xpath.href, "float:right; width:0;"],
+        div = buildNode("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + i, xpath.href, "float:right; width:0;"],
             "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
         messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
 
@@ -2355,7 +2353,7 @@ var search_galaxy = false;
 GM_deleteValue("spacesCount");
 GM_deleteValue("spacesGalaxy");
 
-if (can_load_in_page("EasyTarget") && search_galaxy) {
+if (canLoadInPage("EasyTarget") && search_galaxy) {
     setTimeout(goRight, Math.random() * 100);
 }
 
@@ -2390,7 +2388,7 @@ function goRight() {
 }
 
 // Shows who's inactive in the statistics page
-if (can_load_in_page('InactiveStats') && (infos_scripts.InactiveStats || infos_scripts.FleetPoints)) {
+if (canLoadInPage('InactiveStats') && (infos_scripts.InactiveStats || infos_scripts.FleetPoints)) {
     loadInactiveStatsAndFleetPoints(infos_scripts);
 }
 
@@ -2494,11 +2492,11 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
             space.removeChild(space.childNodes[4]);
             var head = timeSelector[1];
             while (head.firstChild) head.removeChild(head.firstChild);
-            head.appendChild(build_node('div', ['class'], ['stats_player_1'], "Place"));
-            head.appendChild(build_node('div', ['class'], ['stats_player_2'], (lang === 'fr') ? 'Joueur' : 'Player'));
-            head.appendChild(build_node('div', ['class'], ['stats_player_2'], "Points"));
-            head.appendChild(build_node('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
-            head.appendChild(build_node('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_1'], "Place"));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (lang === 'fr') ? 'Joueur' : 'Player'));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], "Points"));
+            head.appendChild(buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
+            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
             players = document.getElementsByClassName('space0')[2];
             while (players.firstChild) players.removeChild(players.firstChild);
             var arr = [];
@@ -2511,10 +2509,10 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
                 return b[1] - a[1]
             });
             for (i = 0; i < arr.length; i++) {
-                var container = build_node('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
-                var place = build_node('div', ['class'], ['stats_player_1'], i + 1);
-                var playr = build_node('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
-                var point = build_node('div', ['class'], ['stats_player_2'], get_slashed_nb(arr[i][1]));
+                var container = buildNode('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
+                var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
+                var playr = buildNode('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
+                var point = buildNode('div', ['class'], ['stats_player_2'], getSlashedNb(arr[i][1]));
                 var not_updated = '&nbsp;';
                 for (var j = 1; j < 5; j++) {
                     if (j !== 2) {
@@ -2524,7 +2522,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
                         }
                     }
                 }
-                var info = build_node('div', ['class', 'style'], ['stats_player_3', 'width:150px'], not_updated);
+                var info = buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], not_updated);
                 container.appendChild(place);
                 container.appendChild(playr);
                 container.appendChild(point);
@@ -2595,7 +2593,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
             }
             document.forms[1].submit();
         };
-        del.appendChild(build_node('option', ['value'], ['6'], types[0]));
+        del.appendChild(buildNode('option', ['value'], ['6'], types[0]));
         space.insertBefore(del, space.childNodes[3]);
 
         del = space.removeChild(space.childNodes[1]);
@@ -2615,7 +2613,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
     }
 }
 
-if (can_load_in_page("More_deutRow") && infos_scripts.More && config.More.deutRow) {
+if (canLoadInPage("More_deutRow") && infos_scripts.More && config.More.deutRow) {
     loadDeutRow();
 }
 
@@ -2633,13 +2631,13 @@ function loadDeutRow() {
     var c = parseInt((header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
     var d = parseInt((header[2].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
     var aid = parseInt(m / 4 + c / 2 + d);
-    var outer = build_node('div', ['class'], ['default_1c3'], "");
-    var picHolder = build_node('div', ['class', 'style'], ['curvedtot', 'float:left;background-color:#333;width:40px;padding:1px'], "");
-    var pic = build_node('div', ['class', 'style'], ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
-    var textHolder = build_node('div', ['class', 'style', 'id'], ['default_1c1b', 'overflow:auto;padding-left:7px', 'ov_allindeut'], "");
-    var title = build_node('div', ['class', 'style'], ['decault_1c1b', 'float:left;width:60px'], "AllInDeut : ");
-    var amountHolder = build_node('div', ['style'], ['float:right;width:auto'], "");
-    var amount = build_node('a', ['href', 'class', 'title', 'style', 'id'], ['#', 'ov_align_r', aid, 'text-align:right;width:auto;float:right;color:#7BE654;', 'allin'], get_slashed_nb(aid));
+    var outer = buildNode('div', ['class'], ['default_1c3'], "");
+    var picHolder = buildNode('div', ['class', 'style'], ['curvedtot', 'float:left;background-color:#333;width:40px;padding:1px'], "");
+    var pic = buildNode('div', ['class', 'style'], ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
+    var textHolder = buildNode('div', ['class', 'style', 'id'], ['default_1c1b', 'overflow:auto;padding-left:7px', 'ov_allindeut'], "");
+    var title = buildNode('div', ['class', 'style'], ['decault_1c1b', 'float:left;width:60px'], "AllInDeut : ");
+    var amountHolder = buildNode('div', ['style'], ['float:right;width:auto'], "");
+    var amount = buildNode('a', ['href', 'class', 'title', 'style', 'id'], ['#', 'ov_align_r', aid, 'text-align:right;width:auto;float:right;color:#7BE654;', 'allin'], getSlashedNb(aid));
     amountHolder.appendChild(amount);
     textHolder.appendChild(title);
     textHolder.appendChild(amountHolder);
@@ -2667,7 +2665,7 @@ function loadDeutRow() {
     aligner_ressources();
 }
 
-if (can_load_in_page('More_deutRow') && infos_scripts.More && config.More.convertClick) {
+if (canLoadInPage('More_deutRow') && infos_scripts.More && config.More.convertClick) {
     loadConvertClick();
 }
 
@@ -2732,12 +2730,12 @@ function loadMcTransport() {
         //434 = duration
         // 71 = spd
         num += Math.ceil(consumption / 125000000000) * 10000 + 20000;
-        mc[0].setAttribute('placeholder', get_slashed_nb(num));
+        mc[0].setAttribute('placeholder', getSlashedNb(num));
         //mc[0].value = "";
-        var div = build_node('div', ['class', 'style'], ['flotte_bas', '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'], '');
-        var text = build_node('a', ['class', 'id'], ['link_ship_selected', 'transport'], "MC Transport");
-        //var less = build_node('a', ['class', 'id', 'style'], ['link_ship_selected', 'ten', 'font-size: 5pt'], "(-10) &nbsp;");
-        //var more = build_node('a', ['class', 'id', 'style'], ['link_ship_selected', 'hundred', 'font-size: 5pt'], " &nbsp;(+10)");
+        var div = buildNode('div', ['class', 'style'], ['flotte_bas', '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'], '');
+        var text = buildNode('a', ['class', 'id'], ['link_ship_selected', 'transport'], "MC Transport");
+        //var less = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'ten', 'font-size: 5pt'], "(-10) &nbsp;");
+        //var more = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'hundred', 'font-size: 5pt'], " &nbsp;(+10)");
         //div.appendChild(less);
         div.appendChild(text);
         //div.appendChild(more);
@@ -2746,19 +2744,19 @@ function loadMcTransport() {
         var w = parseInt(window.getComputedStyle(flotteBas[0], null).getPropertyValue('width'));
         flotteBas.css('width', (w * 2 / 3) + 'px');
         $('#transport').click(function() {
-            $('#ship217')[0].value = get_slashed_nb(num);
+            $('#ship217')[0].value = getSlashedNb(num);
             //document.forms[1].submit();
         });
 //         $('#ten').click(function() {
-//             $('#ship217')[0].value = get_slashed_nb(parseInt($('#ship217')[0].value.replace(/\./g, '')) - 10000);
+//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) - 10000);
 //         });
 //         $('#hundred').click(function() {
-//             $('#ship217')[0].value = get_slashed_nb(parseInt($('#ship217')[0].value.replace(/\./g, '')) + 10000);
+//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) + 10000);
 //         });
     }
 }
 
-if (can_load_in_page("empireTotal") && infos_scripts.BetterEmpire) {
+if (canLoadInPage("empireTotal") && infos_scripts.BetterEmpire) {
     loadBetterEmpire(config);
 }
 
@@ -2882,7 +2880,7 @@ function hexToRgb(hex) {
     } : null;
 }
 
-if (can_load_in_page("EasyTarget")) {
+if (canLoadInPage("EasyTarget")) {
     loadEasyTargetAndMarkit(infos_scripts, config);
 }
 
@@ -2950,7 +2948,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     var i, j;
 
     // attach the Markit popup window
-    document.body.appendChild(build_node('div', ['id', 'style'], ['markit_current', 'display:none'], "0"));
+    document.body.appendChild(buildNode('div', ['id', 'style'], ['markit_current', 'display:none'], "0"));
     var markit;
     var choosebox;
 
@@ -2964,7 +2962,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             markit = {};
         }
 
-        choosebox = build_node(
+        choosebox = buildNode(
             'div',
             ['class', 'id', 'style'],
             ['divtop', 'markit_choose', 'width:200px; margin:auto; height:auto; border-radius:15px; text-align:center; position:relative; bottom:400px; opacity:0.8;'],
@@ -3301,7 +3299,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         if ((infos_scripts.EasyTarget || infos_scripts.Markit) && name !== undefined) {
             var div = null;
             if (infos_scripts.EasyTarget) {
-                get_dom_xpath("//body", document, 0).appendChild(build_node("script", ["type"], ["text/javascript"],
+                getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
                     "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip(" +
                     "{width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
                 ));
@@ -3313,13 +3311,13 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     if (storage.players[newName][1].indexOf(loc[j]) !== -1) html += " (L)";
                     html += "<br />";
                 }
-                div = build_node("div", ["style", "id"], ["display:none;", "divToolTip"], "");
+                div = buildNode("div", ["style", "id"], ["display:none;", "divToolTip"], "");
                 document.getElementsByTagName("body")[0].appendChild(div);
-                div = build_node("div", ['style', 'id'], ['display:none', 'data_tooltip_' + i], html);
+                div = buildNode("div", ['style', 'id'], ['display:none', 'data_tooltip_' + i], html);
                 document.getElementsByTagName("body")[0].appendChild(div);
             }
-            div = build_node('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + i, 'float:left; width:15px;'], "");
-            var img = build_node('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + (i + 1)], "");
+            div = buildNode('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + i, 'float:left; width:15px;'], "");
+            var img = buildNode('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + (i + 1)], "");
             div.appendChild(img);
             if (infos_scripts.EasyTarget) {
                 var insertee = name.parentNode.parentNode;
@@ -3445,8 +3443,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     }
 
-    var len = build_node("input", ["type", "id", "size",], ["text", "autoSpyLength", "5"]);
-    var goBox = build_node("input", ["type"], ["submit"], "", "click", function() {
+    var len = buildNode("input", ["type", "id", "size",], ["text", "autoSpyLength", "5"]);
+    var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
         var num = $("#autoSpyLength").val();
         GM_setValue("autoSpyLength", num);
 
@@ -3574,7 +3572,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
  * @param p - the page
  * @returns {boolean}
  */
-function auto_complete_selected(p) {
+function autoCompleteSelected(p) {
     var pages = config.NoAutoComplete;
     if (pages[p]) return true;
     else if (pages.sims && p.indexOf('sim') !== -1) {
@@ -3584,14 +3582,14 @@ function auto_complete_selected(p) {
 }
 
 // Disable autocomplete on all qualifying input fields
-if (infos_scripts.NoAutoComplete && auto_complete_selected(page)) {
+if (infos_scripts.NoAutoComplete && autoCompleteSelected(page)) {
     elements = document.getElementsByTagName('input');
     for (i = 0; i < elements.length; i++) {
         elements[i].setAttribute('autocomplete', 'off');
     }
 }
 
-if (can_load_in_page("AllinDeut") && infos_scripts.AllinDeut) {
+if (canLoadInPage("AllinDeut") && infos_scripts.AllinDeut) {
     loadAllinDeut();
 }
 
@@ -3626,27 +3624,27 @@ function loadAllinDeut() {
         "research": "."
     };
 
-    var doms = get_dom_xpath(xpath_pages[page], document, -1);
+    var doms = getDomXpath(xpath_pages[page], document, -1);
     var inDeut = 0;
     for (var i = 0; i < doms.length; i++) {
         inDeut = 0;
         if (regMetal_pages[page].test(doms[i].innerHTML)) inDeut +=
-            get_nb_from_stringtab(regMetal_pages[page].exec(doms[i].innerHTML)[1].split(
+            getNbFromStringtab(regMetal_pages[page].exec(doms[i].innerHTML)[1].split(
                 separator_pages[page])) / 4;
         if (regCrystal_pages[page].test(doms[i].innerHTML)) inDeut +=
-            get_nb_from_stringtab(regCrystal_pages[page].exec(doms[i].innerHTML)[1].split(
+            getNbFromStringtab(regCrystal_pages[page].exec(doms[i].innerHTML)[1].split(
                 separator_pages[page])) / 2;
         if (regDeut_pages[page].test(doms[i].innerHTML)) inDeut +=
-            get_nb_from_stringtab(regDeut_pages[page].exec(doms[i].innerHTML)[1].split(
+            getNbFromStringtab(regDeut_pages[page].exec(doms[i].innerHTML)[1].split(
                 separator_pages[page]));
-        doms[i].appendChild(build_node("div", [], [],
-            "<font color='lime'>AllinDeut</font> : " + get_slashed_nb("" +
+        doms[i].appendChild(buildNode("div", [], [],
+            "<font color='lime'>AllinDeut</font> : " + getSlashedNb("" +
             parseFloat(inDeut))));
     }
 
 }
 
-if (can_load_in_page("iFly") && infos_scripts.iFly) {
+if (canLoadInPage("iFly") && infos_scripts.iFly) {
     loadiFly();
 }
 
@@ -3682,12 +3680,12 @@ function loadiFly() {
 
     var html = "<div class='padding5 linkgreen'>iFly :</div>";
     html += "<div class='default_space padding5 curvedot'>" + L_["iFly_deutfly"] +
-        " : " + get_slashed_nb(equivalent_deut_total) + "</div>";
-    document.getElementById("data_tooltip_10000").appendChild(build_node("div", [], [],
+        " : " + getSlashedNb(equivalent_deut_total) + "</div>";
+    document.getElementById("data_tooltip_10000").appendChild(buildNode("div", [], [],
         html));
 }
 
-if (can_load_in_page("TChatty") && infos_scripts.TChatty) {
+if (canLoadInPage("TChatty") && infos_scripts.TChatty) {
     loadTChatty()
 }
 
@@ -3696,11 +3694,11 @@ if (can_load_in_page("TChatty") && infos_scripts.TChatty) {
  */
 function loadTChatty() {
     var color = config.TChatty.color;
-    var toolbar = get_dom_xpath("//div[@class='toolbar']", document, 0);
+    var toolbar = getDomXpath("//div[@class='toolbar']", document, 0);
     var send = document.getElementById("send");
     var message = document.getElementById("message");
     toolbar.removeChild(document.getElementById("chat_couleur"));
-    document.getElementsByTagName("head")[0].appendChild(build_node("script", [
+    document.getElementsByTagName("head")[0].appendChild(buildNode("script", [
         "src", "type"
     ], [scripts_scripts + "jscolor/jscolor.js", "text/javascript"], ""));
 
@@ -3903,7 +3901,7 @@ function sendAttack() {
  * Entry point for loading the scripts located under the "more" config category
  */
 function loadMore() {
-    if (can_load_in_page("More_moonsList") && config.More.moonsList) {
+    if (canLoadInPage("More_moonsList") && config.More.moonsList) {
         var options = document.getElementById("changeplanet").getElementsByTagName("option");
         for (i = 0; i < options.length; i++)
             if (/(\(M\))|(\(L\))/.test(options[i].innerHTML)) options[i].style.color =
@@ -3911,14 +3909,14 @@ function loadMore() {
     }
 
     // More conversion options on the merchant page
-    if (can_load_in_page("More_convertDeut") && config.More.convertDeut) {
+    if (canLoadInPage("More_convertDeut") && config.More.convertDeut) {
         if (document.getElementById('marchand_suba') !== null) {
 
             var a = document.getElementById("marchand_suba").getElementsByTagName("a");
             var script = "";
             for (i = 0; i < a.length; i++)
                 script += a[i].getAttribute("onclick");
-            div = build_node("div", [], [], L_["More_convertInto"] +
+            div = buildNode("div", [], [], L_["More_convertInto"] +
                 ' : <a style="color:#F2A10A" id="allMetal" href="javascript:" onclick="' + script +
                 'document.getElementById(\'metal2\').checked=\'checked\'; calcul();">' +
                 "metal" +
@@ -3959,8 +3957,8 @@ function loadMore() {
     }
 
     // Translator?
-    if (can_load_in_page("More_traductor") && config.More.traductor) {
-        function to_translate(word, lang1, lang2) {
+    if (canLoadInPage("More_traductor") && config.More.traductor) {
+        function toTranslate(word, lang1, lang2) {
             GM_xmlhttpRequest({
                 url: "http://www.wordreference.com/" + lang1 + lang2 + "/" + word,
                 method: "GET",
@@ -3994,43 +3992,43 @@ function loadMore() {
         html += "<option style='background:url(\"" + scripts_icons +
             "Traductor/IT.png\") no-repeat; text-align:right;' value='it'>IT</option>";
         if (lang === "en") {
-            select1 = build_node("select", ["id", "style"], ["gm_lang1",
+            select1 = buildNode("select", ["id", "style"], ["gm_lang1",
                 "height:18px;"
             ], html1 + html2);
-            select2 = build_node("select", ["id", "style"], ["gm_lang2",
+            select2 = buildNode("select", ["id", "style"], ["gm_lang2",
                 "height:18px;"
             ], html2 + html1);
         } else {
-            select1 = build_node("select", ["id", "style"], ["gm_lang1",
+            select1 = buildNode("select", ["id", "style"], ["gm_lang1",
                 "height:18px;"
             ], html2 + html1);
-            select2 = build_node("select", ["id", "style"], ["gm_lang2",
+            select2 = buildNode("select", ["id", "style"], ["gm_lang2",
                 "height:18px;"
             ], html1 + html2);
         }
-        input = build_node("img", ["type", "src", "style"], ["submit",
+        input = buildNode("img", ["type", "src", "style"], ["submit",
             scripts_icons + "Traductor/GO.png",
             "float:right;height:18px;cursor:pointer"
         ], "", "click", function() {
-            to_translate(document.getElementById("gm_wordtotranslate").value,
+            toTranslate(document.getElementById("gm_wordtotranslate").value,
                 document.getElementById("gm_lang1").value, document.getElementById(
                     "gm_lang2").value);
         });
-        div = build_node("div", ["id", "style"], ["gm_traduction",
+        div = buildNode("div", ["id", "style"], ["gm_traduction",
                 "background-color:black; padding:0 0 1px 2px; position:fixed; bottom:1px; right:1px; "
             ],
             "<input id='gm_wordtotranslate' type='text' style='width:80px;height:9px;'/>"
         );
         div.appendChild(select1);
         div.appendChild(select2);
-        div2 = build_node("div", ["id"], ["gm_traductionofword"], "");
+        div2 = buildNode("div", ["id"], ["gm_traductionofword"], "");
         div.appendChild(input);
         document.getElementsByTagName("body")[0].appendChild(div2);
         document.getElementsByTagName("body")[0].appendChild(div);
     }
 
     // Select production percentage for all resources
-    if (can_load_in_page("More_resources") && config.More.resources) {
+    if (canLoadInPage("More_resources") && config.More.resources) {
         html = "<div class='ressources_sub1a' style='float:left'>" + L_[
             "More_allTo"] + "</div>";
         html +=
@@ -4042,7 +4040,7 @@ function loadMore() {
             '<option value="70">70%</option><option value="60">60%</option><option value="50">50%</option>' +
             '<option value="40">40%</option><option value="30">30%</option><option value="20">20%</option>' +
             '<option value="10">10%</option><option value="0">0%</option><option selected="selected">?</option></select></div>';
-        var div = build_node("div", ["class"], [
+        var div = buildNode("div", ["class"], [
             "space0 ressources_font_little ressources_bordert"
         ], html);
         document.getElementById("main").insertBefore(div, document.getElementsByClassName(
@@ -4051,7 +4049,7 @@ function loadMore() {
 
     // Quickly return to the main fleet page after sending an attack, and remember
     // the previous coordinates
-    if (can_load_in_page("More_redirectFleet") && config.More.redirectFleet) {
+    if (canLoadInPage("More_redirectFleet") && config.More.redirectFleet) {
         window.onload = function() {
             var fullLoc = false;
             var loc = null;
@@ -4076,14 +4074,14 @@ function loadMore() {
     }
 
     // Make return fleets transparent in the overview
-    if (can_load_in_page("More_returns") && config.More.returns) {
+    if (canLoadInPage("More_returns") && config.More.returns) {
         var returns = document.getElementsByClassName('curvedtot return');
         for (i = 0; i < returns.length; i++)
             returns[i].style.opacity = "0.6";
     }
 
     // Make the arrows larger
-    if (can_load_in_page("More_arrows") && config.More.arrows) {
+    if (canLoadInPage("More_arrows") && config.More.arrows) {
         document.getElementById("previousplanet").value = "<<<<<";
         document.getElementById("nextplanet").value = ">>>>>";
     }
