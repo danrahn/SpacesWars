@@ -1,0 +1,32 @@
+/* global GM_setValue*/
+/* global GM_getValue*/
+/* global GM_deleteValue*/
+// ==UserScript==
+// @name        SpacesWars_Revamped
+// @namespace   none
+//
+// @include     http://spaceswars.fr*
+// @include     http://www.spaceswars.fr*
+// @include     http://spaceswars.com*
+// @include     http://www.spaceswars.com*
+// @include     http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/config.php*
+//
+// @grant GM_setValue
+// @grant GM_getValue
+// @grant GM_deleteValue
+//
+// @include     http://spaceswars.com/forum*
+// @include     http://www.spaceswars.com/forum*
+// @include     http://spaceswars.fr/forum*
+// @include     http://www.spaceswars.fr/forum*
+//
+// ==/UserScript==
+//
+// userscript created by NiArK
+//                      (some scripts by d4rkv3nom, banned for bot using...)
+// userscript updated and expanded by DTR
+//
+// bugs :
+// 1- var name 'location' makes Opera bugging
+// 2- add innerHTML after addEventListener don't work (Clic&Go, weird, maybe because of my code)
+
