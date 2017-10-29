@@ -812,151 +812,6 @@ function get_nb_from_stringtab(tab) {
     return parseInt(tab.join(''));
 }
 
-/**
- * Creates the given element.
- *
- * Ex: build_node('div',
- * @param type - The type of node to create
- * @param attr - The attributes to set
- * @param attrValue - The values of the attributes
- * @param content - The innerHTML
- * @param event - The type of event
- * @param eventFunc - The event callback
- * @returns {Element}
- */
-function build_node(type, attr, attrValue, content, event, eventFunc) {
-    var elem = document.createElement(type);
-    for (var i = 0; i < attr.length; i++)
-        elem.setAttribute(attr[i], attrValue[i]);
-    if (event) elem.addEventListener(event, eventFunc, false);
-    elem.innerHTML = content;
-    return elem;
-}
-
-/**
- * Creates a top level script with the given name, script number, and tooltip text
- *
- * @param name - The name of the script
- * @param n - The script index
- * @param tooltiptext - The tooltip text to display
- * @returns {Element}
- */
-function create_script_activity(name, n, tooltiptext) {
-    var scr = build_node("div", ["class"], ["script"], "");
-    var scr_title = build_node("div", ["class"], ["script_title"], "");
-    var tooltip = build_node("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
-    var tool_text = build_node("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
-    var activate = build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
-    var activate_label = build_node("label", ["for"], [name + "_activate"], L_['activate']);
-    var deactivate = build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
-    var deactivate_label = build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
-    var scr_active = build_node("div", ["class"], ["script_active"], "");
-    scr_active.appendChild(activate);
-    scr_active.appendChild(activate_label);
-    scr_active.appendChild(deactivate);
-    scr_active.appendChild(deactivate_label);
-    scr_title.appendChild(tooltip);
-    scr_title.appendChild(tool_text);
-    scr_title.appendChild(scr_active);
-    scr.appendChild(scr_title);
-    return scr;
-}
-
-/**
- * Creates an array of elements that when put in a container
- * will display something of the form
- *
- *     niceName: [] Activate  [] Deactivate
- *
- * @param name - the underlying name of the radio button
- * @param niceName - the "nice" name to display
- * @returns {Array} - The array of radio button elements
- */
-function create_script_option_radio(name, niceName) {
-    var arr = [];
-    arr.push(document.createTextNode(niceName + " : "));
-    arr.push(build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
-    arr.push(build_node("label", ["for"], [name + '_activate'], L_["activate"]));
-    arr.push(build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
-    arr.push(build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"] + "<br />"));
-    return arr;
-}
-
-/**
- * Builds an array of elements that represent the options of a script
- * @param types - Array of element types
- * @param attributes - Array of attribute arrays
- * @param values - Array of attribute value arrays
- * @param contents - Array of element contents
- * @returns {Array} - The list of built nodes
- */
-function create_script_option(types, attributes, values, contents) {
-    var result = [];
-    for (var i = 0; i < types.length; i++) {
-        result.push(build_node(types[i], attributes[i], values[i], contents[i]));
-    }
-    return result;
-}
-
-/**
- * Build the list of GalaxyRanks options
- * @param len - The number of color choices
- * @returns {Array}
- */
-function createRankOptions(len) {
-    var result = [], option, i, j;
-    for (i = 0; i < len; i++) {
-        // Top [   x   ] : [   #color   ]
-        // Uses JSColor
-        option = create_script_option(["label", "input", "label", "input"], [
-            ["for"],
-            ["type", "id", "style"],
-            [],
-            ["type", "id", "class"]
-        ], [
-            ["GalaxyRanks_r" + i],
-            ["text", "GalaxyRanks_r" + i, "width:10%"],
-            [],
-            ["text", "GalaxyRanks_c" + i, "jscolor"]
-        ], ["Top ", "", " : ", ""]);
-        for (j = 0; j < option.length; j++) {
-            result.push(option[j]);
-        }
-        result.push(document.createElement("br"));
-    }
-
-    // All others : [   #color   ]
-    option = create_script_option(["label", "input"], [
-        ["for"],
-        ["type", "id", "class"]
-    ], [
-        ["GalaxyRanks_r" + len],
-        ["text", "GalaxyRanks_c" + i, "jscolor"]
-    ], [L_.galaxyRanksOthers + " : ", ""]);
-    for (j = 0; j < option.length; j++) {
-        result.push(option[j]);
-    }
-    return result;
-}
-
-/**
- * Creates and returns a list of checkboxes with the given names
- * @param names - Array of names to use
- * @param width - The width of each item
- * @returns {Array}
- */
-function createCheckBoxItems(names, width) {
-    var result = [];
-    for (var i = 0; i < names.length; i++) {
-        var div = build_node("div", ["style"], ["width : " + width + "px;float:left"], "");
-        var condensed = names[i].replace(/ /, "");
-        div.appendChild(build_node("input", ["type", "name", "id"], ["checkbox", condensed + "_check", condensed + "_check"], ""));
-        div.appendChild(build_node("label", ["for"], [condensed + "_check"], names[i]));
-        result.push(div);
-    }
-    return result;
-}
-
 // Ugh, global stuff
 // Is this actually necessary anymore?
 // checking...
@@ -1139,13 +994,82 @@ if (page === "achatbonus" && window.location.search.includes("config=1")) {
  * JS, that's what you get.
  */
 function createAndLoadConfigurationPage() {
+
+    // Clear out the current contents and replace with
+    // the settings div
     var main = document.getElementById("main");
     main.innerHTML = "";
     main.removeAttribute("id");
     main.className = "mainSettings";
 
     uni = getParameterByName('uni'); // Why can't I just use the `uni` that we already defined?
+    setStyle();
 
+    //First time using DTR's scripts, reset the config file.
+    if (config.GalaxyRanks === undefined || config.NoAutoComplete === undefined) {
+        config = set_config_scripts(uni);
+    }
+    if (config.BetterEmpire === undefined) {
+        config.BetterEmpire = {};
+        config.BetterEmpire.byMainSort = 1;
+        config.BetterEmpire.moonsLast = 1;
+    }
+    // Needed to get new tooltips to work
+    get_dom_xpath("//body", document, 0).appendChild(build_node("script", ["type"], ["text/javascript"],
+        "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
+    ));
+
+    var scripts = createScripts();
+
+    // Attach main new scripts and their options
+    var save = build_node('input', ['type', 'id', 'value'], ['button', 'save', 'Save'], '');
+    save.onclick = saveSettings;
+    var deleteAll = build_node('input', ['type', 'id', 'value'], ['button', 'delAll', 'Delete All Data'], '', 'click', function() {
+        if (confirm("Are you sure you want to delete all data across all universes?")) {
+            deleteAllData();
+            this.value = "Deleted";
+            window.location = 'achatbonus.php?lang=' + lang + '&uni=' + uni + '&config=1';
+        }
+    });
+
+    var col1 = build_node('div', ['class', 'id'], ['col', 'col1'], '');
+    var col2 = build_node('div', ['class', 'id'], ['col', 'col2'], '');
+    main.appendChild(save);
+    main.appendChild(col1);
+    main.appendChild(col2);
+    main.appendChild(deleteAll);
+    col1.appendChild(scripts[0]);   // RConverter
+    col1.appendChild(scripts[1]);   // EasyFarm
+    col1.appendChild(scripts[2]);   // AllInDeut
+    col1.appendChild(scripts[3]);   // iFly
+    col1.appendChild(scripts[4]);   // TChatty
+    col1.appendChild(scripts[5]);   // InactiveStats
+    col1.appendChild(scripts[6]);   // EasyTarger
+    col1.appendChild(scripts[7]);   // NoAutoComplete
+    col2.appendChild(scripts[8]);   // Markit
+    col2.appendChild(scripts[9]);   // GalaxyRanks
+    col2.appendChild(scripts[10]);  // BetterEmpire
+    col2.appendChild(scripts[11]);  // FleetPoints
+    col2.appendChild(scripts[12]);  // More
+    document.body.appendChild(main);
+
+    $('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
+        if (!this.checked) {
+            var betterEmpId = $("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
+            betterEmpId.attr("checked", false);
+            betterEmpId.attr("disabled", true);
+        } else {
+            $("#" + L_.betterEmpMoon.replace(" ", "") + "_check").removeAttr("disabled");
+        }
+    });
+
+    populateConfig();
+}
+
+/**
+ * Set the various styles for the config page, as it must be built from scratch in JS only
+ */
+function setStyle() {
     (function() {
         // Set custom CSS inline in JS, because why not
         var style = document.createElement('style');
@@ -1248,208 +1172,38 @@ function createAndLoadConfigurationPage() {
 		    background-color: green;
 		    box-shadow: 0 0 6px green;
 		}
+		
+		#delAll:hover {
+		    color: black;
+		    background-color: red;
+		    box-shadow: 0, 0, 4px red;
+		}
+		
+		.scriptDesc {
+		    color: lime;
+		}
+		
+		#EasyTarget_text {
+		    border: 1px solid #545454;
+		    padding: 1px;
+		    vertical-align: middle;
+		    border-radius: 5px;
+		    color: #CDD7F8;
+		    font: 8pt "Times New Roman" normal;
+		    margin: 1%;
+		    background-color: rgba(0,0,0,0.8);
+		    width: 96%;
+		    max-width: 96%
+		}
 		`));
         document.head.appendChild(style);
     })();
+}
 
-    //First time using DTR's scripts, reset the config file.
-    if (config.GalaxyRanks === undefined || config.NoAutoComplete === undefined) {
-        config = set_config_scripts(uni);
-    }
-    if (config.BetterEmpire === undefined) {
-        config.BetterEmpire = {};
-        config.BetterEmpire.byMainSort = 1;
-        config.BetterEmpire.moonsLast = 1;
-    }
-    // Needed to get new tooltips to work
-    get_dom_xpath("//body", document, 0).appendChild(build_node("script", ["type"], ["text/javascript"],
-        "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
-    ));
-    // Scripts that will have their own entry
-    var inactiveStats = create_script_activity("InactiveStats", 9, L_.inactiveDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.inactiveDescrip2 + "</span>");
-    var galaxyRanks = create_script_activity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.galaxyRanksDescrip2 + "</span>");
-    var easyTarget = create_script_activity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.easyTargetDescrip2 + "</span>");
-    var autoComplete = create_script_activity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.noAutoDescrip2 + "</span>");
-    var easyTarget_textArea = build_node('textarea', ['rows', 'placeholder', 'style', 'id'], ['5', L_.EasyImportDescrip,
-        'border:1px solid #545454;padding:1px;vertical-align:middle;border-radius:5px;color:#CDD7F8;font:8pt "Times New Roman" normal;margin:1%;background-color:rgba(0,0,0,0.8);width:96%;max-width:96%', 'EasyTarget_text'
-    ], '');
-    var betterEmpire = create_script_activity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.betterEmpDescrip2 + "</span>");
-    var FleetPoints = create_script_activity("FleetPoints", 14, L_.FPDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.FPDescrip2 + "</span>");
-
-    // Old options that need to be created because the script site was removed
-    //RConverter
-    var rConverter = create_script_activity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.rConverterDescrip2 + "</span>");
-    var converter_container = build_node('div', ['class'], ['script_options'], '');
-    var rConv_options = createRConvOptions();
-    for (i = 0; i < rConv_options.length; i++) {
-        converter_container.appendChild(rConv_options[i]);
-    }
-
-    // EasyFarm
-    var easyFarm = create_script_activity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.easyFarmDescrip2 + "</span>");
-    var easyFarm_container = build_node('div', ['class'], ['script_options'], '');
-    var easyFarm_options = createEasyFarmOptions();
-    for (i = 0; i < easyFarm_options.length; i++) {
-        easyFarm_container.appendChild(easyFarm_options[i]);
-    }
-
-    // AllinDeut
-    var allinDeut = create_script_activity("AllinDeut", 3, L_.allinDeutDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.allinDeutDescrip2 + "</span>");
-
-    // iFly
-    var iFly = create_script_activity("IFly", 4, "???<br /><br /><span style=\"color:lime\">???</span>");
-
-    // TChatty
-    var tChatty = create_script_activity("TChatty", 5, L_.tChattyDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.tChattyDescrip2 + "</span>");
-
-    // Markit
-    var markit = create_script_activity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span style=\"color:lime\">" + L_.markitDescrip2 + "</span>");
-    var markit_container = build_node('div', ['class'], ['script_options'], '');
-    var markit_options = createMarkitOptions();
-    for (i = 0; i < markit_options.length; i++) {
-        markit_container.appendChild(markit_options[i]);
-    }
-
-    // create options for galaxyRanks
-    var rank_container = build_node('div', ['class'], ['script_options'], '');
-    var gRanks_options = createRankOptions(config.GalaxyRanks.ranks.length);
-    for (i = 0; i < gRanks_options.length; i++) {
-        rank_container.appendChild(gRanks_options[i]);
-    }
-
-    rank_container.appendChild(document.createElement('br'));
-    var rank_inactive = create_script_option_radio('ShowInactive', L_.galaxyRanksInactive);
-    for (i = 0; i < rank_inactive.length; i++) {
-        rank_container.appendChild(rank_inactive[i]);
-    }
-
-    var emp_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
-    var emp_options = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
-    emp_options[0].style.clear = 'both';
-    emp_container.appendChild(emp_options[0]);
-    //emp_container.appendChild(document.createElement('br'));
-    emp_container.appendChild(emp_options[1]);
-    //betterEmpire.appendChild(emp_container);
-
-    var target_container = build_node('div', ['class'], ['script_options'], '');
-    var imprt = build_node('input', ['type', 'value'], ['button', L_['import']], '');
-    var exprt = build_node('input', ['type', 'value'], ['button', L_['export']], '');
-    target_container.appendChild(imprt);
-    target_container.appendChild(exprt);
-    target_container.appendChild(easyTarget_textArea);
-
-    // create options for NoAutoComplete
-    var auto_options = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
-    var width_constraint = build_node('div', ['style'], ['max-width:300px'], '');
-    var auto_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
-    for (i = 0; i < auto_options.length; i++) {
-        width_constraint.appendChild(auto_options[i]);
-    }
-    auto_container.appendChild(width_constraint);
-
-
-    // Attach main new scripts and their options
-    var save = build_node('input', ['type', 'id', 'value'], ['button', 'save', 'Save'], '');
-    save.onclick = saveSettings;
-    var deleteAll = build_node('input', ['type', 'id', 'value'], ['button', 'delAll', 'Delete All Data'], '', 'click', function() {
-        if (confirm("Are you sure you want to delete all data across all universes?")) {
-            deleteAllData();
-            this.value = "Deleted";
-            window.location = 'achatbonus.php?lang=' + lang + '&uni=' + uni + '&config=1';
-        }
-    });
-    var col1 = build_node('div', ['class', 'id'], ['col', 'col1'], '');
-    var col2 = build_node('div', ['class', 'id'], ['col', 'col2'], '');
-    main.appendChild(save);
-    main.appendChild(col1);
-    main.appendChild(col2);
-    main.appendChild(deleteAll);
-    rConverter = pack_script(rConverter, converter_container, "RConverter");
-    easyFarm = pack_script(easyFarm, easyFarm_container, "EasyFarm");
-    allinDeut = pack_script(allinDeut, null, "AllinDeut");
-    iFly = pack_script(iFly, null, "IFly");
-    tChatty = pack_script(tChatty, null, "TChatty");
-    inactiveStats = pack_script(inactiveStats, null, "InactiveStats");
-    easyTarget = pack_script(easyTarget, target_container, "EasyTarget");
-    autoComplete = pack_script(autoComplete, auto_container, "NoAutoComplete");
-    markit = pack_script(markit, markit_container, "Markit");
-    galaxyRanks = pack_script(galaxyRanks, rank_container, "GalaxyRanks");
-    betterEmpire = pack_script(betterEmpire, emp_container, "BetterEmpire");
-    FleetPoints = pack_script(FleetPoints, null, "FleetPoints");
-    col1.appendChild(rConverter);
-    col1.appendChild(easyFarm);
-    col1.appendChild(allinDeut);
-    col1.appendChild(iFly);
-    col1.appendChild(tChatty);
-    col1.appendChild(inactiveStats);
-    col1.appendChild(easyTarget);
-    col1.appendChild(autoComplete);
-    col2.appendChild(markit);
-    col2.appendChild(galaxyRanks);
-    col2.appendChild(betterEmpire);
-    col2.appendChild(FleetPoints);
-    document.body.appendChild(main);
-
-    $('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
-        if (!this.checked) {
-            var betterEmpId = $("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
-            betterEmpId.attr("checked", false);
-            betterEmpId.attr("disabled", true);
-        } else {
-            $("#" + L_.betterEmpMoon.replace(" ", "") + "_check").removeAttr("disabled");
-        }
-    });
-
-    // The "More" list
-    var more = create_script_activity("More", 8, "Additional smaller scripts");
-
-    // The fallen comrades
-    var moonList = create_script_option_radio("More_moonsList", 'MoonsList');
-    var convertDeut = create_script_option_radio("More_convertDeuty", "ConvertDeut");
-    var traductor = create_script_option_radio("More_traductor", "Traductor");
-    var resources = create_script_option_radio("More_resources", "Resources");
-    var redirectFleet = create_script_option_radio("More_redirectFleet", "RedirectFleet");
-    var arrows = create_script_option_radio("More_arrows", "Arrows");
-    var returns = create_script_option_radio("More_returns", "Returns");
-
-
-
-    // Create script that will go under "More"
-    var deutR = create_script_option_radio("More_deutRow", "DeutRow");
-    var convertC = create_script_option_radio("More_convertClick", "ConvertClick");
-    var mcTrans = create_script_option_radio("More_mcTransport", "mcTransport");
-
-    var moreItems = [moonList, convertDeut, traductor, resources, redirectFleet, arrows, returns, deutR, convertC, mcTrans];
-
-    // Descriptions for the "More" script
-    var descripContainer = document.createElement("ul");
-    var deutR_descrip = build_node("li", [], [], "DeutRow : " + L_.deutRowDescrip1 + "<br />(<span style='color:lime'>" + L_.deutRowDescrip2 + "</span>)");
-    var convertC_descrip = build_node("li", [], [], "ConvertClick : " + L_.convertCDescrip1 + "<br />(<span style='color:lime'>" + L_.convertCDescrip2 + "</span>)");
-    var mcTrans_descrip = build_node("li", [], [], "mcTransport : " + L_.mcTransDescrip1 + "<br />(<span style='color:lime'>" + L_.mcTransDescrip2 + "</span>)");
-
-    var moonList_descrip = build_node("li", [], [], "MoonList : " + L_.mMoonListDescrip1 + "<br />(<span style='color:lime'>" + L_.mMoonListDescrip2 + "</span>)");
-    var convertDeut_descrip = build_node("li", [], [], "ConvertDeut : " + L_.mConvertDeutDescrip1 + "<br />(<span style='color:lime'>" + L_.mConvertDeutDescrip2 + "</span>)");
-    var traductor_descrip = build_node("li", [], [], "Traductor : " + L_.mTraductorDescrip1 + "<br />(<span style='color:lime'>" +  L_.mTraductorDescrip2 + "</span>)");
-    var resources_descrip = build_node("li", [], [], "Resources : " + L_.mResourcesDescrip1 + "<br />(<span style='color:lime'>" + L_.mResourcesDescrip2 + "</span>)");
-    var redirectFleet_descrip = build_node("li", [], [], "RedirectFleet : " + L_.mRedirectFleetDescrip1 + "<br />(<span style='color:lime'>" + L_.mRedirectFleetDescrip2 + "</span>)");
-    var arrows_descrip = build_node("li", [], [], "Arrows : " + L_.mArrowsDescrip1 + "<br />(<span style='color:lime'>" + L_.mArrowsDescrip2 + "</span>)");
-    var returns_descrip = build_node("li", [], [], "Returns : " + L_.mReturnsDescrip1 + "<br />(<span style='color:lime'>" + L_.mReturnsDescrip2 + "</span>)");
-
-    var moreDescrip = [moonList_descrip, convertDeut_descrip, traductor_descrip, resources_descrip, traductor_descrip, resources_descrip, redirectFleet_descrip, arrows_descrip, returns_descrip, deutR_descrip, convertC_descrip, mcTrans_descrip];
-
-    var more_container = build_node("div", ["class"], ["script_options"], "");
-    for (i = 0; i < moreItems.length; i++) {
-        for (j = 0; j < moreItems[i].length; j++)
-            more_container.appendChild(moreItems[i][j]);
-    }
-
-    for (i = 0; i < moreDescrip.length; i++) {
-        descripContainer.appendChild(moreDescrip[i]);
-    }
-
-    more.childNodes[0].childNodes[1].appendChild(descripContainer);
-    more = pack_script(more, more_container, "More");
-    col2.appendChild(more);
+/**
+ * Fill the config fields with what's stored (or defaults if we don't have any data)
+ */
+function populateConfig() {
 
     var actives = get_dom_xpath("//div[@class='script_active']/input[1]", document, -1),
         script;
@@ -1463,7 +1217,7 @@ function createAndLoadConfigurationPage() {
 
     // Fill page with current settings
     for (var i = 0; i < nbScripts; i++) {
-        script = /(.*)_activate/.exec(actives[i].id)[1];
+        var script = /(.*)_activate/.exec(actives[i].id)[1];
         (infos_scripts[script]) ? actives[i].checked = true: actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
         switch (script) {
             case "RConverter":
@@ -1480,21 +1234,6 @@ function createAndLoadConfigurationPage() {
                 inputs[1].value = config.EasyFarm.colorPill;
                 inputs[2].value = config.EasyFarm.minCDR;
                 inputs[3].value = config.EasyFarm.colorCDR;
-                break;
-            case "Carto":
-                inputs = options[2].getElementsByTagName("input");
-                inputs[0].addEventListener("click", function() {
-                    send_datas_to_carto();
-                }, false);
-                inputs[1].addEventListener("click", function() {
-                    alert(config.Carto);
-                }, false);
-                inputs[2].addEventListener("click", function() {
-                    if (confirm("Reset ?")) {
-                        config.Carto = "";
-                        GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
-                    }
-                }, false);
                 break;
             case "EasyTarget":
                 inputs = options[2].getElementsByTagName('input');
@@ -1545,9 +1284,6 @@ function createAndLoadConfigurationPage() {
                         GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
                     }
                 }, false);
-                //if (config.Markit.ranks) inputs[5].checked = true;
-                //inputs[7].value = config.Markit.topX;
-                //inputs[8].value = config.Markit.topColor;
                 break;
             case "GalaxyRanks":
                 inputs = options[5].getElementsByTagName('input');
@@ -1581,6 +1317,177 @@ function createAndLoadConfigurationPage() {
 }
 
 /**
+ * Returns an array of scripts to add to the config page.
+ *
+ * If you create a new script, you should start the build process here.
+ *
+ * @returns {Array} all the scripts to display on the config page
+ */
+function createScripts() {
+
+    var spanText = "<br /><br /><span class=scriptDesc>";
+    return [
+        createRConvScript(),
+        createEasyFarmScript(),
+        pack_script(create_script_activity("AllinDeut", 3, L_.allinDeutDescrip1 + spanText + L_.allinDeutDescrip2 + "</span>"), null, "AllinDeut"),
+        pack_script(create_script_activity("IFly", 4, "???" + spanText + "???</span>"), null, "IFly"),
+        pack_script(create_script_activity("TChatty", 5, L_.tChattyDescrip1 + spanText + L_.tChattyDescrip2 + "</span>"), null, "TChatty"),
+        pack_script(create_script_activity("InactiveStats", 9, L_.inactiveDescrip1 + spanText + L_.inactiveDescrip2 + "</span>"), null, "InactiveStats"),
+        createEasyTargetScript(),
+        createAutoCompleteScript(),
+        createMarkitScript(),
+        createGalaxyRanksScript(),
+        createBetterEmpireScript(),
+        pack_script(create_script_activity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + "</span>"), null, "FleetPoints"),
+        createMoreScript()
+    ];
+}
+
+/**
+ * RConverter Config - fields for 5 custom pictures to include in the report
+ *     Intro
+ *     'BOOM'
+ *     Destroyed
+ *     Result
+ *     Retentability (original French, potentially recycling?)
+ * @returns {Element}
+ */
+function createRConvScript() {
+    var rConverter = create_script_activity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
+    var converter_container = build_node('div', ['class'], ['script_options'], '');
+    var rConv_options = createRConvOptions();
+    for (i = 0; i < rConv_options.length; i++) {
+        converter_container.appendChild(rConv_options[i]);
+    }
+    return pack_script(rConverter, converter_container, "RConverter");
+}
+
+/**
+ * EasyFarm Config - Input for custom looting and ruins levels, and respective colors
+ * @returns {Element}
+ */
+function createEasyFarmScript() {
+    var easyFarm = create_script_activity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
+    var easyFarm_container = build_node('div', ['class'], ['script_options'], '');
+    var easyFarm_options = createEasyFarmOptions();
+    for (i = 0; i < easyFarm_options.length; i++) {
+        easyFarm_container.appendChild(easyFarm_options[i]);
+    }
+    return pack_script(easyFarm, easyFarm_container, "EasyFarm");
+}
+
+/**
+ * EasyTarget Config - Allows for the import and export of galaxy data
+ * @returns {Element}
+ */
+function createEasyTargetScript() {
+    var easyTarget = create_script_activity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
+    var target_container = build_node('div', ['class'], ['script_options'], '');
+    var easyTarget_textArea = build_node('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
+    ], '');
+    var imprt = build_node('input', ['type', 'value'], ['button', L_['import']], '');
+    var exprt = build_node('input', ['type', 'value'], ['button', L_['export']], '');
+    target_container.appendChild(imprt);
+    target_container.appendChild(exprt);
+    target_container.appendChild(easyTarget_textArea);
+    return pack_script(easyTarget, target_container, "EasyTarget");
+}
+
+/**
+ * NoAutoComplete Config - various checkmarks to enable/disable autocomplete on different pages
+ * @returns {Element}
+ */
+function createAutoCompleteScript() {
+    var autoComplete = create_script_activity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
+    var auto_options = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
+    var width_constraint = build_node('div', ['style'], ['max-width:300px'], '');
+    var auto_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
+    for (i = 0; i < auto_options.length; i++) {
+        width_constraint.appendChild(auto_options[i]);
+    }
+    auto_container.appendChild(width_constraint);
+    return pack_script(autoComplete, auto_container, "NoAutoComplete");
+}
+
+/**
+ * Markit Config - choose the colors to display when marking players in galaxy view
+ * and reset the database
+ * @returns {Element}
+ */
+function createMarkitScript() {
+    var markit = create_script_activity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.markitDescrip2 + "</span>");
+    var markit_container = build_node('div', ['class'], ['script_options'], '');
+    var markit_options = createMarkitOptions();
+    for (i = 0; i < markit_options.length; i++) {
+        markit_container.appendChild(markit_options[i]);
+    }
+    return pack_script(markit, markit_container, "Markit");
+}
+
+/**
+ * GalaxyRanks Config - Level cap and color choices
+ * @returns {Element}
+ */
+function createGalaxyRanksScript() {
+    var galaxyRanks = create_script_activity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
+    var rank_container = build_node('div', ['class'], ['script_options'], '');
+    var gRanks_options = createRankOptions(config.GalaxyRanks.ranks.length);
+    for (i = 0; i < gRanks_options.length; i++) {
+        rank_container.appendChild(gRanks_options[i]);
+    }
+
+    rank_container.appendChild(document.createElement('br'));
+    var rank_inactive = create_script_option_radio('ShowInactive', L_.galaxyRanksInactive);
+    for (i = 0; i < rank_inactive.length; i++) {
+        rank_container.appendChild(rank_inactive[i]);
+    }
+    return pack_script(galaxyRanks, rank_container, "GalaxyRanks");
+}
+
+/**
+ * BetterEmpire Config
+ * @returns {Element}
+ */
+function createBetterEmpireScript() {
+    var betterEmpire = create_script_activity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
+    var emp_container = build_node('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
+    var emp_options = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
+    emp_options[0].style.clear = 'both';
+    emp_container.appendChild(emp_options[0]);
+    emp_container.appendChild(emp_options[1]);
+    return pack_script(betterEmpire, emp_container, "BetterEmpire");
+}
+
+/**
+ * More Config - additional smaller scripts
+ * @returns {Element}
+ */
+function createMoreScript() {
+    var more = create_script_activity("More", 8, "Additional smaller scripts");
+    
+    // Currently contains moonList, convertDeut, traductor, resources, redirectFleet, arrows, returns, deutR, convertC, and mcTrans
+    var moreItems = createMoreOptions();
+    var moreDesc = createMoreDesc();
+
+    var descripContainer = document.createElement("ul");
+
+    var more_container = build_node("div", ["class"], ["script_options"], "");
+    for (i = 0; i < moreItems.length; i++) {
+        for (j = 0; j < moreItems[i].length; j++)
+            more_container.appendChild(moreItems[i][j]);
+    }
+
+    for (i = 0; i < moreDesc.length; i++) {
+        descripContainer.appendChild(moreDesc[i]);
+    }
+
+    more.childNodes[0].childNodes[1].appendChild(descripContainer);
+    return pack_script(more, more_container, "More");
+}
+
+// TODO: the mix of camelCase and snake_case is killing me. Apparently it didn't 5 years ago
+
+/**
  * Attach the script options to the top leve script
  *
  * @param header - The main option - "ScriptName      [x] Activate [] Deactivate"
@@ -1596,6 +1503,110 @@ function pack_script(header, options, id) {
     if (options !== null)
         div.appendChild(options);
     return div;
+}
+
+/**
+ * Creates a top level script with the given name, script number, and tooltip text
+ *
+ * @param name - The name of the script
+ * @param n - The script index
+ * @param tooltiptext - The tooltip text to display
+ * @returns {Element}
+ */
+function create_script_activity(name, n, tooltiptext) {
+    var scr = build_node("div", ["class"], ["script"], "");
+    var scr_title = build_node("div", ["class"], ["script_title"], "");
+    var tooltip = build_node("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
+    var tool_text = build_node("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
+    var activate = build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
+    var activate_label = build_node("label", ["for"], [name + "_activate"], L_['activate']);
+    var deactivate = build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
+    var deactivate_label = build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
+    var scr_active = build_node("div", ["class"], ["script_active"], "");
+    scr_active.appendChild(activate);
+    scr_active.appendChild(activate_label);
+    scr_active.appendChild(deactivate);
+    scr_active.appendChild(deactivate_label);
+    scr_title.appendChild(tooltip);
+    scr_title.appendChild(tool_text);
+    scr_title.appendChild(scr_active);
+    scr.appendChild(scr_title);
+    return scr;
+}
+
+/**
+ * Creates the given element.
+ *
+ * Ex: build_node('div',
+ * @param type - The type of node to create
+ * @param attr - The attributes to set
+ * @param attrValue - The values of the attributes
+ * @param content - The innerHTML
+ * @param event - The type of event
+ * @param eventFunc - The event callback
+ * @returns {Element}
+ */
+function build_node(type, attr, attrValue, content, event, eventFunc) {
+    var elem = document.createElement(type);
+    for (var i = 0; i < attr.length; i++)
+        elem.setAttribute(attr[i], attrValue[i]);
+    if (event) elem.addEventListener(event, eventFunc, false);
+    elem.innerHTML = content;
+    return elem;
+}
+
+/**
+ * Builds an array of elements that represent the options of a script
+ * @param types - Array of element types
+ * @param attributes - Array of attribute arrays
+ * @param values - Array of attribute value arrays
+ * @param contents - Array of element contents
+ * @returns {Array} - The list of built nodes
+ */
+function create_script_option(types, attributes, values, contents) {
+    var result = [];
+    for (var i = 0; i < types.length; i++) {
+        result.push(build_node(types[i], attributes[i], values[i], contents[i]));
+    }
+    return result;
+}
+
+/**
+ * Creates an array of elements that when put in a container
+ * will display something of the form
+ *
+ *     niceName: [] Activate  [] Deactivate
+ *
+ * @param name - the underlying name of the radio button
+ * @param niceName - the "nice" name to display
+ * @returns {Array} - The array of radio button elements
+ */
+function create_script_option_radio(name, niceName) {
+    var arr = [];
+    arr.push(document.createTextNode(niceName + " : "));
+    arr.push(build_node("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
+    arr.push(build_node("label", ["for"], [name + '_activate'], L_["activate"]));
+    arr.push(build_node("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
+    arr.push(build_node("label", ["for"], [name + "_deactivate"], L_["deactivate"] + "<br />"));
+    return arr;
+}
+
+/**
+ * Creates and returns a list of checkboxes with the given names
+ * @param names - Array of names to use
+ * @param width - The width of each item
+ * @returns {Array}
+ */
+function createCheckBoxItems(names, width) {
+    var result = [];
+    for (var i = 0; i < names.length; i++) {
+        var div = build_node("div", ["style"], ["width : " + width + "px;float:left"], "");
+        var condensed = names[i].replace(/ /, "");
+        div.appendChild(build_node("input", ["type", "name", "id"], ["checkbox", condensed + "_check", condensed + "_check"], ""));
+        div.appendChild(build_node("label", ["for"], [condensed + "_check"], names[i]));
+        result.push(div);
+    }
+    return result;
 }
 
 /**
@@ -1669,6 +1680,80 @@ function createMarkitOptions() {
         result.push(option[j]);
     }
     return result;
+}
+
+/**
+ * Build the list of GalaxyRanks options
+ * @param len - The number of color choices
+ * @returns {Array}
+ */
+function createRankOptions(len) {
+    var result = [], option, i, j;
+    for (i = 0; i < len; i++) {
+        // Top [   x   ] : [   #color   ]
+        // Uses JSColor
+        option = create_script_option(["label", "input", "label", "input"], [
+            ["for"],
+            ["type", "id", "style"],
+            [],
+            ["type", "id", "class"]
+        ], [
+            ["GalaxyRanks_r" + i],
+            ["text", "GalaxyRanks_r" + i, "width:10%"],
+            [],
+            ["text", "GalaxyRanks_c" + i, "jscolor"]
+        ], ["Top ", "", " : ", ""]);
+        for (j = 0; j < option.length; j++) {
+            result.push(option[j]);
+        }
+        result.push(document.createElement("br"));
+    }
+
+    // All others : [   #color   ]
+    option = create_script_option(["label", "input"], [
+        ["for"],
+        ["type", "id", "class"]
+    ], [
+        ["GalaxyRanks_r" + len],
+        ["text", "GalaxyRanks_c" + i, "jscolor"]
+    ], [L_.galaxyRanksOthers + " : ", ""]);
+    for (j = 0; j < option.length; j++) {
+        result.push(option[j]);
+    }
+    return result;
+}
+
+/**
+ * Returns the array of scripts that are under the "more" category
+ * @returns {[]}
+ */
+function createMoreOptions() {
+    return [
+        create_script_option_radio("More_moonsList", 'MoonsList'),
+        create_script_option_radio("More_convertDeuty", "ConvertDeut"),
+        create_script_option_radio("More_traductor", "Traductor"),
+        create_script_option_radio("More_resources", "Resources"),
+        create_script_option_radio("More_redirectFleet", "RedirectFleet"),
+        create_script_option_radio("More_arrows", "Arrows"),
+        create_script_option_radio("More_returns", "Returns"),
+        create_script_option_radio("More_deutRow", "DeutRow"),
+        create_script_option_radio("More_convertClick", "ConvertClick"),
+        create_script_option_radio("More_mcTransport", "mcTransport")
+    ];
+}
+
+function createMoreDesc() {
+    var names = ["DeutRow", "ConvertClick", "mcTransport", "MoonList", "ConvertDeut", "Traductor", "Resources", "RedirectFleet", "Arrows", "Returns"];
+    var d1 = [L_.deutRowDescrip1, L_.convertCDescrip1, L_.mcTransDescrip1, L_.mMoonListDescrip1, L_.mConvertDeutDescrip1, L_.mTraductorDescrip1, L_.mResourcesDescrip1, L_.mRedirectFleetDescrip1, L_.mArrowsDescrip1, L_.mReturnsDescrip1];
+    var d2 = [L_.deutRowDescrip2, L_.convertCDescrip2, L_.mcTransDescrip2, L_.mMoonListDescrip2, L_.mConvertDeutDescrip2, L_.mTraductorDescrip2, L_.mResourcesDescrip2, L_.mRedirectFleetDescrip2, L_.mArrowsDescrip2, L_.mReturnsDescrip2];
+    var spanText = "<br />(<span class=scriptDesc>";
+
+    var container = [];
+    for (var i = 0; i < names.length; i++) {
+        container.push(build_node("li", [], [], names[i] + " : " + d1[i] + spanText + d2[i] + "</span>)"));
+    }
+
+    return container;
 }
 
 
@@ -3999,7 +4084,7 @@ function loadMore() {
 
     // Make the arrows larger
     if (can_load_in_page("More_arrows") && config.More.arrows) {
-        document.getElementById("previousplanet").value = "<<<<<<br><<<<<";
+        document.getElementById("previousplanet").value = "<<<<<";
         document.getElementById("nextplanet").value = ">>>>>";
     }
 }
