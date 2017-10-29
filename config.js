@@ -1,4 +1,10 @@
+/******************************
+ * Begin Config/Settings page
+ ******************************/
 
+/* global GM_setValue*/
+/* global GM_getValue*/
+/* global GM_deleteValue*/
 /**
  * Overwrites the "Bonus" page with our script config page. So ugly,
  * but when you build up an entire page of elements using mostly vanilla
@@ -365,7 +371,7 @@ function createRConvScript() {
     var rConverter = createScriptActivity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
     var converterContainer = buildNode('div', ['class'], ['script_options'], '');
     var rConvOptions = createRConvOptions();
-    for (i = 0; i < rConvOptions.length; i++) {
+    for (var i = 0; i < rConvOptions.length; i++) {
         converterContainer.appendChild(rConvOptions[i]);
     }
     return packScript(rConverter, converterContainer, "RConverter");
@@ -379,7 +385,7 @@ function createEasyFarmScript() {
     var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
     var easyFarmContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyFarmOptions = createEasyFarmOptions();
-    for (i = 0; i < easyFarmOptions.length; i++) {
+    for (var i = 0; i < easyFarmOptions.length; i++) {
         easyFarmContainer.appendChild(easyFarmOptions[i]);
     }
     return packScript(easyFarm, easyFarmContainer, "EasyFarm");
@@ -411,7 +417,7 @@ function createAutoCompleteScript() {
     var autoOptions = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
     var widthConstraint = buildNode('div', ['style'], ['max-width:300px'], '');
     var autoContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
-    for (i = 0; i < autoOptions.length; i++) {
+    for (var i = 0; i < autoOptions.length; i++) {
         widthConstraint.appendChild(autoOptions[i]);
     }
     autoContainer.appendChild(widthConstraint);
@@ -427,7 +433,7 @@ function createMarkitScript() {
     var markit = createScriptActivity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.markitDescrip2 + "</span>");
     var markitContainer = buildNode('div', ['class'], ['script_options'], '');
     var markitOptions = createMarkitOptions();
-    for (i = 0; i < markitOptions.length; i++) {
+    for (var i = 0; i < markitOptions.length; i++) {
         markitContainer.appendChild(markitOptions[i]);
     }
     return packScript(markit, markitContainer, "Markit");
@@ -441,7 +447,7 @@ function createGalaxyRanksScript() {
     var galaxyRanks = createScriptActivity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
     var rankContainer = buildNode('div', ['class'], ['script_options'], '');
     var rankOptions = createRankOptions(config.GalaxyRanks.ranks.length);
-    for (i = 0; i < rankOptions.length; i++) {
+    for (var i = 0; i < rankOptions.length; i++) {
         rankContainer.appendChild(rankOptions[i]);
     }
 
@@ -481,8 +487,8 @@ function createMoreScript() {
     var descripContainer = document.createElement("ul");
 
     var moreContainer = buildNode("div", ["class"], ["script_options"], "");
-    for (i = 0; i < moreItems.length; i++) {
-        for (j = 0; j < moreItems[i].length; j++)
+    for (var i = 0; i < moreItems.length; i++) {
+        for (var j = 0; j < moreItems[i].length; j++)
             moreContainer.appendChild(moreItems[i][j]);
     }
 
@@ -768,9 +774,10 @@ function createMoreDesc() {
 function saveSettings() {
     var saveButton = $("#save")[0];
     saveButton.value = "Saving";
-    var inputs;
+    var inputs, script;
     var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1);
     var options = getDomXpath("//div[@class='script_options']", document, -1);
+
     for (var i = 0; i < nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
         g_scriptInfo[script] = actives[i].checked;

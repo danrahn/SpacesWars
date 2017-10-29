@@ -1,4 +1,14 @@
 
+/******************************
+ * Begin Main
+ ******************************/
+
+/* global GM_setValue*/
+/* global GM_getValue*/
+/* global GM_deleteValue*/
+/* global GM_xmlhttpRequest*/
+/* global calcul*/
+
 /**
  * Delete all spaceswars related storage
  */
@@ -26,7 +36,7 @@ function deleteAllData() {
 }
 
 $( document ).ready(function() {
-    //GM_setValue("scan", "false");
+    GM_setValue("scan", "false");
     //GM_setValue("scan", "true");
     if (window.location.href.indexOf("galaxy") !== -1) {
         galScan();
@@ -38,7 +48,6 @@ function galScan() {
         scan = true;
         GM_setValue("scan", "true");
     }
-    scan = false;
     if (scan) {
         var gSel = $("#galaxy");
         var sSel = $("[name=system]");
@@ -76,6 +85,7 @@ var nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
 var gmicon = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
+var scriptsIcons = "404"; // Broken
 
 // Language dictionary. FR and EN
 var L_ = [];
@@ -93,7 +103,7 @@ try {
     g_scriptInfo = undefined;
 }
 
-var info, page, config, uni, i, j;
+var info, page, config, uni;
 
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
@@ -213,7 +223,7 @@ function getSlashedNb(nStr) {
 /**
  * Creates and returns the language dictionary.
  *
- * @returns {{}} The dictionary
+ * @returns {[]} The dictionary
  */
 function setDictionary() {
     var tab = [];
@@ -467,7 +477,7 @@ function setDictionary() {
             break;
         default:
             alert("Error with language !");
-            return 0;
+            return [];
     }
     return tab;
 }
@@ -585,7 +595,7 @@ function setInfosVersion() {
 /**
  * Sets the default script states (all set to active)
  *
- * @returns the list of top-level script options
+ * @returns {{}} the list of top-level script options
  */
 function setScriptsInfo() {
     var list = {};
@@ -798,7 +808,7 @@ if (g_versionInfo === undefined || g_versionInfo === null || g_versionInfo.versi
         if (g_versionInfo.version === "4.0") {
             GM_deleteValue("config_scripts_uni_0");
             setConfigScripts(0);
-            for (i = 1; i <= 17; i++) {
+            for (var i = 1; i <= 17; i++) {
                 try {
                     config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
                 } catch (ex) {
@@ -954,7 +964,7 @@ function loadClickNGo() {
         document.getElementById("form_login").submit();
     }));
     var clicngo = buildNode("div", ["style", "id"], ["float:right;cursor:pointer;padding:4px 0 0 4px;", "clicngo"],
-        "<img src='" + scripts_icons + "Clic&Go/connecting_people.png'/>");
+        "<img src='" + scriptsIcons + "Clic&Go/connecting_people.png'/>");
 
     var script = buildNode("script", ["type"], ["text/javascript"],
         "$('#clicngo').click(function(){$('#clicngo_contents').css('display','block');$('body').css('opacity', '0.2');});");
@@ -975,7 +985,7 @@ function loadClickNGo() {
     html += "<div style='width:50%;border-bottom:1px solid white;margin:10px 0 10px 0;'></div>";
     html += "<div><input id='remove_nb' onclick='this.value=\"\";' value='#' style='width:20px;border:1px solid #545454;height:15px;padding:1px;" +
         "vertical-align:middle;background-color:black;border-radius:5px 5px 5px 5px;color:#CDD7F8;font:13px Times New Roman normal;margin:5px 5px 1px 2px;text-align:center;'/>";
-    html += "<img id='remove_submit' style='cursor:pointer;position:relative;top:7px;' src='" + scripts_icons + "Clic&Go/remove.png' alt='remove'/></div>";
+    html += "<img id='remove_submit' style='cursor:pointer;position:relative;top:7px;' src='" + scriptsIcons + "Clic&Go/remove.png' alt='remove'/></div>";
     html += "<div><select id='add_universe'  style='border:1px solid #545454;height:20px;padding:1px;" +
         "vertical-align:middle;background-color:black;border-radius:5px 5px 5px 5px;color:#CDD7F8;font:13px Times New Roman normal;margin:5px 0 1px 2px;text-align:center;'>";
 
@@ -989,7 +999,7 @@ function loadClickNGo() {
     html += "<input id='add_password' onclick='this.value=\"\";'  type='password' value='password' style='border:1px solid #545454;height:15px;padding:1px;" +
         "vertical-align:middle;background-color:black;border-radius:5px 5px 5px 5px;color:#CDD7F8;font:13px Times New Roman normal;margin:5px 0 1px 2px;text-align:center;'/>";
     html += "<img id='add_submit' style='cursor:pointer;position:absolute;' src='" +
-        scripts_icons + "Clic&Go/add.png' alt='add'/></div>";
+        scriptsIcons + "Clic&Go/add.png' alt='add'/></div>";
     clicngoContents.innerHTML += html;
 
     function insertClicNGoContents() {
@@ -999,7 +1009,7 @@ function loadClickNGo() {
             document.getElementById("clicngo_id").appendChild(div);
         }
         for (i = 0; i < config.ClicNGo.universes.length; i++) {
-            var img = buildNode("img", ["name", "src", "alt", "style"], ["clicngo_" + i, scripts_icons +
+            var img = buildNode("img", ["name", "src", "alt", "style"], ["clicngo_" + i, scriptsIcons +
             "Clic&Go/login.png", "go", "margin-left:5px;cursor:pointer;position:absolute;"
             ], "");
             img.addEventListener("click", function() {
@@ -1162,14 +1172,14 @@ function loadRConverter() {
 
     var rapport_converti = "";
     rapport_converti += "[center][b][img]" + ((config.RConverter.header === '') ?
-        scripts_icons + 'RConverter/header.png' : config.RConverter.header) + "[/img]\n\n";
+        scriptsIcons + 'RConverter/header.png' : config.RConverter.header) + "[/img]\n\n";
     rapport_converti += date_rc + "[/b]\n";
     rapport_converti += "_________________________________________________\n\n";
     for (i = 0; i < participants[0].length; i++) {
         rapport_converti += participants[0][i];
         if (participants[1][i].length === 0) {
             rapport_converti += "[img]" + ((config.RConverter.destroyed === '') ?
-                scripts_icons + 'RConverter/destroyed.png' : config.RConverter.destroyed) + "[/img]\n";
+                scriptsIcons + 'RConverter/destroyed.png' : config.RConverter.destroyed) + "[/img]\n";
         }
         for (j = 0; j < participants[1][i].length; j++) {
             rapport_converti += "[color=" + couleurs_rc[j] + "]" + participants[1][i][j][0] + " " + participants[1][i][j][1] + "[/color]\n";
@@ -1180,7 +1190,7 @@ function loadRConverter() {
     if (nb_tours !== 1) {
         var difference;
         rapport_converti += "[img]" + ((config.RConverter.boom === '') ?
-            scripts_icons + 'RConverter/boom.png' : config.RConverter.boom) +
+            scriptsIcons + 'RConverter/boom.png' : config.RConverter.boom) +
             "[/img]";
         rapport_converti += "\n\n";
 
@@ -1188,7 +1198,7 @@ function loadRConverter() {
             rapport_converti += participants[0][i];
             if (participants[2][i].length === 0) {
                 rapport_converti += "[img]" + ((config.RConverter.destroyed === '') ?
-                        scripts_icons + 'RConverter/destroyed.png' : config.RConverter.destroyed
+                        scriptsIcons + 'RConverter/destroyed.png' : config.RConverter.destroyed
                 ) + "[/img]\n";
             }
             for (j = 0; j < participants[2][i].length; j++) {
@@ -1207,11 +1217,11 @@ function loadRConverter() {
         }
     }
     rapport_converti += "[img]" + ((config.RConverter.result === '') ?
-        scripts_icons + 'RConverter/result.png' : config.RConverter.result) + "[/img]\n";
+        scriptsIcons + 'RConverter/result.png' : config.RConverter.result) + "[/img]\n";
     rapport_converti += resultat_combat + "\n\n";
     rapport_converti += resultat_CDR + "\n\n";
     rapport_converti += "[img]" + ((config.RConverter.renta === '') ?
-        scripts_icons + 'RConverter/renta.png' : config.RConverter.renta) + "[/img]\n";
+        scriptsIcons + 'RConverter/renta.png' : config.RConverter.renta) + "[/img]\n";
     rapport_converti += renta_attaquant + "\n\n";
     rapport_converti += renta_defenseur + "\n\n";
     rapport_converti += "[/center]";
@@ -1261,7 +1271,7 @@ function loadEasyFarm() {
         doNotSpy = new Array(8);
         for (i = 0; i < 8; i++) {
             doNotSpy[i] = new Array(500);
-            for (j = 0; j < 500; j++) {
+            for (var j = 0; j < 500; j++) {
                 doNotSpy[i][j] = new Array(16);
             }
         }
@@ -2536,7 +2546,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     }
 
-    var len = buildNode("input", ["type", "id", "size",], ["text", "autoSpyLength", "5"]);
+    var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
     var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
         var num = $("#autoSpyLength").val();
         GM_setValue("autoSpyLength", num);
@@ -2824,7 +2834,7 @@ function loadTChatty() {
 
     var textarea = document.getElementById("message2");
     textarea.addEventListener('keyup', function(e) {
-        reg = new RegExp("\[[0-9]+\:[0-9]+\:[0-9]+\]", "gi");
+        var reg = new RegExp("\[[0-9]+\:[0-9]+\:[0-9]+\]", "gi");
         this.value = this.value.replace(reg, "[x:xxx:x]");
         if (this.value.length > 232) this.value = this.value.substring(0, 232); //¨La limite de 255 - la place que les balises colors prennent
         if (this.value.charAt(0) !== "/" && this.value !== "") {
@@ -2861,17 +2871,18 @@ function saveFleetPage() {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
 
-        if (key == 77) {
+        if (key === 77) {
             $('#transport').click();
             $('input[type=submit]')[0].click();
-        } else if (key == 78) {
+        } else if (key === 78) {
             $('#nextplanet').click();
-        } else if (key == 80) {
+        } else if (key === 80) {
             $('#previousplanet').click();
-        } else if (key == 68) {
+        } else if (key === 68) {
             $('#allin').click();
         }
-    }
+    };
+
     var locData = JSON.stringify(window.location);
     GM_setValue("savedFleet", locData);
     var mc = $('#ship217');
@@ -2954,11 +2965,12 @@ function continueAttack() {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
 
-        if (key == 78) {
+        if (key === 78) {
             $('.flotte_2_4 a')[0].click();
             $('input[type=submit]')[0].click();
         }
-    }
+    };
+
     if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
         setTimeout(function() {
             $('input[type=submit]')[0].click()
@@ -2978,7 +2990,8 @@ if (page === "floten2") {
         } else if (key === 83) {
             $('input[type=submit]')[0].click();
         }
-    }
+    };
+
     sendAttack();
 }
 
@@ -3068,22 +3081,23 @@ function loadMore() {
                         text)[1];
                 text += "</div>";
                 //text = text.replace(/<span class=b>(.*)<\/span>/g, "<b>$1</b>"); text = text.replace(/<span class=u>(.*)<\/span>/g, "<u>$1</u>"); text = text.replace(/<span class=i>(.*)<\/span>/g, "<em>$1</em>");
-                html =
+                var html =
                     "<div style='background-color:black; opacity:0.8; border:1px solid white; color:white; padding:5px;'>" +
                     text + "</div>";
                 document.getElementById("gm_traductionofword").innerHTML = html;
             }
         }
-        html1 = "<option style='background:url(\"" + scripts_icons +
+        var html1 = "<option style='background:url(\"" + scriptsIcons +
             "Traductor/FR.png\") no-repeat; text-align:right;' value='fr'>FR</option>";
-        html2 = "<option style='background:url(\"" + scripts_icons +
+        var html2 = "<option style='background:url(\"" + scriptsIcons +
             "Traductor/EN.png\") no-repeat; text-align:right;' value='en'>EN</option>";
-        html = "<option style='background:url(\"" + scripts_icons +
+        var html = "<option style='background:url(\"" + scriptsIcons +
             "Traductor/DE.png\") no-repeat; text-align:right;' value='de'>DE</option>";
-        html += "<option style='background:url(\"" + scripts_icons +
+        html += "<option style='background:url(\"" + scriptsIcons +
             "Traductor/ES.png\") no-repeat; text-align:right;' value='es'>ES</option>";
-        html += "<option style='background:url(\"" + scripts_icons +
+        html += "<option style='background:url(\"" + scriptsIcons +
             "Traductor/IT.png\") no-repeat; text-align:right;' value='it'>IT</option>";
+        var select1, select2;
         if (lang === "en") {
             select1 = buildNode("select", ["id", "style"], ["gm_lang1",
                 "height:18px;"
@@ -3099,22 +3113,22 @@ function loadMore() {
                 "height:18px;"
             ], html1 + html2);
         }
-        input = buildNode("img", ["type", "src", "style"], ["submit",
-            scripts_icons + "Traductor/GO.png",
+        var input = buildNode("img", ["type", "src", "style"], ["submit",
+            scriptsIcons + "Traductor/GO.png",
             "float:right;height:18px;cursor:pointer"
         ], "", "click", function() {
             toTranslate(document.getElementById("gm_wordtotranslate").value,
                 document.getElementById("gm_lang1").value, document.getElementById(
                     "gm_lang2").value);
         });
-        div = buildNode("div", ["id", "style"], ["gm_traduction",
+        var div = buildNode("div", ["id", "style"], ["gm_traduction",
                 "background-color:black; padding:0 0 1px 2px; position:fixed; bottom:1px; right:1px; "
             ],
             "<input id='gm_wordtotranslate' type='text' style='width:80px;height:9px;'/>"
         );
         div.appendChild(select1);
         div.appendChild(select2);
-        div2 = buildNode("div", ["id"], ["gm_traductionofword"], "");
+        var div2 = buildNode("div", ["id"], ["gm_traductionofword"], "");
         div.appendChild(input);
         document.getElementsByTagName("body")[0].appendChild(div2);
         document.getElementsByTagName("body")[0].appendChild(div);
