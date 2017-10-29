@@ -135,16 +135,16 @@ var gmicon = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail 
 var L_ = [];
 var lang = "en";
 
-var infos_version, infos_scripts;
+var g_versionInfo, g_scriptInfo;
 try {
-    infos_version = JSON.parse(GM_getValue("infos_version"));
+    g_versionInfo = JSON.parse(GM_getValue("infos_version"));
 } catch (ex) {
-    infos_version = undefined;
+    g_versionInfo = undefined;
 }
 try {
-    infos_scripts = JSON.parse(GM_getValue("infos_scripts"));
+    g_scriptInfo = JSON.parse(GM_getValue("infos_scripts"));
 } catch (ex) {
-    infos_scripts = undefined;
+    g_scriptInfo = undefined;
 }
 
 var info, page, config, uni, i, j;
@@ -152,97 +152,97 @@ var info, page, config, uni, i, j;
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
-    var can_load = null;
-    if (can_load === null) {
-        can_load = {};
-        can_load.RConverter = {};
-        can_load.RConverter.type = 1;
-        can_load.RConverter.rw = true;
-        can_load.EasyFarm = {};
-        can_load.EasyFarm.type = 1;
-        can_load.EasyFarm.messages = true;
-        can_load.AllinDeut = {};
-        can_load.AllinDeut.type = 1;
-        can_load.AllinDeut.buildings = true;
-        can_load.AllinDeut.research = true;
-        can_load.Carto = {};
-        can_load.Carto.type = 1;
-        can_load.Carto.galaxy = true;
-        can_load.iFly = {};
-        can_load.iFly.type = 1;
-        can_load.iFly.overview = true;
-        can_load.TChatty = {};
-        can_load.TChatty.type = 1;
-        can_load.TChatty.chat = true;
-        can_load.Markit = {};
-        can_load.Markit.type = 1;
-        can_load.Markit.galaxy = true;
-        can_load.ClicNGo = {};
-        can_load.ClicNGo.type = 1;
-        can_load.ClicNGo.index = true;
-        can_load.More_moonsList = {};
-        can_load.More_moonsList.type = 2;
-        can_load.More_moonsList.chat = false;
-        can_load.More_moonsList.forum = false;
-        can_load.More_moonsList.index = false;
-        can_load.More_moonsList.niark = false;
-        can_load.More_moonsList.rw = false;
-        can_load.More_moonsList.frames = false;
-        can_load.More_moonsList.leftmenu = false;
-        can_load.More_convertDeut = {};
-        can_load.More_convertDeut.type = 1;
-        can_load.More_convertDeut.marchand = true;
-        can_load.More_traductor = {};
-        can_load.More_traductor.type = 1;
-        can_load.More_traductor.chat = true;
-        can_load.More_traductor.forum = true;
-        can_load.More_traductor.message = true;
-        can_load.More_resources = {};
-        can_load.More_resources.type = 1;
-        can_load.More_resources.resources = true;
-        can_load.More_redirectFleet = {};
-        can_load.More_redirectFleet.type = 1;
-        can_load.More_redirectFleet.floten3 = true;
-        can_load.More_arrows = {};
-        can_load.More_arrows.type = 2;
-        can_load.More_arrows.chat = false;
-        can_load.More_arrows.forum = false;
-        can_load.More_arrows.index = false;
-        can_load.More_arrows.niark = false;
-        can_load.More_arrows.rw = false;
-        can_load.More_arrows.frames = false;
-        can_load.More_arrows.leftmenu = false;
-        can_load.More_returns = {};
-        can_load.More_returns.type = 1;
-        can_load.More_returns.overview = true;
-        can_load.EasyTarget = {};
-        can_load.EasyTarget.type = 1;
-        can_load.EasyTarget.galaxy = true;
-        can_load.InactiveStats = {};
-        can_load.InactiveStats.type = 1;
-        can_load.InactiveStats.stat = true;
-        can_load.AllianceLink = {};
-        can_load.AllianceLink.type = 1;
-        can_load.AllianceLink.alliance = true;
-        can_load.More_deutRow = {};
-        can_load.More_deutRow.type = 2;
-        can_load.More_deutRow.niark = false;
-        can_load.More_deutRow.forum = false;
-        can_load.More_deutRow.index = false;
-        can_load.More_deutRow.chat = false;
-        can_load.More_deutRow.rw = false;
-        can_load.More_deutRow.frames = false;
-        can_load.More_deutRow.leftmenu = false;
-        can_load.empireTotal = {};
-        can_load.empireTotal.type = 1;
-        can_load.empireTotal.imperium = true;
+    var canLoad = null;
+    if (canLoad === null) {
+        canLoad = {};
+        canLoad.RConverter = {};
+        canLoad.RConverter.type = 1;
+        canLoad.RConverter.rw = true;
+        canLoad.EasyFarm = {};
+        canLoad.EasyFarm.type = 1;
+        canLoad.EasyFarm.messages = true;
+        canLoad.AllinDeut = {};
+        canLoad.AllinDeut.type = 1;
+        canLoad.AllinDeut.buildings = true;
+        canLoad.AllinDeut.research = true;
+        canLoad.Carto = {};
+        canLoad.Carto.type = 1;
+        canLoad.Carto.galaxy = true;
+        canLoad.iFly = {};
+        canLoad.iFly.type = 1;
+        canLoad.iFly.overview = true;
+        canLoad.TChatty = {};
+        canLoad.TChatty.type = 1;
+        canLoad.TChatty.chat = true;
+        canLoad.Markit = {};
+        canLoad.Markit.type = 1;
+        canLoad.Markit.galaxy = true;
+        canLoad.ClicNGo = {};
+        canLoad.ClicNGo.type = 1;
+        canLoad.ClicNGo.index = true;
+        canLoad.More_moonsList = {};
+        canLoad.More_moonsList.type = 2;
+        canLoad.More_moonsList.chat = false;
+        canLoad.More_moonsList.forum = false;
+        canLoad.More_moonsList.index = false;
+        canLoad.More_moonsList.niark = false;
+        canLoad.More_moonsList.rw = false;
+        canLoad.More_moonsList.frames = false;
+        canLoad.More_moonsList.leftmenu = false;
+        canLoad.More_convertDeut = {};
+        canLoad.More_convertDeut.type = 1;
+        canLoad.More_convertDeut.marchand = true;
+        canLoad.More_traductor = {};
+        canLoad.More_traductor.type = 1;
+        canLoad.More_traductor.chat = true;
+        canLoad.More_traductor.forum = true;
+        canLoad.More_traductor.message = true;
+        canLoad.More_resources = {};
+        canLoad.More_resources.type = 1;
+        canLoad.More_resources.resources = true;
+        canLoad.More_redirectFleet = {};
+        canLoad.More_redirectFleet.type = 1;
+        canLoad.More_redirectFleet.floten3 = true;
+        canLoad.More_arrows = {};
+        canLoad.More_arrows.type = 2;
+        canLoad.More_arrows.chat = false;
+        canLoad.More_arrows.forum = false;
+        canLoad.More_arrows.index = false;
+        canLoad.More_arrows.niark = false;
+        canLoad.More_arrows.rw = false;
+        canLoad.More_arrows.frames = false;
+        canLoad.More_arrows.leftmenu = false;
+        canLoad.More_returns = {};
+        canLoad.More_returns.type = 1;
+        canLoad.More_returns.overview = true;
+        canLoad.EasyTarget = {};
+        canLoad.EasyTarget.type = 1;
+        canLoad.EasyTarget.galaxy = true;
+        canLoad.InactiveStats = {};
+        canLoad.InactiveStats.type = 1;
+        canLoad.InactiveStats.stat = true;
+        canLoad.AllianceLink = {};
+        canLoad.AllianceLink.type = 1;
+        canLoad.AllianceLink.alliance = true;
+        canLoad.More_deutRow = {};
+        canLoad.More_deutRow.type = 2;
+        canLoad.More_deutRow.niark = false;
+        canLoad.More_deutRow.forum = false;
+        canLoad.More_deutRow.index = false;
+        canLoad.More_deutRow.chat = false;
+        canLoad.More_deutRow.rw = false;
+        canLoad.More_deutRow.frames = false;
+        canLoad.More_deutRow.leftmenu = false;
+        canLoad.empireTotal = {};
+        canLoad.empireTotal.type = 1;
+        canLoad.empireTotal.imperium = true;
     }
-    if (can_load[script].type === 1) {
-        return can_load[script][page] !== undefined;
+    if (canLoad[script].type === 1) {
+        return canLoad[script][page] !== undefined;
     }
 
-    if (can_load[script].type === 2) {
-        return can_load[script][page] === undefined;
+    if (canLoad[script].type === 2) {
+        return canLoad[script][page] === undefined;
     }
     return false;
 }
@@ -641,7 +641,7 @@ function setInfosVersion() {
  *
  * @returns the list of top-level script options
  */
-function setInfosScripts() {
+function setScriptsInfo() {
     var list = {};
     list.RConverter = 1;
     list.EasyFarm = 1;
@@ -669,9 +669,9 @@ function setInfosScripts() {
  * @returns {{}} - the script config
  */
 function setConfigScripts(uni) {
-    if (uni > infos_version.nbUnis) {
-        infos_version.nbUnis = uni;
-        GM_setValue("infos_version", JSON.stringify(infos_version));
+    if (uni > g_versionInfo.nbUnis) {
+        g_versionInfo.nbUnis = uni;
+        GM_setValue("infos_version", JSON.stringify(g_versionInfo));
     }
 
     var list = {};
@@ -815,21 +815,21 @@ function getNbFromStringtab(tab) {
 // Ugh, global stuff
 // Is this actually necessary anymore?
 // checking...
-if (infos_version === undefined || infos_version === null || infos_version.version !== thisVersion) {
+if (g_versionInfo === undefined || g_versionInfo === null || g_versionInfo.version !== thisVersion) {
     // ... 1st install ?
     page = getInfosFromPage().loc;
-    if (infos_version === undefined || infos_version === null) {
-        infos_version = setInfosVersion();
-        infos_scripts = setInfosScripts();
+    if (g_versionInfo === undefined || g_versionInfo === null) {
+        g_versionInfo = setInfosVersion();
+        g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
-        if (infos_version.version === thisVersion && page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
+        if (g_versionInfo.version === thisVersion && page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
             alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
     }
 
     // ... just as updating ?
-    if (infos_version.version !== thisVersion) {
+    if (g_versionInfo.version !== thisVersion) {
         console.log("Version mismatch");
-        if (infos_version.version === undefined) // 3.8 version
+        if (g_versionInfo.version === undefined) // 3.8 version
         {
             GM_deleteValue("infos_version");
             GM_deleteValue("infos_scripts");
@@ -842,14 +842,14 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
             GM_deleteValue("options_script6");
             GM_deleteValue("options_script7");
             GM_deleteValue("options_script8");
-            infos_version = setInfosVersion();
-            infos_scripts = setInfosScripts();
+            g_versionInfo = setInfosVersion();
+            g_scriptInfo = setScriptsInfo();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
             if (page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
                 alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
         }
-        if (infos_version.version === "4.0") {
+        if (g_versionInfo.version === "4.0") {
             GM_deleteValue("config_scripts_uni_0");
             setConfigScripts(0);
             for (i = 1; i <= 17; i++) {
@@ -873,7 +873,7 @@ if (infos_version === undefined || infos_version === null || infos_version.versi
                     GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
                 }
             }
-            infos_version = setInfosVersion();
+            g_versionInfo = setInfosVersion();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
             page = getInfosFromPage().loc;
@@ -905,10 +905,10 @@ function getParameterByName(name, url) {
 info = getInfosFromPage();
 page = info.loc;
 uni = info.universe;
-lang = infos_version.language;
+lang = g_versionInfo.language;
 L_ = setDictionary();
 var MerchantMap = setMerchantMap();
-var nbUnis = infos_version.nbUnis;
+var nbUnis = g_versionInfo.nbUnis;
 
 // Try to grab the config scripts for the universe, otherwise set them ourselves
 if (uni !== 0 && uni !== undefined && uni !== null) {
@@ -923,11 +923,11 @@ if (uni !== 0 && uni !== undefined && uni !== null) {
 
 // Try to get general info scripts, set to default otherwise
 try {
-    infos_scripts = JSON.parse(GM_getValue("infos_scripts"));
-    if (infos_scripts === null || infos_scripts === undefined)
-        infos_scripts = setInfosScripts();
+    g_scriptInfo = JSON.parse(GM_getValue("infos_scripts"));
+    if (g_scriptInfo === null || g_scriptInfo === undefined)
+        g_scriptInfo = setScriptsInfo();
 } catch (ex) {
-    infos_scripts = setInfosScripts();
+    g_scriptInfo = setScriptsInfo();
 }
 
 // uni_0 indicates index or forum, use that config
@@ -948,36 +948,36 @@ if (page === "leftmenu") {
         // return;
     }
     // get lang
-    var logout_box = getDomXpath("//a[@href='logout.php']", document, 0);
-    if (logout_box.innerHTML === "Logout") {
-        infos_version.language = "en";
+    var logoutBox = getDomXpath("//a[@href='logout.php']", document, 0);
+    if (logoutBox.innerHTML === "Logout") {
+        g_versionInfo.language = "en";
     } else {
-        infos_version.language = "fr";
+        g_versionInfo.language = "fr";
     }
-    GM_setValue("infos_version", JSON.stringify(infos_version));
-    lang = infos_version.language;
+    GM_setValue("infos_version", JSON.stringify(g_versionInfo));
+    lang = g_versionInfo.language;
     // gm_icon
-    var lang_box = getDomXpath("//div[@class='lm_lang']", document, 0);
-    var gm_icon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
+    var langBox = getDomXpath("//div[@class='lm_lang']", document, 0);
+    var gmIcon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
         "<a href='achatbonus.php?lang=" + lang + "&uni=" + uni +
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + gmicon + "' alt='GM'/></a>");
-    lang_box.appendChild(gm_icon);
-    var sfm_check = buildNode("input", ["type"], ["checkbox"]);
-    var aa_check = buildNode("input", ["type"], ["checkbox"]);
+    langBox.appendChild(gmIcon);
+    var smfCheck = buildNode("input", ["type"], ["checkbox"]);
+    var aaCheck = buildNode("input", ["type"], ["checkbox"]);
 
-    $(sfm_check).change(function() {
+    $(smfCheck).change(function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
         spyForMe = this.checked;
     });
 
-    $(aa_check).change(function() {
+    $(aaCheck).change(function() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
     });
-    lang_box.appendChild(sfm_check);
-    lang_box.appendChild(aa_check);
+    langBox.appendChild(smfCheck);
+    langBox.appendChild(aaCheck);
 
-    $(sfm_check).prop("checked", spyForMe);
-    $(aa_check).prop("checked", autoAttack);
+    $(smfCheck).prop("checked", spyForMe);
+    $(aaCheck).prop("checked", autoAttack);
 }
 
 // SpacesWars did away with userscripts, and along with it the
@@ -1209,9 +1209,9 @@ function populateConfig() {
     var options = getDomXpath("//div[@class='script_options']", document, -1),
         inputs;
 
-    if (infos_scripts === undefined || infos_scripts === null) {
+    if (g_scriptInfo === undefined || g_scriptInfo === null) {
         console.log("reset");
-        infos_scripts = setInfosScripts();
+        g_scriptInfo = setScriptsInfo();
     }
 
     // RConverter
@@ -1310,7 +1310,7 @@ function populateConfig() {
     // Top-level activate/deactivate
     for (var i = 0; i < nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
-        (infos_scripts[script]) ? actives[i].checked = true : actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
+        (g_scriptInfo[script]) ? actives[i].checked = true : actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
     }
 }
 
@@ -1352,12 +1352,12 @@ function createScripts() {
  */
 function createRConvScript() {
     var rConverter = createScriptActivity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
-    var converter_container = buildNode('div', ['class'], ['script_options'], '');
-    var rConv_options = createRConvOptions();
-    for (i = 0; i < rConv_options.length; i++) {
-        converter_container.appendChild(rConv_options[i]);
+    var converterContainer = buildNode('div', ['class'], ['script_options'], '');
+    var rConvOptions = createRConvOptions();
+    for (i = 0; i < rConvOptions.length; i++) {
+        converterContainer.appendChild(rConvOptions[i]);
     }
-    return packScript(rConverter, converter_container, "RConverter");
+    return packScript(rConverter, converterContainer, "RConverter");
 }
 
 /**
@@ -1366,12 +1366,12 @@ function createRConvScript() {
  */
 function createEasyFarmScript() {
     var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
-    var easyFarm_container = buildNode('div', ['class'], ['script_options'], '');
-    var easyFarm_options = createEasyFarmOptions();
-    for (i = 0; i < easyFarm_options.length; i++) {
-        easyFarm_container.appendChild(easyFarm_options[i]);
+    var easyFarmContainer = buildNode('div', ['class'], ['script_options'], '');
+    var easyFarmOptions = createEasyFarmOptions();
+    for (i = 0; i < easyFarmOptions.length; i++) {
+        easyFarmContainer.appendChild(easyFarmOptions[i]);
     }
-    return packScript(easyFarm, easyFarm_container, "EasyFarm");
+    return packScript(easyFarm, easyFarmContainer, "EasyFarm");
 }
 
 /**
@@ -1380,15 +1380,15 @@ function createEasyFarmScript() {
  */
 function createEasyTargetScript() {
     var easyTarget = createScriptActivity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
-    var target_container = buildNode('div', ['class'], ['script_options'], '');
-    var easyTarget_textArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
+    var targetContainer = buildNode('div', ['class'], ['script_options'], '');
+    var easyTargetTextArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
     ], '');
     var imprt = buildNode('input', ['type', 'value'], ['button', L_['import']], '');
     var exprt = buildNode('input', ['type', 'value'], ['button', L_['export']], '');
-    target_container.appendChild(imprt);
-    target_container.appendChild(exprt);
-    target_container.appendChild(easyTarget_textArea);
-    return packScript(easyTarget, target_container, "EasyTarget");
+    targetContainer.appendChild(imprt);
+    targetContainer.appendChild(exprt);
+    targetContainer.appendChild(easyTargetTextArea);
+    return packScript(easyTarget, targetContainer, "EasyTarget");
 }
 
 /**
@@ -1397,14 +1397,14 @@ function createEasyTargetScript() {
  */
 function createAutoCompleteScript() {
     var autoComplete = createScriptActivity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
-    var auto_options = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
-    var width_constraint = buildNode('div', ['style'], ['max-width:300px'], '');
-    var auto_container = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
-    for (i = 0; i < auto_options.length; i++) {
-        width_constraint.appendChild(auto_options[i]);
+    var autoOptions = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
+    var widthConstraint = buildNode('div', ['style'], ['max-width:300px'], '');
+    var autoContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
+    for (i = 0; i < autoOptions.length; i++) {
+        widthConstraint.appendChild(autoOptions[i]);
     }
-    auto_container.appendChild(width_constraint);
-    return packScript(autoComplete, auto_container, "NoAutoComplete");
+    autoContainer.appendChild(widthConstraint);
+    return packScript(autoComplete, autoContainer, "NoAutoComplete");
 }
 
 /**
@@ -1414,12 +1414,12 @@ function createAutoCompleteScript() {
  */
 function createMarkitScript() {
     var markit = createScriptActivity("Markit", 6, L_.markitDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.markitDescrip2 + "</span>");
-    var markit_container = buildNode('div', ['class'], ['script_options'], '');
-    var markit_options = createMarkitOptions();
-    for (i = 0; i < markit_options.length; i++) {
-        markit_container.appendChild(markit_options[i]);
+    var markitContainer = buildNode('div', ['class'], ['script_options'], '');
+    var markitOptions = createMarkitOptions();
+    for (i = 0; i < markitOptions.length; i++) {
+        markitContainer.appendChild(markitOptions[i]);
     }
-    return packScript(markit, markit_container, "Markit");
+    return packScript(markit, markitContainer, "Markit");
 }
 
 /**
@@ -1428,18 +1428,18 @@ function createMarkitScript() {
  */
 function createGalaxyRanksScript() {
     var galaxyRanks = createScriptActivity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
-    var rank_container = buildNode('div', ['class'], ['script_options'], '');
-    var gRanks_options = createRankOptions(config.GalaxyRanks.ranks.length);
-    for (i = 0; i < gRanks_options.length; i++) {
-        rank_container.appendChild(gRanks_options[i]);
+    var rankContainer = buildNode('div', ['class'], ['script_options'], '');
+    var rankOptions = createRankOptions(config.GalaxyRanks.ranks.length);
+    for (i = 0; i < rankOptions.length; i++) {
+        rankContainer.appendChild(rankOptions[i]);
     }
 
-    rank_container.appendChild(document.createElement('br'));
-    var rank_inactive = createRadioScriptOption('ShowInactive', L_.galaxyRanksInactive);
-    for (i = 0; i < rank_inactive.length; i++) {
-        rank_container.appendChild(rank_inactive[i]);
+    rankContainer.appendChild(document.createElement('br'));
+    var rankInactive = createRadioScriptOption('ShowInactive', L_.galaxyRanksInactive);
+    for (i = 0; i < rankInactive.length; i++) {
+        rankContainer.appendChild(rankInactive[i]);
     }
-    return packScript(galaxyRanks, rank_container, "GalaxyRanks");
+    return packScript(galaxyRanks, rankContainer, "GalaxyRanks");
 }
 
 /**
@@ -1448,12 +1448,12 @@ function createGalaxyRanksScript() {
  */
 function createBetterEmpireScript() {
     var betterEmpire = createScriptActivity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
-    var emp_container = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
-    var emp_options = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
-    emp_options[0].style.clear = 'both';
-    emp_container.appendChild(emp_options[0]);
-    emp_container.appendChild(emp_options[1]);
-    return packScript(betterEmpire, emp_container, "BetterEmpire");
+    var empContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
+    var empOptions = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
+    empOptions[0].style.clear = 'both';
+    empContainer.appendChild(empOptions[0]);
+    empContainer.appendChild(empOptions[1]);
+    return packScript(betterEmpire, empContainer, "BetterEmpire");
 }
 
 /**
@@ -1469,10 +1469,10 @@ function createMoreScript() {
 
     var descripContainer = document.createElement("ul");
 
-    var more_container = buildNode("div", ["class"], ["script_options"], "");
+    var moreContainer = buildNode("div", ["class"], ["script_options"], "");
     for (i = 0; i < moreItems.length; i++) {
         for (j = 0; j < moreItems[i].length; j++)
-            more_container.appendChild(moreItems[i][j]);
+            moreContainer.appendChild(moreItems[i][j]);
     }
 
     for (i = 0; i < moreDesc.length; i++) {
@@ -1480,10 +1480,8 @@ function createMoreScript() {
     }
 
     more.childNodes[0].childNodes[1].appendChild(descripContainer);
-    return packScript(more, more_container, "More");
+    return packScript(more, moreContainer, "More");
 }
-
-// TODO: the mix of camelCase and snake_case is killing me. Apparently it didn't 5 years ago
 
 /**
  * Attach the script options to the top leve script
@@ -1513,22 +1511,22 @@ function packScript(header, options, id) {
  */
 function createScriptActivity(name, n, tooltiptext) {
     var scr = buildNode("div", ["class"], ["script"], "");
-    var scr_title = buildNode("div", ["class"], ["script_title"], "");
+    var scrTitle = buildNode("div", ["class"], ["script_title"], "");
     var tooltip = buildNode("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
-    var tool_text = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
+    var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
     var activate = buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
-    var activate_label = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
+    var activateLabel = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
     var deactivate = buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
-    var deactivate_label = buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
-    var scr_active = buildNode("div", ["class"], ["script_active"], "");
-    scr_active.appendChild(activate);
-    scr_active.appendChild(activate_label);
-    scr_active.appendChild(deactivate);
-    scr_active.appendChild(deactivate_label);
-    scr_title.appendChild(tooltip);
-    scr_title.appendChild(tool_text);
-    scr_title.appendChild(scr_active);
-    scr.appendChild(scr_title);
+    var deactivateLabel = buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
+    var scrActive = buildNode("div", ["class"], ["script_active"], "");
+    scrActive.appendChild(activate);
+    scrActive.appendChild(activateLabel);
+    scrActive.appendChild(deactivate);
+    scrActive.appendChild(deactivateLabel);
+    scrTitle.appendChild(tooltip);
+    scrTitle.appendChild(toolText);
+    scrTitle.appendChild(scrActive);
+    scr.appendChild(scrTitle);
     return scr;
 }
 
@@ -1764,7 +1762,7 @@ function saveSettings() {
     var options = getDomXpath("//div[@class='script_options']", document, -1);
     for (var i = 0; i < nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
-        infos_scripts[script] = actives[i].checked;
+        g_scriptInfo[script] = actives[i].checked;
         switch (script) {
             case "RConverter":
                 inputs = options[0].getElementsByTagName("input");
@@ -1836,7 +1834,7 @@ function saveSettings() {
         }
     }
     GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
-    GM_setValue("infos_scripts", JSON.stringify(infos_scripts));
+    GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     saveButton.value = "Saved";
     setTimeout(function() {
         $("#save")[0].value = "Save";
@@ -1879,7 +1877,7 @@ function loadClickNGo() {
 
     clicngo.appendChild(script);
     getDomXpath("id('top_login_div')/div", document, 0).appendChild(clicngo);
-    var clicngo_contents = document.getElementById("clicngo_contents");
+    var clicngoContents = document.getElementById("clicngo_contents");
     var html = "<div onclick='$(\"#clicngo_contents\").css(\"display\",\"none\");$(\"body\").css(\"opacity\", \"1\");'" +
         " style='padding-bottom:5px;cursor:pointer;text-align:center;color:#A6FF94;border-bottom:1px solid white;font-weight:bold;'>Clic & Go !</div>";
     html += "<div id='clicngo_id'></div>";
@@ -1901,7 +1899,7 @@ function loadClickNGo() {
         "vertical-align:middle;background-color:black;border-radius:5px 5px 5px 5px;color:#CDD7F8;font:13px Times New Roman normal;margin:5px 0 1px 2px;text-align:center;'/>";
     html += "<img id='add_submit' style='cursor:pointer;position:absolute;' src='" +
         scripts_icons + "Clic&Go/add.png' alt='add'/></div>";
-    clicngo_contents.innerHTML += html;
+    clicngoContents.innerHTML += html;
 
     function insertClicNGoContents() {
         for (i = 0; i < config.ClicNGo.universes.length; i++) {
@@ -1952,13 +1950,17 @@ function loadClickNGo() {
 
 }
 
-if (canLoadInPage("RConverter") && infos_scripts.RConverter) {
+if (canLoadInPage("RConverter") && g_scriptInfo.RConverter) {
     loadRConverter();
 }
 
 /**
  * Creates nicely formatted battle reports. Not written by me, but has
- * been tweaked so as not to break anything
+ * been tweaked so as not to break anything.
+ *
+ * Probably not going to attempt a refactor. Mostly because this is one
+ * of the oldest parts the the code and has remained relatively untouched
+ * other than ensuring it continues to work as the game updated
  */
 function loadRConverter() {
     var couleurs_rc = {
@@ -2133,7 +2135,7 @@ function loadRConverter() {
     document.getElementById("RConverter").select();
 }
 
-if (canLoadInPage("EasyFarm") && infos_scripts.EasyFarm) {
+if (canLoadInPage("EasyFarm") && g_scriptInfo.EasyFarm) {
     loadEasyFarm();
 }
 
@@ -2151,9 +2153,9 @@ function loadEasyFarm() {
             }
         }
     }
-    var fleet_names = [L_["small_cargo"], L_["large_cargo"], L_["light_fighter"], L_["heavy_fighter"], L_["cruiser"], L_["battleship"], L_["colony_ship"], L_["recycler"], L_["espionage_probe"], L_["bomber"], L_["solar_satellite"], L_["destroyer"], L_["deathstar"], L_["battlecruiser"], L_["supernova"], L_["massive_cargo"], L_["collector"], L_["blast"], L_["extractor"]];
-    var def_names = ["Rocket Launcher", "Light Laser", "Heavy Laser", "Gauss Cannon", "Ion Cannon", "Plasma Turret", "Small Shield Dome", "Large Shield Dome", "Ultimate guard"];
-    var fleet_deut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
+    var fleetNames = [L_["small_cargo"], L_["large_cargo"], L_["light_fighter"], L_["heavy_fighter"], L_["cruiser"], L_["battleship"], L_["colony_ship"], L_["recycler"], L_["espionage_probe"], L_["bomber"], L_["solar_satellite"], L_["destroyer"], L_["deathstar"], L_["battlecruiser"], L_["supernova"], L_["massive_cargo"], L_["collector"], L_["blast"], L_["extractor"]];
+    var defNames = ["Rocket Launcher", "Light Laser", "Heavy Laser", "Gauss Cannon", "Ion Cannon", "Plasma Turret", "Small Shield Dome", "Large Shield Dome", "Ultimate guard"];
+    var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", document, -1);
     getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
     var attackIndex = -1;
@@ -2196,12 +2198,12 @@ function loadEasyFarm() {
         var classRank = 4,
             total = 0;
         var hasShips = false;
-        for (j = 0; j < fleet_names.length; j++)
-            if (messages[i].innerHTML.indexOf(fleet_names[j] + " : ") !== -1) {
+        for (j = 0; j < fleetNames.length; j++)
+            if (messages[i].innerHTML.indexOf(fleetNames[j] + " : ") !== -1) {
                 // get deut value of ship j
-                if (fleet_names[j] !== L_["solar_satellite"])
+                if (fleetNames[j] !== L_["solar_satellite"])
                     hasShips = true;
-                total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleet_deut[j];
+                total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
                 classRank++;
             }
         if (total * 0.6 >= config.EasyFarm.minCDR) {
@@ -2211,8 +2213,8 @@ function loadEasyFarm() {
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
-        for (j = 0; j < def_names.length; j++) {
-            if (messages[i].innerHTML.indexOf(def_names[j] + " : ") !== -1) {
+        for (j = 0; j < defNames.length; j++) {
+            if (messages[i].innerHTML.indexOf(defNames[j] + " : ") !== -1) {
                 var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
                 if (i !== 8)
                     totDef += n;
@@ -2388,8 +2390,8 @@ function goRight() {
 }
 
 // Shows who's inactive in the statistics page
-if (canLoadInPage('InactiveStats') && (infos_scripts.InactiveStats || infos_scripts.FleetPoints)) {
-    loadInactiveStatsAndFleetPoints(infos_scripts);
+if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
+    loadInactiveStatsAndFleetPoints(g_scriptInfo);
 }
 
 /**
@@ -2400,16 +2402,16 @@ if (canLoadInPage('InactiveStats') && (infos_scripts.InactiveStats || infos_scri
  *
  * This is only the beginning of my awfulness...
  *
- * @param infos_scripts - The current script settings
+ * @param scriptsInfo - The current script settings
  *
  */
-function loadInactiveStatsAndFleetPoints(infos_scripts) {
+function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var lst;
     var fp;
-    var fp_redirect = false;
+    var fpRedirect = false;
     var changed = false;
     var types, i, space;
-    if (infos_scripts.FleetPoints) {
+    if (scriptsInfo.FleetPoints) {
         try {
             fp = JSON.parse(GM_getValue("fleet_points_uni_" + uni));
             if (fp === undefined || fp === null) fp = {
@@ -2424,7 +2426,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
                 "3": {}
             };
         }
-        fp_redirect = !!(GM_getValue("fp_redirect"));
+        fpRedirect = !!(GM_getValue("fp_redirect"));
         GM_setValue('fp_redirect', 0);
         if (!fp['1']) fp['1'] = {};
         if (!fp['2']) fp['2'] = {};
@@ -2439,7 +2441,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
 
     var players = document.getElementsByClassName('space0')[2].childNodes;
 
-    if (infos_scripts.FleetPoints) {
+    if (scriptsInfo.FleetPoints) {
         var timeSelector = $('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
         var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -2463,7 +2465,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
         var who = parseInt($('select[name=who] :selected').val());
         if (who === 2) dte = new Date(fp[1][Object.keys(fp[1])[0]][1][1]);
 
-        if (!fp_redirect) {
+        if (!fpRedirect) {
             var type = $('select[name=type] :selected').val();
             var ind = ((who === 2) ? 9 : 11);
             if (type !== '2') {
@@ -2513,16 +2515,16 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
                 var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
                 var playr = buildNode('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
                 var point = buildNode('div', ['class'], ['stats_player_2'], getSlashedNb(arr[i][1]));
-                var not_updated = '&nbsp;';
+                var notUpdated = '&nbsp;';
                 for (var j = 1; j < 5; j++) {
                     if (j !== 2) {
                         if (fp[who][arr[i][0]][j][1] !== dte.getTime()) {
-                            not_updated = types[j] + types[2];
+                            notUpdated = types[j] + types[2];
                             break;
                         }
                     }
                 }
-                var info = buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], not_updated);
+                var info = buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], notUpdated);
                 container.appendChild(place);
                 container.appendChild(playr);
                 container.appendChild(point);
@@ -2565,7 +2567,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
         }
     }
 
-    if (infos_scripts.InactiveStats) {
+    if (scriptsInfo.InactiveStats) {
         for (i = 1; i < players.length - 1; i++) {
             var div;
             // Top 5 have avatar, have to assign div differently
@@ -2582,7 +2584,7 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
         }
     }
 
-    if (infos_scripts.FleetPoints) {
+    if (scriptsInfo.FleetPoints) {
         space = $('.space0')[1];
         var del = space.removeChild(space.childNodes[3]);
 
@@ -2606,14 +2608,14 @@ function loadInactiveStatsAndFleetPoints(infos_scripts) {
             document.forms[1].submit();
         };
         space.insertBefore(del, space.childNodes[1]);
-        if (fp_redirect) {
+        if (fpRedirect) {
             $('select[name=type] :selected').removeAttr('selected');
             $('select[name=type]').val(6);
         }
     }
 }
 
-if (canLoadInPage("More_deutRow") && infos_scripts.More && config.More.deutRow) {
+if (canLoadInPage("More_deutRow") && g_scriptInfo.More && config.More.deutRow) {
     loadDeutRow();
 }
 
@@ -2648,15 +2650,15 @@ function loadDeutRow() {
     div.insertBefore(outer, div.childNodes[div.childNodes.length - 2]);
 
     var aligner_ressources = function() {
-        var array_r = ["metal", "cristal", "deuterium", "energy", "allindeut"];
-        var max_number = 0;
-        for (i = 0; i < array_r.length; i++) {
-            var selector = $("#ov_" + array_r[i]);
-            if (max_number < selector.width()) {
-                max_number = selector.width();
+        var selectors = ["metal", "cristal", "deuterium", "energy", "allindeut"];
+        var maxNumber = 0;
+        for (i = 0; i < selectors.length; i++) {
+            var selector = $("#ov_" + selectors[i]);
+            if (maxNumber < selector.width()) {
+                maxNumber = selector.width();
             }
         }
-        $(".default_1c1b").css('width', max_number);
+        $(".default_1c1b").css('width', maxNumber);
         $(".ov_align_r").css({
             'text-align': 'right',
             'float': 'right'
@@ -2665,7 +2667,7 @@ function loadDeutRow() {
     aligner_ressources();
 }
 
-if (canLoadInPage('More_deutRow') && infos_scripts.More && config.More.convertClick) {
+if (canLoadInPage('More_deutRow') && g_scriptInfo.More && config.More.convertClick) {
     loadConvertClick();
 }
 
@@ -2710,7 +2712,7 @@ function loadConvertClick() {
     });
 }
 
-if (page === 'fleet' && infos_scripts.More && config.More.mcTransport && uni === '17') {
+if (page === 'fleet' && g_scriptInfo.More && config.More.mcTransport && uni === '17') {
     loadMcTransport();
 }
 
@@ -2756,7 +2758,7 @@ function loadMcTransport() {
     }
 }
 
-if (canLoadInPage("empireTotal") && infos_scripts.BetterEmpire) {
+if (canLoadInPage("empireTotal") && g_scriptInfo.BetterEmpire) {
     loadBetterEmpire(config);
 }
 
@@ -2881,7 +2883,7 @@ function hexToRgb(hex) {
 }
 
 if (canLoadInPage("EasyTarget")) {
-    loadEasyTargetAndMarkit(infos_scripts, config);
+    loadEasyTargetAndMarkit(g_scriptInfo, config);
 }
 
 /**
@@ -3582,14 +3584,14 @@ function autoCompleteSelected(p) {
 }
 
 // Disable autocomplete on all qualifying input fields
-if (infos_scripts.NoAutoComplete && autoCompleteSelected(page)) {
+if (g_scriptInfo.NoAutoComplete && autoCompleteSelected(page)) {
     elements = document.getElementsByTagName('input');
     for (i = 0; i < elements.length; i++) {
         elements[i].setAttribute('autocomplete', 'off');
     }
 }
 
-if (canLoadInPage("AllinDeut") && infos_scripts.AllinDeut) {
+if (canLoadInPage("AllinDeut") && g_scriptInfo.AllinDeut) {
     loadAllinDeut();
 }
 
@@ -3597,46 +3599,46 @@ if (canLoadInPage("AllinDeut") && infos_scripts.AllinDeut) {
  * Show how much research/buildings cost in al deut
  */
 function loadAllinDeut() {
-    var xpath_pages = {
+    var xpathPages = {
         "buildings": "//div[@class='buildings_1b']/div[@class='buildings_1b1'][3]",
         "research": "//div[@class='research_1b']/div[@class='research_1b1'][3]"
     };
-    var regMetal_pages = {
+    var regMetalPages = {
         "buildings": new RegExp(L_.AllinDeut_metal +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
         "research": new RegExp(L_.AllinDeut_metal +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>")
     };
-    var regCrystal_pages = {
+    var regCrystalPages = {
         "buildings": new RegExp(L_.AllinDeut_crystal +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
         "research": new RegExp(L_.AllinDeut_crystal +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>")
     };
-    var regDeut_pages = {
+    var regDeutPages = {
         "buildings": new RegExp(L_.AllinDeut_deuterium +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
         "research": new RegExp(L_.AllinDeut_deuterium +
             "\\s:\\s<font\\s.{15}>([^<]*)</font>")
     };
-    var separator_pages = {
+    var separatorPages = {
         "buildings": ".",
         "research": "."
     };
 
-    var doms = getDomXpath(xpath_pages[page], document, -1);
+    var doms = getDomXpath(xpathPages[page], document, -1);
     var inDeut = 0;
     for (var i = 0; i < doms.length; i++) {
         inDeut = 0;
-        if (regMetal_pages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regMetal_pages[page].exec(doms[i].innerHTML)[1].split(
-                separator_pages[page])) / 4;
-        if (regCrystal_pages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regCrystal_pages[page].exec(doms[i].innerHTML)[1].split(
-                separator_pages[page])) / 2;
-        if (regDeut_pages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regDeut_pages[page].exec(doms[i].innerHTML)[1].split(
-                separator_pages[page]));
+        if (regMetalPages[page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regMetalPages[page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[page])) / 4;
+        if (regCrystalPages[page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regCrystalPages[page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[page])) / 2;
+        if (regDeutPages[page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regDeutPages[page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[page]));
         doms[i].appendChild(buildNode("div", [], [],
             "<font color='lime'>AllinDeut</font> : " + getSlashedNb("" +
             parseFloat(inDeut))));
@@ -3644,7 +3646,7 @@ function loadAllinDeut() {
 
 }
 
-if (canLoadInPage("iFly") && infos_scripts.iFly) {
+if (canLoadInPage("iFly") && g_scriptInfo.iFly) {
     loadiFly();
 }
 
@@ -3685,7 +3687,7 @@ function loadiFly() {
         html));
 }
 
-if (canLoadInPage("TChatty") && infos_scripts.TChatty) {
+if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
     loadTChatty()
 }
 
@@ -3752,7 +3754,7 @@ function loadTChatty() {
     }, false);
 }
 
-if (infos_scripts.More) {
+if (g_scriptInfo.More) {
     loadMore();
 }
 
