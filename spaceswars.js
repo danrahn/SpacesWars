@@ -47,8 +47,58 @@ var g_lang = g_versionInfo.language;
 L_ = setDictionary();
 var MerchantMap = setMerchantMap();
 var nbUnis = g_versionInfo.nbUnis;
+var g_canLoadMap = getLoadMap();
 
 var g_config = getConfig();
+var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
+
+var KEYS = {
+    ENTER : 13,
+    SHIFT : 16,
+    CTRL : 17,
+    ALT : 18,
+    ESC : 27,
+    ZERO : 48,
+    ONE : 49,
+    TWO : 50,
+    THREE : 51,
+    FOUR : 52,
+    FIVE : 53,
+    SIX : 54,
+    SEVEN : 55,
+    EIGHT : 56,
+    NINE : 57,
+    A : 65,
+    B : 66,
+    C : 67,
+    D : 68,
+    E : 69,
+    F : 70,
+    G : 71,
+    H : 72,
+    I : 73,
+    J : 74,
+    K : 75,
+    L : 76,
+    M : 77,
+    N : 78,
+    O : 79,
+    P : 80,
+    Q : 81,
+    R : 82,
+    S : 83,
+    T : 84,
+    U : 85,
+    V : 86,
+    W : 87,
+    X : 88,
+    Y : 89,
+    Z : 90,
+    OPEN_BRACKET : 219,
+    CLOSE_BRACKET : 221
+};
+
+setGlobalKeyboardShortcuts();
 
 // SpacesWars did away with userscripts, and along with it the
 // configurating page that used to be built in. To work around it,
@@ -143,100 +193,163 @@ if (g_page === 'simulator') {
     setSimDefaults();
 }
 
+/**
+ * Creates and returns the dictionary mapping
+ * scripts to the pages they can be loaded in
+ *
+ * @returns {{}}
+ */
+function getLoadMap() {
+    var canLoad = {};
+
+    // Type 1 - indicates any page listed is a page
+    //          the script can be loaded in.
+    // Type 2 - indicates any page listed is a page
+    //          the script cannot be loaded in.
+    canLoad.RConverter = {
+        type : 1,
+        rw : true
+    };
+        
+    canLoad.EasyFarm = {
+        type : 1,
+        messages : true
+    };
+        
+    canLoad.AllinDeut = {
+        type : 1,
+        buildings : true,
+        research : true
+    };
+        
+    canLoad.Carto = {
+        type : 1,
+        galaxy : true
+    };
+        
+    canLoad.iFly = {
+        type : 1,
+        overview : true
+    };
+        
+    canLoad.TChatty = {
+        type : 1,
+        chat : true
+    };
+        
+    canLoad.Markit = {
+        type : 1,
+        galaxy : true
+    };
+    
+    canLoad.ClicNGo = {
+        type : 1,
+        index : true
+    };
+    
+    canLoad.More_moonsList = {
+        type : 2,
+        chat : false,
+        forum : false,
+        index : false,
+        niark : false,
+        rw : false,
+        frames : false,
+        leftmenu : false
+    };
+    
+    canLoad.More_convertDeut = {
+        type : 1,
+        marchand : true
+    };
+    
+    canLoad.More_traductor = {
+        type : 1,
+        chat : true,
+        forum : true,
+        message : true
+    };
+    
+    canLoad.More_resources = {
+        type : 1,
+        resources : true
+    };
+    
+    canLoad.More_redirectFleet = {
+        type : 1,
+        floten3 : true
+    };
+    
+    canLoad.More_arrows = {
+        type : 2,
+        chat : false,
+        forum : false,
+        index : false,
+        niark : false,
+        rw : false,
+        frames : false,
+        leftmenu : false
+    };
+    
+    canLoad.More_returns = {
+        type : 1,
+        overview : true
+    };
+    
+    canLoad.EasyTarget = {
+        type : 1,
+        galaxy : true
+    };
+    
+    canLoad.InactiveStats = {
+        type : 1,
+        stat : true
+    };
+    
+    canLoad.AllianceLink = {
+        type : 1,
+        alliance : true
+    };
+    
+    canLoad.More_deutRow = {
+        type : 2,
+        niark : false,
+        forum : false,
+        index : false,
+        chat : false,
+        rw : false,
+        frames : false,
+        leftmenu : false
+    };
+    
+    canLoad.empireTotal = {
+        type : 1,
+        imperium : true
+    };
+    
+    canLoad.navigatorShortcuts = {
+        type : 2,
+        niark : false,
+        forum : false,
+        index : false,
+        chat : false,
+        rw : false,
+        notes : false,
+        search : false
+    };
+    
+    return canLoad;
+}
+
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
-    var canLoad = null;
-    if (canLoad === null) {
-        canLoad = {};
-        canLoad.RConverter = {};
-        canLoad.RConverter.type = 1;
-        canLoad.RConverter.rw = true;
-        canLoad.EasyFarm = {};
-        canLoad.EasyFarm.type = 1;
-        canLoad.EasyFarm.messages = true;
-        canLoad.AllinDeut = {};
-        canLoad.AllinDeut.type = 1;
-        canLoad.AllinDeut.buildings = true;
-        canLoad.AllinDeut.research = true;
-        canLoad.Carto = {};
-        canLoad.Carto.type = 1;
-        canLoad.Carto.galaxy = true;
-        canLoad.iFly = {};
-        canLoad.iFly.type = 1;
-        canLoad.iFly.overview = true;
-        canLoad.TChatty = {};
-        canLoad.TChatty.type = 1;
-        canLoad.TChatty.chat = true;
-        canLoad.Markit = {};
-        canLoad.Markit.type = 1;
-        canLoad.Markit.galaxy = true;
-        canLoad.ClicNGo = {};
-        canLoad.ClicNGo.type = 1;
-        canLoad.ClicNGo.index = true;
-        canLoad.More_moonsList = {};
-        canLoad.More_moonsList.type = 2;
-        canLoad.More_moonsList.chat = false;
-        canLoad.More_moonsList.forum = false;
-        canLoad.More_moonsList.index = false;
-        canLoad.More_moonsList.niark = false;
-        canLoad.More_moonsList.rw = false;
-        canLoad.More_moonsList.frames = false;
-        canLoad.More_moonsList.leftmenu = false;
-        canLoad.More_convertDeut = {};
-        canLoad.More_convertDeut.type = 1;
-        canLoad.More_convertDeut.marchand = true;
-        canLoad.More_traductor = {};
-        canLoad.More_traductor.type = 1;
-        canLoad.More_traductor.chat = true;
-        canLoad.More_traductor.forum = true;
-        canLoad.More_traductor.message = true;
-        canLoad.More_resources = {};
-        canLoad.More_resources.type = 1;
-        canLoad.More_resources.resources = true;
-        canLoad.More_redirectFleet = {};
-        canLoad.More_redirectFleet.type = 1;
-        canLoad.More_redirectFleet.floten3 = true;
-        canLoad.More_arrows = {};
-        canLoad.More_arrows.type = 2;
-        canLoad.More_arrows.chat = false;
-        canLoad.More_arrows.forum = false;
-        canLoad.More_arrows.index = false;
-        canLoad.More_arrows.niark = false;
-        canLoad.More_arrows.rw = false;
-        canLoad.More_arrows.frames = false;
-        canLoad.More_arrows.leftmenu = false;
-        canLoad.More_returns = {};
-        canLoad.More_returns.type = 1;
-        canLoad.More_returns.overview = true;
-        canLoad.EasyTarget = {};
-        canLoad.EasyTarget.type = 1;
-        canLoad.EasyTarget.galaxy = true;
-        canLoad.InactiveStats = {};
-        canLoad.InactiveStats.type = 1;
-        canLoad.InactiveStats.stat = true;
-        canLoad.AllianceLink = {};
-        canLoad.AllianceLink.type = 1;
-        canLoad.AllianceLink.alliance = true;
-        canLoad.More_deutRow = {};
-        canLoad.More_deutRow.type = 2;
-        canLoad.More_deutRow.niark = false;
-        canLoad.More_deutRow.forum = false;
-        canLoad.More_deutRow.index = false;
-        canLoad.More_deutRow.chat = false;
-        canLoad.More_deutRow.rw = false;
-        canLoad.More_deutRow.frames = false;
-        canLoad.More_deutRow.leftmenu = false;
-        canLoad.empireTotal = {};
-        canLoad.empireTotal.type = 1;
-        canLoad.empireTotal.imperium = true;
-    }
-    if (canLoad[script].type === 1) {
-        return canLoad[script][g_page] !== undefined;
+    if (g_canLoadMap[script].type === 1) {
+        return g_canLoadMap[script][g_page] !== undefined;
     }
 
-    if (canLoad[script].type === 2) {
-        return canLoad[script][g_page] === undefined;
+    if (g_canLoadMap[script].type === 2) {
+        return g_canLoadMap[script][g_page] === undefined;
     }
     return false;
 }
@@ -958,6 +1071,84 @@ function setupSidebar() {
 
     $(smfCheck).prop("checked", spyForMe);
     $(aaCheck).prop("checked", autoAttack);
+}
+
+function globalShortcutHandler(e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (isTextInputActive()) {
+        return;
+    }
+
+    var target = "";
+    if (e.shiftKey) {
+        switch (key) {
+            case KEYS.O:
+                target = "overview.php";
+                break;
+            case KEYS.G:
+                target = "galaxy.php";
+                break;
+            case KEYS.F:
+                target = "fleet.php";
+                break;
+            case KEYS.E:
+                target = "imperium.php";
+                break;
+            case KEYS.B:
+                target = "buildings.php";
+                break;
+            case KEYS.R:
+                target = "research.php";
+                break;
+            case KEYS.S:
+                target = "build_fleet.php";
+                break;
+            case KEYS.D:
+                target = "build_def.php";
+                break;
+            default:
+                break;
+        }
+    } else {
+        // Need to use window.parent.frames[1] in case we're focused on leftmenu,
+        // which happens quite a bit.
+        switch (key) {
+            case KEYS.OPEN_BRACKET:
+                window.parent.frames[1].document.getElementById("previousplanet").click();
+                break;
+            case KEYS.CLOSE_BRACKET:
+                window.parent.frames[1].document.getElementById("nextplanet").click();
+                break;
+            case KEYS.D:
+                window.parent.frames[1].document.getElementById("deutClick").click();
+                break;
+            case KEYS.M:
+                window.parent.frames[1].document.getElementById("metalClick").click();
+                break;
+            default:
+                break;
+        }
+    }
+
+    if (target.length > 0) {
+        window.open(target, "Hauptframe");
+    }
+}
+
+/**
+ * As the name implies, sets up keyboard shortcuts
+ * that can be used on any page (that makes sense)
+ */
+function setGlobalKeyboardShortcuts() {
+    if (canLoadInPage("navigatorShortcuts")) {
+        window.onkeyup = function(e) {
+            globalShortcutHandler(e);
+        };
+    }
+}
+
+function isTextInputActive() {
+    return g_textAreas.indexOf(document.activeElement.id) !== -1;
 }
 
 /**
@@ -2162,18 +2353,12 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     var changedPlayers = [];
     var changedMoons = [];
 
-    // TODO: prevents default behavior from keys 0-9?? And why is
-    // the logic so weird/complex compared to the other
-    // seemingly obvious solution
+    // Don't add non-digit characters to galaxySelector
     galaxySelector.keypress(function(e) {
-        var a = [];
-        var k = e.which;
-
-        for (i = 48; i < 58; i++)
-            a.push(i);
-
-        if (!(a.indexOf(k) >= 0))
+        globalShortcutHandler(e);
+        if (e.which < KEYS.ZERO || e.which > KEYS.NINE) {
             e.preventDefault();
+        }
     });
 
     // Things get accidentally highlighted too often, disable selection
@@ -2186,14 +2371,13 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     });
 
     $(window).on("keyup", function(e) {
+        globalShortcutHandler(e);
         if (targetPlanet !== -1) {
             var key = e.keyCode ? e.keyCode : e.which;
-            var KEY_N = 78;
-            var KEY_P = 80;
-            var KEY_S = 83;
-            var KEY_L = 76;
 
-            if (key === KEY_S) {
+            globalShortcutHandler(e);
+
+            if (key === KEYS.S) {
                 e.preventDefault();
                 var element = rows[targetPlanet - 1].childNodes[15].childNodes[1];
                 if (element !== undefined) {
@@ -2202,7 +2386,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         element.click();
                     }
                 }
-            } else if (key === KEY_L) {
+            } else if (key === KEYS.L) {
                 e.preventDefault();
                 var row = rows[targetPlanet - 1];
                 var name = row.childNodes[7].childNodes[1];
@@ -2218,7 +2402,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
             }
 
-            if (key === KEY_N || key === KEY_P) {
+            if (key === KEYS.N || key === KEYS.P) {
                 var coords = '';
 
                 var gal = galaxySelector[0].value;
@@ -2229,7 +2413,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var n = storage.universe[ploc];
                 var player = storage.players[n][0];
                 var index = player.indexOf(ploc);
-                if (key === KEY_N) {
+                if (key === KEYS.N) {
                     coords = player[(index + 1) % player.length];
                 } else {
                     if (index === 0) index += player.length;
@@ -2443,7 +2627,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 $('#img_' + (i + 1)).click(function() {
                     window.onkeyup = function(e) {
                         var key = e.keyCode ? e.keyCode : e.which;
-                        if (key === 27) {
+                        if (key === KEYS.ESC) {
                             $('#markit_choose').fadeOut(750);
                         }
                     };
@@ -2463,6 +2647,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (infos_scripts.EasyTarget) {
                 for (j = 1; j < 14; j += 2) {
                     $(row.childNodes[j]).click(function() {
+                        // TODO: Set this to targetPlanet
                         var kid = this.parentNode.childNodes[this.parentNode.childNodes.length - 1];
                         if (kid.style.display === 'block') {
                             kid.style.display = 'none';
@@ -2799,7 +2984,7 @@ function loadTChatty() {
         } else {
             document.getElementById("message").value = this.value;
         }
-        if (e.keyCode === 13) {
+        if (e.keyCode === KEYS.ENTER) {
             this.value = "";
             if (navigator.userAgent.indexOf("Firefox") !== -1) {
                 document.getElementById("send").click();
@@ -2817,16 +3002,17 @@ function loadTChatty() {
  */
 function saveFleetPage() {
     window.onkeyup = function(e) {
+        globalShortcutHandler(e);
         var key = e.keyCode ? e.keyCode : e.which;
 
-        if (key === 77) {
+        if (key === KEYS.M) {
             $('#transport').click();
             $('input[type=submit]')[0].click();
-        } else if (key === 78) {
+        } else if (key === KEYS.N) {
             $('#nextplanet').click();
-        } else if (key === 80) {
+        } else if (key === KEYS.P) {
             $('#previousplanet').click();
-        } else if (key === 68) {
+        } else if (key === KEYS.D) {
             $('#allin').click();
         }
     };
@@ -2907,9 +3093,10 @@ function saveFleetPage() {
  */
 function continueAttack() {
     window.onkeyup = function(e) {
+        globalShortcutHandler(e);
         var key = e.keyCode ? e.keyCode : e.which;
 
-        if (key === 78) {
+        if (key === KEYS.N) {
             $('.flotte_2_4 a')[0].click();
             $('input[type=submit]')[0].click();
         }
@@ -2924,14 +3111,15 @@ function continueAttack() {
 
 function setupFleet2() {
     window.onkeyup = function(e) {
+        globalShortcutHandler(e);
         var key = e.keyCode ? e.keyCode : e.which;
 
-        if (key === 65) {
+        if (key === KEYS.A) {
             $('.flotte_bas .space a')[3].click();
-        } else if (key === 68) {
+        } else if (key === KEYS.N) {
             $('input[type=text]').val('');
             $('.flotte_bas .space a')[2].click();
-        } else if (key === 83) {
+        } else if (key === KEYS.S) {
             $('input[type=submit]')[0].click();
         }
     };
