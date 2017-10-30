@@ -53,49 +53,13 @@ var g_config = getConfig();
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
 
 var KEYS = {
-    ENTER : 13,
-    SHIFT : 16,
-    CTRL : 17,
-    ALT : 18,
-    ESC : 27,
-    ZERO : 48,
-    ONE : 49,
-    TWO : 50,
-    THREE : 51,
-    FOUR : 52,
-    FIVE : 53,
-    SIX : 54,
-    SEVEN : 55,
-    EIGHT : 56,
-    NINE : 57,
-    A : 65,
-    B : 66,
-    C : 67,
-    D : 68,
-    E : 69,
-    F : 70,
-    G : 71,
-    H : 72,
-    I : 73,
-    J : 74,
-    K : 75,
-    L : 76,
-    M : 77,
-    N : 78,
-    O : 79,
-    P : 80,
-    Q : 81,
-    R : 82,
-    S : 83,
-    T : 84,
-    U : 85,
-    V : 86,
-    W : 87,
-    X : 88,
-    Y : 89,
-    Z : 90,
-    OPEN_BRACKET : 219,
-    CLOSE_BRACKET : 221
+    ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
+    ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
+    FIVE  : 53, SIX   : 54, SEVEN : 55, EIGHT : 56, NINE : 57,
+    A : 65, B : 66, C : 67, D : 68, E : 69, F : 70, G : 71, H : 72,
+    I : 73, J : 74, K : 75, L : 76, M : 77, N : 78, O : 79, P : 80,
+    Q : 81, R : 82, S : 83, T : 84, U : 85, V : 86, W : 87, X : 88,
+    Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
 
 setGlobalKeyboardShortcuts();
@@ -160,10 +124,7 @@ if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
 
 // Disable autocomplete on all qualifying input fields
 if (g_scriptInfo.NoAutoComplete && autoCompleteSelected(g_page)) {
-    elements = document.getElementsByTagName('input');
-    for (i = 0; i < elements.length; i++) {
-        elements[i].setAttribute('autocomplete', 'off');
-    }
+    disableAutoComplete();
 }
 
 if (canLoadInPage("AllinDeut") && g_scriptInfo.AllinDeut) {
@@ -186,9 +147,6 @@ if (g_page === "floten2") {
     setupFleet2();
 }
 
-// I wrote this, but I don't know where the magic number
-// 22 is coming from. It replaces '?' in the simulator
-// with whatever values are available though
 if (g_page === 'simulator') {
     setSimDefaults();
 }
@@ -1443,7 +1401,7 @@ function loadEasyFarm() {
     if (parseInt(GM_getValue("redirToSpy")) === 1) {
         GM_deleteValue("redirToSpy");
         var aLinks = document.getElementsByTagName("a");
-        for (i = 0; i < aLinks.length; i++) {
+        for (var i = 0; i < aLinks.length; i++) {
             if (aLinks[i].href.indexOf("messcat=0") !== -1) {
                 aLinks[i].click();
             }
@@ -1936,7 +1894,7 @@ function loadDeutRow() {
     var aligner_ressources = function() {
         var selectors = ["metal", "cristal", "deuterium", "energy", "allindeut"];
         var maxNumber = 0;
-        for (i = 0; i < selectors.length; i++) {
+        for (var i = 0; i < selectors.length; i++) {
             var selector = $("#ov_" + selectors[i]);
             if (maxNumber < selector.width()) {
                 maxNumber = selector.width();
@@ -3014,6 +2972,16 @@ function loadTChatty() {
 }
 
 /**
+ * Disable autocomplete on every page's input fields
+ */
+function disableAutoComplete() {
+    var elements = document.getElementsByTagName('input');
+    for (var i = 0; i < elements.length; i++) {
+        elements[i].setAttribute('autocomplete', 'off');
+    }
+}
+
+/**
  * Autoattack handler, as well as defining some
  * keyboard shortcuts
  */
@@ -3157,182 +3125,34 @@ function sendAttack() {
  */
 function loadMore() {
     if (canLoadInPage("More_moonsList") && g_config.More.moonsList) {
-        var options = document.getElementById("changeplanet").getElementsByTagName("option");
-        for (i = 0; i < options.length; i++)
-            if (/(\(M\))|(\(L\))/.test(options[i].innerHTML)) options[i].style.color =
-                "SteelBlue";
+        loadMoonList();
     }
 
     // More conversion options on the merchant page
     if (canLoadInPage("More_convertDeut") && g_config.More.convertDeut) {
-        if (document.getElementById('marchand_suba') !== null) {
-
-            var a = document.getElementById("marchand_suba").getElementsByTagName("a");
-            var script = "";
-            for (i = 0; i < a.length; i++)
-                script += a[i].getAttribute("onclick");
-            div = buildNode("div", [], [], L_["More_convertInto"] +
-                ' : <a style="color:#F2A10A" id="allMetal" href="javascript:" onclick="' + script +
-                'document.getElementById(\'metal2\').checked=\'checked\'; calcul();">' +
-                "metal" +
-                '</a> | <a style="color:#55BBFF" id="allCryst" href="javascript:" onclick="' + script +
-                'document.getElementById(\'cristal2\').checked=\'checked\'; calcul();">' +
-                L_["More_crystal"] +
-                '</a> | <a style="color:#7BE654" id="allDeut" href="javascript:" onclick="' + script +
-                'document.getElementById(\'deut2\').checked=\'checked\'; calcul();">' +
-                L_["More_deuterium"] + '</a>');
-            document.getElementById("marchand_suba").parentNode.insertBefore(div, document.getElementById(
-                "marchand_suba"));
-            if (GM_getValue('ResourceRedirect') !== 0) {
-                GM_setValue('ResourceRedirectRef', GM_getValue('ResourceRedirect'));
-                GM_setValue('ResourceRedirect', 1);
-
-                var merchantItem = GM_getValue("MerchantItem");
-                console.log(merchantItem);
-                GM_deleteValue("MerchantItem");
-                if (merchantItem) {
-                    GM_deleteValue("MerchantItem");
-                    console.log(merchantItem);
-                    $("input[value='" + MerchantMap[merchantItem] + "']").prop("checked", true);
-                    $(":submit")[1].click();
-                } else {
-                    var type = parseInt(GM_getValue('ResourceRedirectType'));
-                    if (type === 0) $('#allMetal').click();
-                    else if (type === 1) $('#allCryst').click();
-                    else $('#allDeut').click();
-                    document.forms[1].submit();
-                }
-            }
-        } else {
-            if (GM_getValue('ResourceRedirect') === 1) {
-                GM_setValue('ResourceRedirect', 0);
-                window.location = GM_getValue('ResourceRedirectRef');
-            }
-        }
+        loadConvertDeut();
     }
 
     // Translator?
     if (canLoadInPage("More_traductor") && g_config.More.traductor) {
-        function toTranslate(word, lang1, lang2) {
-            GM_xmlhttpRequest({
-                url: "http://www.wordreference.com/" + lang1 + lang2 + "/" + word,
-                method: "GET",
-                onload: function(response) {
-                    gettraduction(response.responseText);
-                }
-            });
-
-            function gettraduction(text) {
-                text = (/<div class=id>IDIOMS:/.test(text)) ?
-                    /<div class=se id=se[0-9]{2,5}>([\s\S]*)<div class=id>IDIOMS:/.exec(
-                        text)[1] :
-                    /<div class=se id=se[0-9]{2,5}>([\s\S]*)<div id='FTintro'/.exec(
-                        text)[1];
-                text += "</div>";
-                //text = text.replace(/<span class=b>(.*)<\/span>/g, "<b>$1</b>"); text = text.replace(/<span class=u>(.*)<\/span>/g, "<u>$1</u>"); text = text.replace(/<span class=i>(.*)<\/span>/g, "<em>$1</em>");
-                var html =
-                    "<div style='background-color:black; opacity:0.8; border:1px solid white; color:white; padding:5px;'>" +
-                    text + "</div>";
-                document.getElementById("gm_traductionofword").innerHTML = html;
-            }
-        }
-        var html1 = "<option style='background:url(\"" + scriptsIcons +
-            "Traductor/FR.png\") no-repeat; text-align:right;' value='fr'>FR</option>";
-        var html2 = "<option style='background:url(\"" + scriptsIcons +
-            "Traductor/EN.png\") no-repeat; text-align:right;' value='en'>EN</option>";
-        var html = "<option style='background:url(\"" + scriptsIcons +
-            "Traductor/DE.png\") no-repeat; text-align:right;' value='de'>DE</option>";
-        html += "<option style='background:url(\"" + scriptsIcons +
-            "Traductor/ES.png\") no-repeat; text-align:right;' value='es'>ES</option>";
-        html += "<option style='background:url(\"" + scriptsIcons +
-            "Traductor/IT.png\") no-repeat; text-align:right;' value='it'>IT</option>";
-        var select1, select2;
-        if (g_lang === "en") {
-            select1 = buildNode("select", ["id", "style"], ["gm_lang1",
-                "height:18px;"
-            ], html1 + html2);
-            select2 = buildNode("select", ["id", "style"], ["gm_lang2",
-                "height:18px;"
-            ], html2 + html1);
-        } else {
-            select1 = buildNode("select", ["id", "style"], ["gm_lang1",
-                "height:18px;"
-            ], html2 + html1);
-            select2 = buildNode("select", ["id", "style"], ["gm_lang2",
-                "height:18px;"
-            ], html1 + html2);
-        }
-        var input = buildNode("img", ["type", "src", "style"], ["submit",
-            scriptsIcons + "Traductor/GO.png",
-            "float:right;height:18px;cursor:pointer"
-        ], "", "click", function() {
-            toTranslate(document.getElementById("gm_wordtotranslate").value,
-                document.getElementById("gm_lang1").value, document.getElementById(
-                    "gm_lang2").value);
-        });
-        var div = buildNode("div", ["id", "style"], ["gm_traduction",
-                "background-color:black; padding:0 0 1px 2px; position:fixed; bottom:1px; right:1px; "
-            ],
-            "<input id='gm_wordtotranslate' type='text' style='width:80px;height:9px;'/>"
-        );
-        div.appendChild(select1);
-        div.appendChild(select2);
-        var div2 = buildNode("div", ["id"], ["gm_traductionofword"], "");
-        div.appendChild(input);
-        document.getElementsByTagName("body")[0].appendChild(div2);
-        document.getElementsByTagName("body")[0].appendChild(div);
+        loadTraductor();
     }
 
     // Select production percentage for all resources
     if (canLoadInPage("More_resources") && g_config.More.resources) {
-        html = "<div class='ressources_sub1a' style='float:left'>" + L_[
-            "More_allTo"] + "</div>";
-        html +=
-            '<div class="ressources_sub1c" style="float:right; padding-right:12px; overflow:hidden;">' +
-            '<select size="1" style="border:none;" onchange="var selects = document.getElementById(\'main\')' +
-            '.getElementsByTagName(\'select\'); for (var i=0; i<selects.length; i++) { selects[i].value=this.value; }' +
-            'document.ressources.submit();">' +
-            '<option value="100">100%</option><option value="90">90%</option><option value="80">80%</option>' +
-            '<option value="70">70%</option><option value="60">60%</option><option value="50">50%</option>' +
-            '<option value="40">40%</option><option value="30">30%</option><option value="20">20%</option>' +
-            '<option value="10">10%</option><option value="0">0%</option><option selected="selected">?</option></select></div>';
-        var div = buildNode("div", ["class"], [
-            "space0 ressources_font_little ressources_bordert"
-        ], html);
-        document.getElementById("main").insertBefore(div, document.getElementsByClassName(
-            "space0 ressources_font_little ressources_bordert")[0]);
+        loadResources();
     }
 
     // Quickly return to the main fleet page after sending an attack, and remember
     // the previous coordinates
     if (canLoadInPage("More_redirectFleet") && g_config.More.redirectFleet) {
-        window.onload = function() {
-            var fullLoc = false;
-            var loc = null;
-            try {
-                loc = JSON.parse(GM_getValue("savedFleet"));
-                if (loc !== null)
-                    fullLoc = true;
-            } catch (ex) {
-                fullLoc = false;
-            }
-
-            if (autoAttack && parseInt(GM_getValue("AutoAttackWaves")) === 0) {
-                GM_deleteValue("AutoAttackWaves");
-                GM_deleteValue("AutoAttackMC");
-                GM_setValue("redirToSpy", "1");
-                window.location.href = "messages.php?mode=show?messcat=0";
-            } else if (fullLoc)
-                window.location.href = loc.href;
-            else
-                window.location.href = "fleet.php";
-        };
+        loadRedirectFleet();
     }
 
     // Make return fleets transparent in the overview
     if (canLoadInPage("More_returns") && g_config.More.returns) {
         var returns = document.getElementsByClassName('curvedtot return');
-        for (i = 0; i < returns.length; i++)
+        for (vari = 0; i < returns.length; i++)
             returns[i].style.opacity = "0.6";
     }
 
@@ -3342,6 +3162,190 @@ function loadMore() {
         document.getElementById("nextplanet").value = ">>>>>";
     }
 }
+
+/**
+ * Displays moons in a blue color in the planet chooser
+ */
+function loadMoonList() {
+    var options = document.getElementById("changeplanet").getElementsByTagName("option");
+    for (var i = 0; i < options.length; i++)
+        if (/(\(M\))|(\(L\))/.test(options[i].innerHTML)) options[i].style.color =
+            "SteelBlue";
+}
+
+/**
+ * Loads the additional functionality in the merchant page
+ */
+function loadConvertDeut() {
+
+    if (document.getElementById('marchand_suba') !== null) {
+
+        var a = document.getElementById("marchand_suba").getElementsByTagName("a");
+        var script = "";
+        for (var i = 0; i < a.length; i++)
+            script += a[i].getAttribute("onclick");
+        var div = buildNode("div", [], [], L_["More_convertInto"] +
+            ' : <a style="color:#F2A10A" id="allMetal" href="javascript:" onclick="' + script +
+            'document.getElementById(\'metal2\').checked=\'checked\'; calcul();">' +
+            "metal" +
+            '</a> | <a style="color:#55BBFF" id="allCryst" href="javascript:" onclick="' + script +
+            'document.getElementById(\'cristal2\').checked=\'checked\'; calcul();">' +
+            L_["More_crystal"] +
+            '</a> | <a style="color:#7BE654" id="allDeut" href="javascript:" onclick="' + script +
+            'document.getElementById(\'deut2\').checked=\'checked\'; calcul();">' +
+            L_["More_deuterium"] + '</a>');
+        document.getElementById("marchand_suba").parentNode.insertBefore(div, document.getElementById(
+            "marchand_suba"));
+        if (GM_getValue('ResourceRedirect') !== 0) {
+            GM_setValue('ResourceRedirectRef', GM_getValue('ResourceRedirect'));
+            GM_setValue('ResourceRedirect', 1);
+
+            var merchantItem = GM_getValue("MerchantItem");
+            console.log(merchantItem);
+            GM_deleteValue("MerchantItem");
+            if (merchantItem) {
+                GM_deleteValue("MerchantItem");
+                console.log(merchantItem);
+                $("input[value='" + MerchantMap[merchantItem] + "']").prop("checked", true);
+                $(":submit")[1].click();
+            } else {
+                var type = parseInt(GM_getValue('ResourceRedirectType'));
+                if (type === 0) $('#allMetal').click();
+                else if (type === 1) $('#allCryst').click();
+                else $('#allDeut').click();
+                document.forms[1].submit();
+            }
+        }
+    } else {
+        // Page shown after a successful conversion
+        if (GM_getValue('ResourceRedirect') === 1) {
+            GM_setValue('ResourceRedirect', 0);
+            window.location = GM_getValue('ResourceRedirectRef');
+        }
+    }
+}
+
+/**
+ * Load the translator
+ */
+function loadTraductor() {
+    function toTranslate(word, lang1, lang2) {
+        GM_xmlhttpRequest({
+            url: "http://www.wordreference.com/" + lang1 + lang2 + "/" + word,
+            method: "GET",
+            onload: function(response) {
+                gettraduction(response.responseText);
+            }
+        });
+
+        function gettraduction(text) {
+            text = (/<div class=id>IDIOMS:/.test(text)) ?
+                /<div class=se id=se[0-9]{2,5}>([\s\S]*)<div class=id>IDIOMS:/.exec(
+                    text)[1] :
+                /<div class=se id=se[0-9]{2,5}>([\s\S]*)<div id='FTintro'/.exec(
+                    text)[1];
+            text += "</div>";
+            // This was causing failures I believe. Since I never use this script, I don't plan on doing anything with it atm
+            //text = text.replace(/<span class=b>(.*)<\/span>/g, "<b>$1</b>"); text = text.replace(/<span class=u>(.*)<\/span>/g, "<u>$1</u>"); text = text.replace(/<span class=i>(.*)<\/span>/g, "<em>$1</em>");
+            document.getElementById("gm_traductionofword").innerHTML = "<div style='background-color:black; opacity:0.8; border:1px solid white; color:white; padding:5px;'>" + text + "</div>";
+        }
+    }
+    var html1 = "<option style='background:url(\"" + scriptsIcons +
+        "Traductor/FR.png\") no-repeat; text-align:right;' value='fr'>FR</option>";
+    var html2 = "<option style='background:url(\"" + scriptsIcons +
+        "Traductor/EN.png\") no-repeat; text-align:right;' value='en'>EN</option>";
+    var html = "<option style='background:url(\"" + scriptsIcons +
+        "Traductor/DE.png\") no-repeat; text-align:right;' value='de'>DE</option>";
+    html += "<option style='background:url(\"" + scriptsIcons +
+        "Traductor/ES.png\") no-repeat; text-align:right;' value='es'>ES</option>";
+    html += "<option style='background:url(\"" + scriptsIcons +
+        "Traductor/IT.png\") no-repeat; text-align:right;' value='it'>IT</option>";
+    var select1, select2;
+    if (g_lang === "en") {
+        select1 = buildNode("select", ["id", "style"], ["gm_lang1",
+            "height:18px;"
+        ], html1 + html2);
+        select2 = buildNode("select", ["id", "style"], ["gm_lang2",
+            "height:18px;"
+        ], html2 + html1);
+    } else {
+        select1 = buildNode("select", ["id", "style"], ["gm_lang1",
+            "height:18px;"
+        ], html2 + html1);
+        select2 = buildNode("select", ["id", "style"], ["gm_lang2",
+            "height:18px;"
+        ], html1 + html2);
+    }
+    var input = buildNode("img", ["type", "src", "style"], ["submit",
+        scriptsIcons + "Traductor/GO.png",
+        "float:right;height:18px;cursor:pointer"
+    ], "", "click", function() {
+        toTranslate(document.getElementById("gm_wordtotranslate").value,
+            document.getElementById("gm_lang1").value, document.getElementById(
+                "gm_lang2").value);
+    });
+    var div = buildNode("div", ["id", "style"], ["gm_traduction",
+            "background-color:black; padding:0 0 1px 2px; position:fixed; bottom:1px; right:1px; "
+        ],
+        "<input id='gm_wordtotranslate' type='text' style='width:80px;height:9px;'/>"
+    );
+    div.appendChild(select1);
+    div.appendChild(select2);
+    var div2 = buildNode("div", ["id"], ["gm_traductionofword"], "");
+    div.appendChild(input);
+    document.getElementsByTagName("body")[0].appendChild(div2);
+    document.getElementsByTagName("body")[0].appendChild(div);
+}
+
+/**
+ * Additional production options in the production page
+ */
+function loadResources() {
+    var html = "<div class='ressources_sub1a' style='float:left'>" + L_[
+        "More_allTo"] + "</div>";
+    html +=
+        '<div class="ressources_sub1c" style="float:right; padding-right:12px; overflow:hidden;">' +
+        '<select size="1" style="border:none;" onchange="var selects = document.getElementById(\'main\')' +
+        '.getElementsByTagName(\'select\'); for (var i=0; i<selects.length; i++) { selects[i].value=this.value; }' +
+        'document.ressources.submit();">' +
+        '<option value="100">100%</option><option value="90">90%</option><option value="80">80%</option>' +
+        '<option value="70">70%</option><option value="60">60%</option><option value="50">50%</option>' +
+        '<option value="40">40%</option><option value="30">30%</option><option value="20">20%</option>' +
+        '<option value="10">10%</option><option value="0">0%</option><option selected="selected">?</option></select></div>';
+    var div = buildNode("div", ["class"], [
+        "space0 ressources_font_little ressources_bordert"
+    ], html);
+    document.getElementById("main").insertBefore(div, document.getElementsByClassName(
+        "space0 ressources_font_little ressources_bordert")[0]);
+}
+
+/**
+ * Immediately returns to the main fleet page if we're told to
+ */
+function loadRedirectFleet() {
+    window.onload = function() {
+        var fullLoc = false;
+        var loc = null;
+        try {
+            loc = JSON.parse(GM_getValue("savedFleet"));
+            if (loc !== null)
+                fullLoc = true;
+        } catch (ex) {
+            fullLoc = false;
+        }
+
+        if (autoAttack && parseInt(GM_getValue("AutoAttackWaves")) === 0) {
+            GM_deleteValue("AutoAttackWaves");
+            GM_deleteValue("AutoAttackMC");
+            GM_setValue("redirToSpy", "1");
+            window.location.href = "messages.php?mode=show?messcat=0";
+        } else if (fullLoc)
+            window.location.href = loc.href;
+        else
+            window.location.href = "fleet.php";
+    };
+}
+
 
 /**
  * Old, unused function that scans the entire galaxy, updating the database
