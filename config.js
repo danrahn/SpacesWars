@@ -19,7 +19,6 @@ function createAndLoadConfigurationPage() {
     main.removeAttribute("id");
     main.className = "mainSettings";
 
-    g_uni = getParameterByName('uni'); // Why can't I just use the `uni` that we already defined?
     setStyle();
 
     //First time using DTR's scripts, reset the config file.
@@ -325,7 +324,7 @@ function populateConfig() {
     if (g_config.More.mcTransport) inputs[18].checked = true;
 
     // Top-level activate/deactivate
-    for (var i = 0; i < nbScripts; i++) {
+    for (var i = 0; i < g_nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
         (g_scriptInfo[script]) ? actives[i].checked = true : actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
     }
@@ -778,7 +777,7 @@ function saveSettings() {
     var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1);
     var options = getDomXpath("//div[@class='script_options']", document, -1);
 
-    for (var i = 0; i < nbScripts; i++) {
+    for (var i = 0; i < g_nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
         g_scriptInfo[script] = actives[i].checked;
         switch (script) {

@@ -19,7 +19,7 @@ var spyForMe = !!parseInt(GM_getValue("SpyForMe"));
 var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch"));
 var advancedAutoAttack = autoAttack; // No longer used?
 
-var nbScripts = 13;
+var g_nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
@@ -130,6 +130,17 @@ if (g_page === "fleet") {
 
 if (g_page === "floten1") {
     continueAttack();
+}
+
+if (g_page === "floten2") {
+    setupFleet2();
+}
+
+// I wrote this, but I don't know where the magic number
+// 22 is coming from. It replaces '?' in the simulator
+// with whatever values are available though
+if (g_page === 'simulator') {
+    setSimDefaults();
 }
 
 function canLoadInPage(script) {
@@ -874,22 +885,6 @@ function checkVersionInfo() {
 }
 
 /**
- * Returns the desired GET parameter from a URL
- * @param name - the parameter to find
- * @param url - the URL to search
- * @returns {*} - The parameter value, or null if not found
- */
-function getParameterByName(name, url) {
-    if (!url) url = window.location.href;
-    name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-        results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return '';
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-}
-
-/**
  * Grab the universe config, or a default config if none is found
  *
  * @returns {*}
@@ -920,6 +915,9 @@ function getScriptInfo() {
     }
 }
 
+/**
+ * Sets up the necessary bits in the persistent sidebar
+ */
 function setupSidebar() {
     // NV for SW ?
     if (document.getElementsByClassName("lm_lang")[0] === undefined) {
@@ -1431,11 +1429,9 @@ function loadEasyFarm() {
 //        (kinda)       //
 //////////////////////////
 
-// I wrote this, but I don't know where the magic number
-// 22 is coming from. It replaces '?' in the simulator
-// with whatever values are available though
-if (g_page === 'simulator') {
+function setSimDefaults() {
     if ($('.simu_120').length === 22) {
+        // Who needs loops?
         var a109 = $('#a109');
         var d109 = $('#d109');
         var a110 = $('#a110');
@@ -1454,7 +1450,6 @@ if (g_page === 'simulator') {
         if (doff.val() === '?') doff.val(aoff.val());
     }
 }
-
 
 // Definitely a bot, scans the entire galaxy autonomously to update
 // the universe graph
@@ -2927,7 +2922,7 @@ function continueAttack() {
     }
 }
 
-if (g_page === "floten2") {
+function setupFleet2() {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
 
