@@ -9,68 +9,6 @@
 /* global GM_xmlhttpRequest*/
 /* global calcul*/
 
-/**
- * Delete all spaceswars related storage
- */
-function deleteAllData() {
-    var uniKeys = ["fleet_points_uni_", "config_scripts_uni", "galaxy_data_", "markit_data_"];
-    for (var i = 0; i < 19; i++) {
-        for (var j = 0; j < uniKeys.length; j++) {
-            try {
-                GM_deleteValue(uniKeys[i] + i);
-            } catch (ex) {
-                console.log(uniKeys[i] + i + " not found");
-            }
-        }
-    }
-
-    // TODO: everything but infos_scripts and infos_version should probably be uni specific
-    var singleKeys = ["infos_scripts", "infos_version", "fp_redirect", "InactiveList", "ResourceRedirect", "ResourceRedirectType"];
-    for (var i = 0; i < singleKeys.length; i++) {
-        try {
-            GM_deleteValue(singleKeys);
-        } catch (ex) {
-            console.log(singleKeys + " not found");
-        }
-    }
-}
-
-$( document ).ready(function() {
-    GM_setValue("scan", "false");
-    //GM_setValue("scan", "true");
-    if (window.location.href.indexOf("galaxy") !== -1) {
-        galScan();
-    }
-});
-function galScan() {
-    var scan = false;
-    if (!GM_getValue("scan") || GM_getValue("scan") === "true") {
-        scan = true;
-        GM_setValue("scan", "true");
-    }
-    if (scan) {
-        var gSel = $("#galaxy");
-        var sSel = $("[name=system]");
-        var g = parseInt(gSel.val());
-        var s = parseInt(sSel.val());
-        var wait = ((Math.random() / 2)) * 1000;
-        if (s < 499) {
-            $sSel.val(s + 1);
-            setTimeout(function() {
-                $("[type=submit]")[0].click()
-            }, wait);
-        } else if (g !== 7 && s !== 499) {
-            gSel.val(g + 1);
-            sSel.val(1);
-            setTimeout(function() {
-                $("[type=submit]")[0].click()
-            }, wait);
-        } else {
-            GM_setValue("scan", "false");
-        }
-    }
-}
-
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
 // reports show they have nothing of use
@@ -84,12 +22,11 @@ var advancedAutoAttack = autoAttack; // No longer used?
 var nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
-var gmicon = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
-var scriptsIcons = "404"; // Broken
+var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
+var scriptsIcons = GM_ICON; // Old icon was broken
 
 // Language dictionary. FR and EN
 var L_ = [];
-var lang = "en";
 
 var g_versionInfo, g_scriptInfo;
 try {
@@ -97,13 +34,103 @@ try {
 } catch (ex) {
     g_versionInfo = undefined;
 }
-try {
-    g_scriptInfo = JSON.parse(GM_getValue("infos_scripts"));
-} catch (ex) {
-    g_scriptInfo = undefined;
+
+checkVersionInfo();
+g_scriptInfo = getScriptInfo();
+
+// More globals...
+// the variable name 'location' makes Opera bugging
+var g_info = getInfoFromPage();
+var g_page = g_info.loc;
+var g_uni = g_info.universe;
+var g_lang = g_versionInfo.language;
+L_ = setDictionary();
+var MerchantMap = setMerchantMap();
+var nbUnis = g_versionInfo.nbUnis;
+
+var g_config = getConfig();
+
+// SpacesWars did away with userscripts, and along with it the
+// configurating page that used to be built in. To work around it,
+// redirect to the "bonus" page when the GM icon is clicked and set a
+// flag that tells us to overwrite the page with our custom content below
+if (g_page === "achatbonus" && window.location.search.includes("config=1")) {
+    createAndLoadConfigurationPage();
 }
 
-var info, page, config, uni;
+// Persistent left menu
+if (g_page === "leftmenu") {
+    setupSidebar();
+}
+
+if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
+    loadClickNGo()
+}
+
+if (canLoadInPage("RConverter") && g_scriptInfo.RConverter) {
+    loadRConverter();
+}
+
+if (canLoadInPage("EasyFarm") && g_scriptInfo.EasyFarm) {
+    loadEasyFarm();
+}
+
+// Shows who's inactive in the statistics page
+if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
+    loadInactiveStatsAndFleetPoints(g_scriptInfo);
+}
+
+if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
+    loadDeutRow();
+}
+
+if (canLoadInPage('More_deutRow') && g_scriptInfo.More && g_config.More.convertClick) {
+    loadConvertClick();
+}
+
+if (g_page === 'fleet' && g_scriptInfo.More && g_config.More.mcTransport && g_uni === '17') {
+    loadMcTransport();
+}
+
+if (canLoadInPage("empireTotal") && g_scriptInfo.BetterEmpire) {
+    loadBetterEmpire(g_config);
+}
+
+if (canLoadInPage("EasyTarget")) {
+    loadEasyTargetAndMarkit(g_scriptInfo, g_config);
+}
+
+if (canLoadInPage("iFly") && g_scriptInfo.iFly) {
+    loadiFly();
+}
+
+if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
+    loadTChatty()
+}
+
+// Disable autocomplete on all qualifying input fields
+if (g_scriptInfo.NoAutoComplete && autoCompleteSelected(g_page)) {
+    elements = document.getElementsByTagName('input');
+    for (i = 0; i < elements.length; i++) {
+        elements[i].setAttribute('autocomplete', 'off');
+    }
+}
+
+if (canLoadInPage("AllinDeut") && g_scriptInfo.AllinDeut) {
+    loadAllinDeut();
+}
+
+if (g_scriptInfo.More) {
+    loadMore();
+}
+
+if (g_page === "fleet") {
+    saveFleetPage();
+}
+
+if (g_page === "floten1") {
+    continueAttack();
+}
 
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
@@ -194,11 +221,11 @@ function canLoadInPage(script) {
         canLoad.empireTotal.imperium = true;
     }
     if (canLoad[script].type === 1) {
-        return canLoad[script][page] !== undefined;
+        return canLoad[script][g_page] !== undefined;
     }
 
     if (canLoad[script].type === 2) {
-        return canLoad[script][page] === undefined;
+        return canLoad[script][g_page] === undefined;
     }
     return false;
 }
@@ -227,7 +254,7 @@ function getSlashedNb(nStr) {
  */
 function setDictionary() {
     var tab = [];
-    switch (lang) {
+    switch (g_lang) {
         case "fr":
             tab.newVersion = "Nouvelle version disponible.\r\nCliquez sur l'icône du menu de gauche pour plus d'informations.";
             tab.cantxml = "Votre navigateur ne vous permet pas d'envoyer des données vers la cartographie";
@@ -712,7 +739,7 @@ function setConfigScripts(uni) {
  *
  * @returns {{}} the page information
  */
-function getInfosFromPage() {
+function getInfoFromPage() {
     var list = {};
     if (/niark/.test(window.location.href)) {
         list.loc = "niark";
@@ -768,17 +795,23 @@ function getNbFromStringtab(tab) {
     return parseInt(tab.join(''));
 }
 
-// Ugh, global stuff
-// Is this actually necessary anymore?
+/**
+ * Legacy code that might still be relevant if someone is upgrading
+ * from before 2012 to the latest.
+ */
+function checkVersionInfo() {
 // checking...
-if (g_versionInfo === undefined || g_versionInfo === null || g_versionInfo.version !== thisVersion) {
+    if (g_versionInfo !== undefined && g_versionInfo !== null && g_versionInfo.version === thisVersion) {
+        return;
+    }
+
     // ... 1st install ?
-    page = getInfosFromPage().loc;
+    g_page = getInfoFromPage().loc;
     if (g_versionInfo === undefined || g_versionInfo === null) {
         g_versionInfo = setInfosVersion();
         g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
-        if (g_versionInfo.version === thisVersion && page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
+        if (g_versionInfo.version === thisVersion && g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
             alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
     }
 
@@ -802,7 +835,7 @@ if (g_versionInfo === undefined || g_versionInfo === null || g_versionInfo.versi
             g_scriptInfo = setScriptsInfo();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
-            if (page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames")
+            if (g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
                 alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
         }
         if (g_versionInfo.version === "4.0") {
@@ -810,30 +843,30 @@ if (g_versionInfo === undefined || g_versionInfo === null || g_versionInfo.versi
             setConfigScripts(0);
             for (var i = 1; i <= 17; i++) {
                 try {
-                    config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
+                    g_config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
                 } catch (ex) {
-                    config = null;
+                    g_config = null;
                 }
-                if (config !== undefined && config !== null) {
-                    config.Markit.topX = 50;
-                    config.Markit.topColor = "FF2626";
-                    config.More.returns = 1;
-                    config.EasyFarm.colorPill = "871717";
-                    config.EasyFarm.colorCDR = "178717";
-                    config.TChatty.color = "FFFFFF";
-                    config.Markit.color["default"] = "FFFFFF";
-                    config.Markit.color["fridge"] = "30A5FF";
-                    config.Markit.color["bunker"] = "FF9317";
-                    config.Markit.color["raidy"] = "44BA1F";
-                    config.Markit.color["dont"] = "FF2626";
-                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
+                if (g_config !== undefined && g_config !== null) {
+                    g_config.Markit.topX = 50;
+                    g_config.Markit.topColor = "FF2626";
+                    g_config.More.returns = 1;
+                    g_config.EasyFarm.colorPill = "871717";
+                    g_config.EasyFarm.colorCDR = "178717";
+                    g_config.TChatty.color = "FFFFFF";
+                    g_config.Markit.color["default"] = "FFFFFF";
+                    g_config.Markit.color["fridge"] = "30A5FF";
+                    g_config.Markit.color["bunker"] = "FF9317";
+                    g_config.Markit.color["raidy"] = "44BA1F";
+                    g_config.Markit.color["dont"] = "FF2626";
+                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(g_config));
                 }
             }
             g_versionInfo = setInfosVersion();
 
             // get a message if can't have the gm icon without F5 refresh (frames)
-            page = getInfosFromPage().loc;
-            if (page !== "niark" && page !== "index" && page !== "forum" && page !== "leftmenu" && page !== "frames") {
+            g_page = getInfoFromPage().loc;
+            if (g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames") {
                 alert("Script mis à jour.\n\nScript updated.");
             }
         }
@@ -856,52 +889,42 @@ function getParameterByName(name, url) {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
 }
 
-// More globals...
-// the variable name 'location' makes Opera bugging
-info = getInfosFromPage();
-page = info.loc;
-uni = info.universe;
-lang = g_versionInfo.language;
-L_ = setDictionary();
-var MerchantMap = setMerchantMap();
-var nbUnis = g_versionInfo.nbUnis;
-
-// Try to grab the config scripts for the universe, otherwise set them ourselves
-if (uni !== 0 && uni !== undefined && uni !== null) {
+/**
+ * Grab the universe config, or a default config if none is found
+ *
+ * @returns {*}
+ */
+function getConfig() {
     try {
-        config = JSON.parse(GM_getValue("config_scripts_uni_" + uni));
+        var config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
         if (config === null || config === undefined)
-            config = setConfigScripts(uni);
+            config = setConfigScripts(g_uni);
+        return config;
     } catch (ex) {
-        config = setConfigScripts(uni);
+        return setConfigScripts(g_uni);
     }
 }
 
-// Try to get general info scripts, set to default otherwise
-try {
-    g_scriptInfo = JSON.parse(GM_getValue("infos_scripts"));
-    if (g_scriptInfo === null || g_scriptInfo === undefined)
-        g_scriptInfo = setScriptsInfo();
-} catch (ex) {
-    g_scriptInfo = setScriptsInfo();
-}
-
-// uni_0 indicates index or forum, use that config
-if (page === "forum" || page === "index") {
+/**
+ * Grab the information on the scripts
+ * @returns {{}}
+ */
+function getScriptInfo() {
     try {
-        config = JSON.parse(GM_getValue("config_scripts_uni_0"));
-        if (config === undefined) config = setConfigScripts(0);
+        var info = JSON.parse(GM_getValue("infos_scripts"));
+        if (info === null || info === undefined)
+            return setScriptsInfo();
+        return info;
     } catch (ex) {
-        config = setConfigScripts(0);
+        return setScriptsInfo();
     }
 }
 
-// Persistent left menu
-if (page === "leftmenu") {
+function setupSidebar() {
     // NV for SW ?
     if (document.getElementsByClassName("lm_lang")[0] === undefined) {
         alert("Post on the forum (http://spaceswars.com/forum/viewforum.php?f=219)\r\nwith this message :\t'lang_box problem'\r\nThanks.\r\nNiArK");
-        // return;
+        return;
     }
     // get lang
     var logoutBox = getDomXpath("//a[@href='logout.php']", document, 0);
@@ -911,16 +934,19 @@ if (page === "leftmenu") {
         g_versionInfo.language = "fr";
     }
     GM_setValue("infos_version", JSON.stringify(g_versionInfo));
-    lang = g_versionInfo.language;
+    g_lang = g_versionInfo.language;
+
     // gm_icon
     var langBox = getDomXpath("//div[@class='lm_lang']", document, 0);
     var gmIcon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
-        "<a href='achatbonus.php?lang=" + lang + "&uni=" + uni +
-        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + gmicon + "' alt='GM'/></a>");
+        "<a href='achatbonus.php?lang=" + g_lang + "&uni=" + g_uni +
+        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
+
     var smfCheck = buildNode("input", ["type"], ["checkbox"]);
     var aaCheck = buildNode("input", ["type"], ["checkbox"]);
 
+    // SpyForMe and AutoAttack check boxes
     $(smfCheck).change(function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
         spyForMe = this.checked;
@@ -934,18 +960,6 @@ if (page === "leftmenu") {
 
     $(smfCheck).prop("checked", spyForMe);
     $(aaCheck).prop("checked", autoAttack);
-}
-
-// SpacesWars did away with userscripts, and along with it the
-// configurating page that used to be built in. To work around it,
-// redirect to the "bonus" page when the GM icon is clicked and set a
-// flag that tells us to overwrite the page with our custom content below
-if (page === "achatbonus" && window.location.search.includes("config=1")) {
-    createAndLoadConfigurationPage();
-}
-
-if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
-    loadClickNGo()
 }
 
 /**
@@ -1003,20 +1017,20 @@ function loadClickNGo() {
     clicngoContents.innerHTML += html;
 
     function insertClicNGoContents() {
-        for (i = 0; i < config.ClicNGo.universes.length; i++) {
-            div = buildNode("div", ["id", "name", "style"], ["clicngo_" + i, "clicngo_" + i, "margin:5px;"], "#" + (i + 1) + ": " + config.ClicNGo.usernames[i] +
-                " (" + L_["ClicNGo_universe"] + " " + config.ClicNGo.universes[i] + ")");
+        for (i = 0; i < g_config.ClicNGo.universes.length; i++) {
+            div = buildNode("div", ["id", "name", "style"], ["clicngo_" + i, "clicngo_" + i, "margin:5px;"], "#" + (i + 1) + ": " + g_config.ClicNGo.usernames[i] +
+                " (" + L_["ClicNGo_universe"] + " " + g_config.ClicNGo.universes[i] + ")");
             document.getElementById("clicngo_id").appendChild(div);
         }
-        for (i = 0; i < config.ClicNGo.universes.length; i++) {
+        for (i = 0; i < g_config.ClicNGo.universes.length; i++) {
             var img = buildNode("img", ["name", "src", "alt", "style"], ["clicngo_" + i, scriptsIcons +
             "Clic&Go/login.png", "go", "margin-left:5px;cursor:pointer;position:absolute;"
             ], "");
             img.addEventListener("click", function() {
                 var index = /clicngo_(\d*)/.exec(this.name)[1];
-                document.getElementById("login_univers").value = config.ClicNGo.universes[index];
-                document.getElementById("login_pseudo").value = config.ClicNGo.usernames[index];
-                document.getElementById("login_password").value = config.ClicNGo.passwords[index];
+                document.getElementById("login_univers").value = g_config.ClicNGo.universes[index];
+                document.getElementById("login_pseudo").value = g_config.ClicNGo.usernames[index];
+                document.getElementById("login_password").value = g_config.ClicNGo.passwords[index];
                 document.getElementById("login_submit").click();
             }, false);
             document.getElementById("clicngo_" + i).appendChild(img);
@@ -1024,14 +1038,14 @@ function loadClickNGo() {
     }
     insertClicNGoContents();
     document.getElementById("add_submit").addEventListener("click", function() {
-        var index = config.ClicNGo.universes.length;
+        var index = g_config.ClicNGo.universes.length;
         if (isNaN(parseInt(document.getElementById("add_universe").value)))
             return false;
-        config.ClicNGo.universes[index] = parseInt(document.getElementById("add_universe").value);
-        config.ClicNGo.usernames[index] = document.getElementById("add_username").value;
-        config.ClicNGo.passwords[index] = document.getElementById("add_password").value;
+        g_config.ClicNGo.universes[index] = parseInt(document.getElementById("add_universe").value);
+        g_config.ClicNGo.usernames[index] = document.getElementById("add_username").value;
+        g_config.ClicNGo.passwords[index] = document.getElementById("add_password").value;
         //localStorage["config_script_uni_0"] = JSON.stringify(config);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(config));
+        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
         document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -1040,19 +1054,15 @@ function loadClickNGo() {
         if (isNaN(parseInt(document.getElementById("add_universe").value)))
             return false;
         var nb = parseInt(document.getElementById("remove_nb").value);
-        config.ClicNGo.universes.splice(nb - 1, 1);
-        config.ClicNGo.usernames.splice(nb - 1, 1);
-        config.ClicNGo.passwords.splice(nb - 1, 1);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(config));
+        g_config.ClicNGo.universes.splice(nb - 1, 1);
+        g_config.ClicNGo.usernames.splice(nb - 1, 1);
+        g_config.ClicNGo.passwords.splice(nb - 1, 1);
+        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
         //localStorage["config_scripts+_uni_0"] = JSON.stringify(config);
         document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
 
-}
-
-if (canLoadInPage("RConverter") && g_scriptInfo.RConverter) {
-    loadRConverter();
 }
 
 /**
@@ -1171,15 +1181,15 @@ function loadRConverter() {
         '[/b][/size][/color]').replace(/<br>/g, '\n');
 
     var rapport_converti = "";
-    rapport_converti += "[center][b][img]" + ((config.RConverter.header === '') ?
-        scriptsIcons + 'RConverter/header.png' : config.RConverter.header) + "[/img]\n\n";
+    rapport_converti += "[center][b][img]" + ((g_config.RConverter.header === '') ?
+        scriptsIcons + 'RConverter/header.png' : g_config.RConverter.header) + "[/img]\n\n";
     rapport_converti += date_rc + "[/b]\n";
     rapport_converti += "_________________________________________________\n\n";
     for (i = 0; i < participants[0].length; i++) {
         rapport_converti += participants[0][i];
         if (participants[1][i].length === 0) {
-            rapport_converti += "[img]" + ((config.RConverter.destroyed === '') ?
-                scriptsIcons + 'RConverter/destroyed.png' : config.RConverter.destroyed) + "[/img]\n";
+            rapport_converti += "[img]" + ((g_config.RConverter.destroyed === '') ?
+                scriptsIcons + 'RConverter/destroyed.png' : g_config.RConverter.destroyed) + "[/img]\n";
         }
         for (j = 0; j < participants[1][i].length; j++) {
             rapport_converti += "[color=" + couleurs_rc[j] + "]" + participants[1][i][j][0] + " " + participants[1][i][j][1] + "[/color]\n";
@@ -1189,16 +1199,16 @@ function loadRConverter() {
 
     if (nb_tours !== 1) {
         var difference;
-        rapport_converti += "[img]" + ((config.RConverter.boom === '') ?
-            scriptsIcons + 'RConverter/boom.png' : config.RConverter.boom) +
+        rapport_converti += "[img]" + ((g_config.RConverter.boom === '') ?
+            scriptsIcons + 'RConverter/boom.png' : g_config.RConverter.boom) +
             "[/img]";
         rapport_converti += "\n\n";
 
         for (i = 0; i < participants[0].length; i++) {
             rapport_converti += participants[0][i];
             if (participants[2][i].length === 0) {
-                rapport_converti += "[img]" + ((config.RConverter.destroyed === '') ?
-                        scriptsIcons + 'RConverter/destroyed.png' : config.RConverter.destroyed
+                rapport_converti += "[img]" + ((g_config.RConverter.destroyed === '') ?
+                        scriptsIcons + 'RConverter/destroyed.png' : g_config.RConverter.destroyed
                 ) + "[/img]\n";
             }
             for (j = 0; j < participants[2][i].length; j++) {
@@ -1216,12 +1226,12 @@ function loadRConverter() {
             rapport_converti += "\n\n\n";
         }
     }
-    rapport_converti += "[img]" + ((config.RConverter.result === '') ?
-        scriptsIcons + 'RConverter/result.png' : config.RConverter.result) + "[/img]\n";
+    rapport_converti += "[img]" + ((g_config.RConverter.result === '') ?
+        scriptsIcons + 'RConverter/result.png' : g_config.RConverter.result) + "[/img]\n";
     rapport_converti += resultat_combat + "\n\n";
     rapport_converti += resultat_CDR + "\n\n";
-    rapport_converti += "[img]" + ((config.RConverter.renta === '') ?
-        scriptsIcons + 'RConverter/renta.png' : config.RConverter.renta) + "[/img]\n";
+    rapport_converti += "[img]" + ((g_config.RConverter.renta === '') ?
+        scriptsIcons + 'RConverter/renta.png' : g_config.RConverter.renta) + "[/img]\n";
     rapport_converti += renta_attaquant + "\n\n";
     rapport_converti += renta_defenseur + "\n\n";
     rapport_converti += "[/center]";
@@ -1234,10 +1244,6 @@ function loadRConverter() {
         " document.getElementById(\"RConverter\").select();'/>" + L_["RConverter_HoF"];
     getDomXpath("//body", document, 0).appendChild(buildNode("center", ["class", "style"], ["space1 curvedtot", "position:absolute; right:0; top:30px;"], html));
     document.getElementById("RConverter").select();
-}
-
-if (canLoadInPage("EasyFarm") && g_scriptInfo.EasyFarm) {
-    loadEasyFarm();
 }
 
 /**
@@ -1266,7 +1272,7 @@ function loadEasyFarm() {
     // they have very little resources
     var doNotSpy;
     try {
-        doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + uni));
+        doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
     } catch (ex) {
         doNotSpy = new Array(8);
         for (i = 0; i < 8; i++) {
@@ -1287,8 +1293,8 @@ function loadEasyFarm() {
         var metal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
         var crystal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
         var deut = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
-        if ((metal / 4 + crystal / 2 + deut) / 2 >= config.EasyFarm.minPillage) {
-            messages[i].setAttribute("style", "background-color:#" + config.EasyFarm.colorPill);
+        if ((metal / 4 + crystal / 2 + deut) / 2 >= g_config.EasyFarm.minPillage) {
+            messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
         }
@@ -1307,8 +1313,8 @@ function loadEasyFarm() {
                 total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
                 classRank++;
             }
-        if (total * 0.6 >= config.EasyFarm.minCDR) {
-            messages[i].setAttribute("style", "background-color:#" + config.EasyFarm.colorCDR);
+        if (total * 0.6 >= g_config.EasyFarm.minCDR) {
+            messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorCDR);
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
         }
 
@@ -1342,11 +1348,11 @@ function loadEasyFarm() {
 
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
-        if (allDeut < 4 * config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
+        if (allDeut < 4 * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
-        if (allDeut < config.EasyFarm.minPillage / 2) {
+        if (allDeut < g_config.EasyFarm.minPillage / 2) {
             doNotSpy[galaxy][system][position] = 1;
         } else {
             doNotSpy[galaxy][system][position] = 0;
@@ -1357,7 +1363,7 @@ function loadEasyFarm() {
         var content = L_["massive_cargo"] + " : " + snb(res) + "<br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
-        while (allDeut >= config.EasyFarm.minPillage && config.EasyFarm.minPillage > 0) {
+        while (allDeut >= g_config.EasyFarm.minPillage && g_config.EasyFarm.minPillage > 0) {
             count++;
             deutTotal += allDeut;
             allDeut /= 2;
@@ -1416,7 +1422,7 @@ function loadEasyFarm() {
             $(messages[attackIndex].getElementsByTagName("a")[2]).click();
         }, Math.random() * 200 + 200);
     }
-    GM_setValue("DoNotSpy_uni" + uni, JSON.stringify(doNotSpy));
+    GM_setValue("DoNotSpy_uni" + g_uni, JSON.stringify(doNotSpy));
 }
 
 //////////////////////////
@@ -1428,7 +1434,7 @@ function loadEasyFarm() {
 // I wrote this, but I don't know where the magic number
 // 22 is coming from. It replaces '?' in the simulator
 // with whatever values are available though
-if (page === 'simulator') {
+if (g_page === 'simulator') {
     if ($('.simu_120').length === 22) {
         var a109 = $('#a109');
         var d109 = $('#d109');
@@ -1490,11 +1496,6 @@ function goRight() {
     }
 }
 
-// Shows who's inactive in the statistics page
-if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
-    loadInactiveStatsAndFleetPoints(g_scriptInfo);
-}
-
 /**
  * Display who's inactive in the statistics page, as well
  * as build up a database of current points for given categories,
@@ -1514,7 +1515,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var types, i, space;
     if (scriptsInfo.FleetPoints) {
         try {
-            fp = JSON.parse(GM_getValue("fleet_points_uni_" + uni));
+            fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
             if (fp === undefined || fp === null) fp = {
                 "1": {},
                 "2": {},
@@ -1534,7 +1535,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         if (!fp['3']) fp['3'] = {};
     }
     try {
-        lst = JSON.parse(GM_getValue('InactiveList_' + uni));
+        lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
         if (lst === undefined || lst === null) lst = {};
     } catch (err) {
         lst = {};
@@ -1546,9 +1547,9 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         var timeSelector = $('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
         var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        if (lang === 'fr') types = ['Points de Flotte', 'Général', ' pas à jour!', 'Recherche', 'Bâtiment', 'Défense'];
+        if (g_lang === 'fr') types = ['Points de Flotte', 'Général', ' pas à jour!', 'Recherche', 'Bâtiment', 'Défense'];
         else types = ['Fleet Points', 'General', ' not up to date!', 'Research', 'Buildings', 'Defense'];
-        if (lang === 'fr') {
+        if (g_lang === 'fr') {
             time = time.substring(time.indexOf('nt') + 3);
         } else time = time.substring(time.indexOf('on ') + 3);
         var day = time.substring(0, time.indexOf(' '));
@@ -1587,7 +1588,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                         changed = true;
                     }
                 }
-                if (changed) GM_setValue('fleet_points_uni_' + uni, JSON.stringify(fp));
+                if (changed) GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(fp));
             }
         } else {
             space = $('.space0')[1];
@@ -1596,10 +1597,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
             var head = timeSelector[1];
             while (head.firstChild) head.removeChild(head.firstChild);
             head.appendChild(buildNode('div', ['class'], ['stats_player_1'], "Place"));
-            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (lang === 'fr') ? 'Joueur' : 'Player'));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (g_lang === 'fr') ? 'Joueur' : 'Player'));
             head.appendChild(buildNode('div', ['class'], ['stats_player_2'], "Points"));
             head.appendChild(buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
-            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
+            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (g_lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
             players = document.getElementsByClassName('space0')[2];
             while (players.firstChild) players.removeChild(players.firstChild);
             var arr = [];
@@ -1635,11 +1636,11 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
             $('#nameChange').click(function() {
                 var en = "Make sure you have gone through all the stats in the General section, as this deletes any players where general is not up to date. It also deletes EasyTarget info, so be careful!";
                 var fr = "Assurez-vous que vous avez passé par toutes les statistiques de la section générale, car cela supprime tous les joueurs où le général est pas à jour. Il supprime également des informations EasyTarget, donc soyez prudent!";
-                var msg = (lang === 'en') ? en : fr;
+                var msg = (g_lang === 'en') ? en : fr;
                 if (confirm(msg)) {
                     var storage;
                     try {
-                        storage = JSON.parse(GM_getValue("galaxy_data_" + uni));
+                        storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
                         if (storage.universe === null || storage.universe === undefined) storage = {
                             'universe': {},
                             'players': {}
@@ -1660,7 +1661,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                             delete storage.players[arr[i][0]];
                         }
                     }
-                    GM_setValue('fleet_points_uni_' + uni, JSON.stringify(fp));
+                    GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(fp));
                     GM_setValue('fp_redirect', 1);
                     window.location = 'stat.php';
                 }
@@ -1716,10 +1717,6 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     }
 }
 
-if (canLoadInPage("More_deutRow") && g_scriptInfo.More && config.More.deutRow) {
-    loadDeutRow();
-}
-
 /**
  * Display a planet's resources in deut
  *
@@ -1768,10 +1765,6 @@ function loadDeutRow() {
     aligner_ressources();
 }
 
-if (canLoadInPage('More_deutRow') && g_scriptInfo.More && config.More.convertClick) {
-    loadConvertClick();
-}
-
 /**
  * Convert all resources to the one clicked on in the header
  */
@@ -1797,7 +1790,7 @@ function loadConvertClick() {
         GM_setValue('ResourceRedirectType', 2);
         window.location = "marchand.php";
     });
-    if (config.More.deutRow) {
+    if (g_config.More.deutRow) {
         $('#allin').click(function() {
             GM_setValue('ResourceRedirect', window.location.href);
             GM_setValue('ResourceRedirectType', 3);
@@ -1811,10 +1804,6 @@ function loadConvertClick() {
         GM_setValue("ResourceRedirect", window.location.href);
         window.location = "marchand.php";
     });
-}
-
-if (page === 'fleet' && g_scriptInfo.More && config.More.mcTransport && uni === '17') {
-    loadMcTransport();
 }
 
 /**
@@ -1859,10 +1848,6 @@ function loadMcTransport() {
     }
 }
 
-if (canLoadInPage("empireTotal") && g_scriptInfo.BetterEmpire) {
-    loadBetterEmpire(config);
-}
-
 /**
  * Organizes Empire view to optionally show totals first and moons last
  * @param config
@@ -1902,7 +1887,7 @@ function loadBetterEmpire(config) {
 
 
         var order = ['NameCoordinates', 'Total'];
-        if (lang === 'fr') order = ['NomCoordonnées', 'Total'];
+        if (g_lang === 'fr') order = ['NomCoordonnées', 'Total'];
 
         var items = $('#cp')[0].childNodes;
 
@@ -1983,10 +1968,6 @@ function hexToRgb(hex) {
     } : null;
 }
 
-if (canLoadInPage("EasyTarget")) {
-    loadEasyTargetAndMarkit(g_scriptInfo, config);
-}
-
 /**
  * Beginnings of an attempt to remove JQuery dependencies. Animates the given elements' background
  * to the new color
@@ -2059,7 +2040,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // TODO: pull out into own method
     if (infos_scripts.Markit) {
         try {
-            markit = JSON.parse(GM_getValue('markit_data_' + uni));
+            markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
             if (markit === undefined || markit === null) markit = {};
         } catch (err) {
             markit = {};
@@ -2113,7 +2094,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 animateBackground(rows[num - 1], c, 500);
             }
             $('#markit_choose').fadeOut(500);
-            GM_setValue('markit_data_' + uni, JSON.stringify(markit));
+            GM_setValue('markit_data_' + g_uni, JSON.stringify(markit));
         });
     }
 
@@ -2125,7 +2106,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     if (infos_scripts.EasyTarget) {
         // Grab the user data. If something goes wrong, reset it completely
         try {
-            storage = JSON.parse(GM_getValue("galaxy_data_" + uni));
+            storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
             if (storage === undefined) storage = {
                 'universe': {},
                 'players': {}
@@ -2147,7 +2128,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     };
 
     try {
-        inactiveList = JSON.parse(GM_getValue("InactiveList_" + uni));
+        inactiveList = JSON.parse(GM_getValue("InactiveList_" + g_uni));
         if (inactiveList === undefined || inactiveList === null) inactiveList = {};
     } catch (err) {
         inactiveList = {};
@@ -2269,7 +2250,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     var sfmLen = parseInt(GM_getValue("autoSpyLength"));
     if (!isNaN(sfmLen) && sfmLen >= 0 && spyForMe) {
         try {
-            doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + uni));
+            doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
         } catch (ex) {
             doNotSpy = null;
         }
@@ -2569,9 +2550,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // Only write the potentially massive text file if we need to
     // TODO: Separate into smaller chunks?
     if (infos_scripts.EasyTarget && changed) {
-        GM_setValue("galaxy_data_" + uni, JSON.stringify(storage));
+        GM_setValue("galaxy_data_" + g_uni, JSON.stringify(storage));
     }
-    GM_setValue('InactiveList_' + uni, JSON.stringify(inactiveList));
+    GM_setValue('InactiveList_' + g_uni, JSON.stringify(inactiveList));
 }
 
 /**
@@ -2631,7 +2612,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
     if (newGal === oldGal && newSys === oldSys) {
         if (infos_scripts.Markit && markit[newCoords] !== undefined) {
             setTimeout(function() {
-                var c = hexToRgb('#' + config.Markit.color[markit[newCoords]]);
+                var c = hexToRgb('#' + g_config.Markit.color[markit[newCoords]]);
                 c.a = 0.5;
                 if (name !== undefined) {
                     animateBackground(rows[newPlanet - 1], c, 600);
@@ -2640,7 +2621,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
         }
         if (infos_scripts.Markit && markit[oldCoords] !== undefined) {
             // Check to see if we need to overwrite a markit color
-            var c = hexToRgb('#' + config.Markit.color[markit[oldCoords]]);
+            var c = hexToRgb('#' + g_config.Markit.color[markit[oldCoords]]);
             c.a = 0.5;
             if (name !== undefined) {
                 animateBackground(rows[oldPlanet - 1], c, 600);
@@ -2676,24 +2657,12 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
  * @returns {boolean}
  */
 function autoCompleteSelected(p) {
-    var pages = config.NoAutoComplete;
+    var pages = g_config.NoAutoComplete;
     if (pages[p]) return true;
     else if (pages.sims && p.indexOf('sim') !== -1) {
         return true
     }
     return false;
-}
-
-// Disable autocomplete on all qualifying input fields
-if (g_scriptInfo.NoAutoComplete && autoCompleteSelected(page)) {
-    elements = document.getElementsByTagName('input');
-    for (i = 0; i < elements.length; i++) {
-        elements[i].setAttribute('autocomplete', 'off');
-    }
-}
-
-if (canLoadInPage("AllinDeut") && g_scriptInfo.AllinDeut) {
-    loadAllinDeut();
 }
 
 /**
@@ -2727,28 +2696,24 @@ function loadAllinDeut() {
         "research": "."
     };
 
-    var doms = getDomXpath(xpathPages[page], document, -1);
+    var doms = getDomXpath(xpathPages[g_page], document, -1);
     var inDeut = 0;
     for (var i = 0; i < doms.length; i++) {
         inDeut = 0;
-        if (regMetalPages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regMetalPages[page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[page])) / 4;
-        if (regCrystalPages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regCrystalPages[page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[page])) / 2;
-        if (regDeutPages[page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regDeutPages[page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[page]));
+        if (regMetalPages[g_page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regMetalPages[g_page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[g_page])) / 4;
+        if (regCrystalPages[g_page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regCrystalPages[g_page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[g_page])) / 2;
+        if (regDeutPages[g_page].test(doms[i].innerHTML)) inDeut +=
+            getNbFromStringtab(regDeutPages[g_page].exec(doms[i].innerHTML)[1].split(
+                separatorPages[g_page]));
         doms[i].appendChild(buildNode("div", [], [],
             "<font color='lime'>AllinDeut</font> : " + getSlashedNb("" +
             parseFloat(inDeut))));
     }
 
-}
-
-if (canLoadInPage("iFly") && g_scriptInfo.iFly) {
-    loadiFly();
 }
 
 /**
@@ -2788,15 +2753,11 @@ function loadiFly() {
         html));
 }
 
-if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
-    loadTChatty()
-}
-
 /**
  * Improved chat
  */
 function loadTChatty() {
-    var color = config.TChatty.color;
+    var color = g_config.TChatty.color;
     var toolbar = getDomXpath("//div[@class='toolbar']", document, 0);
     var send = document.getElementById("send");
     var message = document.getElementById("message");
@@ -2827,8 +2788,8 @@ function loadTChatty() {
     jscolorid.addEventListener("click", function() {
         document.getElementById("jscolor_box").addEventListener("mouseout",
             function() {
-                config.TChatty.color = document.getElementById("jscolorid").value;
-                GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
+                g_config.TChatty.color = document.getElementById("jscolorid").value;
+                GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
             }, false);
     }, false);
 
@@ -2853,14 +2814,6 @@ function loadTChatty() {
     send.addEventListener('click', function(e) {
         document.getElementById("message2").value = "";
     }, false);
-}
-
-if (g_scriptInfo.More) {
-    loadMore();
-}
-
-if (page === "fleet") {
-    saveFleetPage();
 }
 
 /**
@@ -2954,10 +2907,6 @@ function saveFleetPage() {
     }
 }
 
-if (page === "floten1") {
-    continueAttack();
-}
-
 /**
  * More autoattack and keyboard shortcuts
  */
@@ -2978,7 +2927,7 @@ function continueAttack() {
     }
 }
 
-if (page === "floten2") {
+if (g_page === "floten2") {
     window.onkeyup = function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
 
@@ -3007,7 +2956,7 @@ function sendAttack() {
  * Entry point for loading the scripts located under the "more" config category
  */
 function loadMore() {
-    if (canLoadInPage("More_moonsList") && config.More.moonsList) {
+    if (canLoadInPage("More_moonsList") && g_config.More.moonsList) {
         var options = document.getElementById("changeplanet").getElementsByTagName("option");
         for (i = 0; i < options.length; i++)
             if (/(\(M\))|(\(L\))/.test(options[i].innerHTML)) options[i].style.color =
@@ -3015,7 +2964,7 @@ function loadMore() {
     }
 
     // More conversion options on the merchant page
-    if (canLoadInPage("More_convertDeut") && config.More.convertDeut) {
+    if (canLoadInPage("More_convertDeut") && g_config.More.convertDeut) {
         if (document.getElementById('marchand_suba') !== null) {
 
             var a = document.getElementById("marchand_suba").getElementsByTagName("a");
@@ -3063,7 +3012,7 @@ function loadMore() {
     }
 
     // Translator?
-    if (canLoadInPage("More_traductor") && config.More.traductor) {
+    if (canLoadInPage("More_traductor") && g_config.More.traductor) {
         function toTranslate(word, lang1, lang2) {
             GM_xmlhttpRequest({
                 url: "http://www.wordreference.com/" + lang1 + lang2 + "/" + word,
@@ -3098,7 +3047,7 @@ function loadMore() {
         html += "<option style='background:url(\"" + scriptsIcons +
             "Traductor/IT.png\") no-repeat; text-align:right;' value='it'>IT</option>";
         var select1, select2;
-        if (lang === "en") {
+        if (g_lang === "en") {
             select1 = buildNode("select", ["id", "style"], ["gm_lang1",
                 "height:18px;"
             ], html1 + html2);
@@ -3135,7 +3084,7 @@ function loadMore() {
     }
 
     // Select production percentage for all resources
-    if (canLoadInPage("More_resources") && config.More.resources) {
+    if (canLoadInPage("More_resources") && g_config.More.resources) {
         html = "<div class='ressources_sub1a' style='float:left'>" + L_[
             "More_allTo"] + "</div>";
         html +=
@@ -3156,7 +3105,7 @@ function loadMore() {
 
     // Quickly return to the main fleet page after sending an attack, and remember
     // the previous coordinates
-    if (canLoadInPage("More_redirectFleet") && config.More.redirectFleet) {
+    if (canLoadInPage("More_redirectFleet") && g_config.More.redirectFleet) {
         window.onload = function() {
             var fullLoc = false;
             var loc = null;
@@ -3181,15 +3130,48 @@ function loadMore() {
     }
 
     // Make return fleets transparent in the overview
-    if (canLoadInPage("More_returns") && config.More.returns) {
+    if (canLoadInPage("More_returns") && g_config.More.returns) {
         var returns = document.getElementsByClassName('curvedtot return');
         for (i = 0; i < returns.length; i++)
             returns[i].style.opacity = "0.6";
     }
 
     // Make the arrows larger
-    if (canLoadInPage("More_arrows") && config.More.arrows) {
+    if (canLoadInPage("More_arrows") && g_config.More.arrows) {
         document.getElementById("previousplanet").value = "<<<<<";
         document.getElementById("nextplanet").value = ">>>>>";
+    }
+}
+
+/**
+ * Old, unused function that scans the entire galaxy, updating the database
+ * Prone to memory errors
+ */
+function galScan() {
+    var scan = false;
+    if (!GM_getValue("scan") || GM_getValue("scan") === "true") {
+        scan = true;
+        GM_setValue("scan", "true");
+    }
+    if (scan) {
+        var gSel = $("#galaxy");
+        var sSel = $("[name=system]");
+        var g = parseInt(gSel.val());
+        var s = parseInt(sSel.val());
+        var wait = ((Math.random() / 2)) * 1000;
+        if (s < 499) {
+            $sSel.val(s + 1);
+            setTimeout(function() {
+                $("[type=submit]")[0].click()
+            }, wait);
+        } else if (g !== 7 && s !== 499) {
+            gSel.val(g + 1);
+            sSel.val(1);
+            setTimeout(function() {
+                $("[type=submit]")[0].click()
+            }, wait);
+        } else {
+            GM_setValue("scan", "false");
+        }
     }
 }

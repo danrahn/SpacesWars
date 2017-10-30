@@ -19,17 +19,17 @@ function createAndLoadConfigurationPage() {
     main.removeAttribute("id");
     main.className = "mainSettings";
 
-    uni = getParameterByName('uni'); // Why can't I just use the `uni` that we already defined?
+    g_uni = getParameterByName('uni'); // Why can't I just use the `uni` that we already defined?
     setStyle();
 
     //First time using DTR's scripts, reset the config file.
-    if (config.GalaxyRanks === undefined || config.NoAutoComplete === undefined) {
-        config = setConfigScripts(uni);
+    if (g_config.GalaxyRanks === undefined || g_config.NoAutoComplete === undefined) {
+        g_config = setConfigScripts(uni);
     }
-    if (config.BetterEmpire === undefined) {
-        config.BetterEmpire = {};
-        config.BetterEmpire.byMainSort = 1;
-        config.BetterEmpire.moonsLast = 1;
+    if (g_config.BetterEmpire === undefined) {
+        g_config.BetterEmpire = {};
+        g_config.BetterEmpire.byMainSort = 1;
+        g_config.BetterEmpire.moonsLast = 1;
     }
     // Needed to get new tooltips to work
     getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
@@ -45,7 +45,7 @@ function createAndLoadConfigurationPage() {
         if (confirm("Are you sure you want to delete all data across all universes?")) {
             deleteAllData();
             this.value = "Deleted";
-            window.location = 'achatbonus.php?lang=' + lang + '&uni=' + uni + '&config=1';
+            window.location = 'achatbonus.php?lang=' + g_lang + '&uni=' + uni + '&config=1';
         }
     });
 
@@ -233,18 +233,18 @@ function populateConfig() {
 
     // RConverter
     inputs = options[0].getElementsByTagName("input");
-    inputs[0].value = config.RConverter.header;
-    inputs[1].value = config.RConverter.boom;
-    inputs[2].value = config.RConverter.destroyed;
-    inputs[3].value = config.RConverter.result;
-    inputs[4].value = config.RConverter.renta;
+    inputs[0].value = g_config.RConverter.header;
+    inputs[1].value = g_config.RConverter.boom;
+    inputs[2].value = g_config.RConverter.destroyed;
+    inputs[3].value = g_config.RConverter.result;
+    inputs[4].value = g_config.RConverter.renta;
 
     // EasyFarm
     inputs = options[1].getElementsByTagName("input");
-    inputs[0].value = config.EasyFarm.minPillage;
-    inputs[1].value = config.EasyFarm.colorPill;
-    inputs[2].value = config.EasyFarm.minCDR;
-    inputs[3].value = config.EasyFarm.colorCDR;
+    inputs[0].value = g_config.EasyFarm.minPillage;
+    inputs[1].value = g_config.EasyFarm.colorPill;
+    inputs[2].value = g_config.EasyFarm.minCDR;
+    inputs[3].value = g_config.EasyFarm.colorCDR;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -260,69 +260,69 @@ function populateConfig() {
         }
         if (data.length !== 0) {
             var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
-            if (conf) GM_setValue('galaxy_data_' + uni, data);
+            if (conf) GM_setValue('galaxy_data_' + g_uni, data);
             easyTargetText.value = '';
         }
     });
     inputs[1].addEventListener('click', function() {
         var easyTargetText = $('#EasyTarget_text')[0];
-        easyTargetText.value = GM_getValue('galaxy_data_' + uni);
+        easyTargetText.value = GM_getValue('galaxy_data_' + g_uni);
         easyTargetText.focus();
         easyTargetText.select();
     });
 
     // NoAutoComplete
     inputs = options[3].getElementsByTagName('input');
-    inputs[0].checked = config.NoAutoComplete.galaxy;
-    inputs[1].checked = config.NoAutoComplete.fleet;
-    inputs[2].checked = config.NoAutoComplete.floten1;
-    inputs[3].checked = config.NoAutoComplete.floten2;
-    inputs[4].checked = config.NoAutoComplete.build_fleet;
-    inputs[5].checked = config.NoAutoComplete.build_def;
-    inputs[6].checked = config.NoAutoComplete.sims;
-    inputs[7].checked = config.NoAutoComplete.marchand;
-    inputs[8].checked = config.NoAutoComplete.scrapdealer;
+    inputs[0].checked = g_config.NoAutoComplete.galaxy;
+    inputs[1].checked = g_config.NoAutoComplete.fleet;
+    inputs[2].checked = g_config.NoAutoComplete.floten1;
+    inputs[3].checked = g_config.NoAutoComplete.floten2;
+    inputs[4].checked = g_config.NoAutoComplete.build_fleet;
+    inputs[5].checked = g_config.NoAutoComplete.build_def;
+    inputs[6].checked = g_config.NoAutoComplete.sims;
+    inputs[7].checked = g_config.NoAutoComplete.marchand;
+    inputs[8].checked = g_config.NoAutoComplete.scrapdealer;
 
     // Markit
     inputs = options[4].getElementsByTagName("input");
-    inputs[0].value = config.Markit.color.fridge;
-    inputs[1].value = config.Markit.color.bunker;
-    inputs[2].value = config.Markit.color.raidy;
-    inputs[3].value = config.Markit.color.dont;
+    inputs[0].value = g_config.Markit.color.fridge;
+    inputs[1].value = g_config.Markit.color.bunker;
+    inputs[2].value = g_config.Markit.color.raidy;
+    inputs[3].value = g_config.Markit.color.dont;
     inputs[4].addEventListener("click", function() {
         if (confirm("Reset ?")) {
-            config.Markit.coord = {};
-            GM_setValue('markit_data_' + uni, JSON.stringify({}));
-            GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
+            g_config.Markit.coord = {};
+            GM_setValue('markit_data_' + g_uni, JSON.stringify({}));
+            GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
         }
     }, false);
 
     // GalaxyRanks
     inputs = options[5].getElementsByTagName('input');
-    for (var j = 0; j < config.GalaxyRanks.ranks.length; j++) {
-        inputs[j * 2].value = config.GalaxyRanks.ranks[j];
-        inputs[j * 2 + 1].value = config.GalaxyRanks.values[j];
+    for (var j = 0; j < g_config.GalaxyRanks.ranks.length; j++) {
+        inputs[j * 2].value = g_config.GalaxyRanks.ranks[j];
+        inputs[j * 2 + 1].value = g_config.GalaxyRanks.values[j];
     }
-    inputs[inputs.length - 3].value = config.GalaxyRanks.values[config.GalaxyRanks.values.length - 1];
-    if (config.GalaxyRanks.inactives) inputs[inputs.length - 2].checked = true;
+    inputs[inputs.length - 3].value = g_config.GalaxyRanks.values[g_config.GalaxyRanks.values.length - 1];
+    if (g_config.GalaxyRanks.inactives) inputs[inputs.length - 2].checked = true;
 
     // BetterEmpire
     inputs = options[6].getElementsByTagName('input');
-    if (config.BetterEmpire.byMainSort) inputs[0].checked = true;
-    if (config.BetterEmpire.moonsLast) inputs[1].checked = true;
+    if (g_config.BetterEmpire.byMainSort) inputs[0].checked = true;
+    if (g_config.BetterEmpire.moonsLast) inputs[1].checked = true;
 
     // More
     inputs = options[7].getElementsByTagName("input");
-    if (config.More.moonsList) inputs[0].checked = true;
-    if (config.More.convertDeut) inputs[2].checked = true;
-    if (config.More.traductor) inputs[4].checked = true;
-    if (config.More.resources) inputs[6].checked = true;
-    if (config.More.redirectFleet) inputs[8].checked = true;
-    if (config.More.arrows) inputs[10].checked = true;
-    if (config.More.returns) inputs[12].checked = true;
-    if (config.More.deutRow) inputs[14].checked = true;
-    if (config.More.convertClick) inputs[16].checked = true;
-    if (config.More.mcTransport) inputs[18].checked = true;
+    if (g_config.More.moonsList) inputs[0].checked = true;
+    if (g_config.More.convertDeut) inputs[2].checked = true;
+    if (g_config.More.traductor) inputs[4].checked = true;
+    if (g_config.More.resources) inputs[6].checked = true;
+    if (g_config.More.redirectFleet) inputs[8].checked = true;
+    if (g_config.More.arrows) inputs[10].checked = true;
+    if (g_config.More.returns) inputs[12].checked = true;
+    if (g_config.More.deutRow) inputs[14].checked = true;
+    if (g_config.More.convertClick) inputs[16].checked = true;
+    if (g_config.More.mcTransport) inputs[18].checked = true;
 
     // Top-level activate/deactivate
     for (var i = 0; i < nbScripts; i++) {
@@ -446,7 +446,7 @@ function createMarkitScript() {
 function createGalaxyRanksScript() {
     var galaxyRanks = createScriptActivity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
     var rankContainer = buildNode('div', ['class'], ['script_options'], '');
-    var rankOptions = createRankOptions(config.GalaxyRanks.ranks.length);
+    var rankOptions = createRankOptions(g_config.GalaxyRanks.ranks.length);
     for (var i = 0; i < rankOptions.length; i++) {
         rankContainer.appendChild(rankOptions[i]);
     }
@@ -784,37 +784,37 @@ function saveSettings() {
         switch (script) {
             case "RConverter":
                 inputs = options[0].getElementsByTagName("input");
-                config.RConverter.header = inputs[0].value;
-                config.RConverter.boom = inputs[1].value;
-                config.RConverter.destroyed = inputs[2].value;
-                config.RConverter.result = inputs[3].value;
-                config.RConverter.renta = inputs[4].value;
+                g_config.RConverter.header = inputs[0].value;
+                g_config.RConverter.boom = inputs[1].value;
+                g_config.RConverter.destroyed = inputs[2].value;
+                g_config.RConverter.result = inputs[3].value;
+                g_config.RConverter.renta = inputs[4].value;
                 break;
             case "EasyFarm":
                 inputs = options[1].getElementsByTagName("input");
-                config.EasyFarm.minPillage = parseInt(inputs[0].value);
-                config.EasyFarm.colorPill = inputs[1].value;
-                config.EasyFarm.minCDR = parseInt(inputs[2].value);
-                config.EasyFarm.colorCDR = inputs[3].value;
+                g_config.EasyFarm.minPillage = parseInt(inputs[0].value);
+                g_config.EasyFarm.colorPill = inputs[1].value;
+                g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
+                g_config.EasyFarm.colorCDR = inputs[3].value;
                 break;
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');
-                config.NoAutoComplete.galaxy = inputs[0].checked;
-                config.NoAutoComplete.fleet = inputs[1].checked;
-                config.NoAutoComplete.floten1 = inputs[2].checked;
-                config.NoAutoComplete.floten2 = inputs[3].checked;
-                config.NoAutoComplete.build_fleet = inputs[4].checked;
-                config.NoAutoComplete.build_def = inputs[5].checked;
-                config.NoAutoComplete.sims = inputs[6].checked;
-                config.NoAutoComplete.marchand = inputs[7].checked;
-                config.NoAutoComplete.scrapdealer = inputs[8].checked;
+                g_config.NoAutoComplete.galaxy = inputs[0].checked;
+                g_config.NoAutoComplete.fleet = inputs[1].checked;
+                g_config.NoAutoComplete.floten1 = inputs[2].checked;
+                g_config.NoAutoComplete.floten2 = inputs[3].checked;
+                g_config.NoAutoComplete.build_fleet = inputs[4].checked;
+                g_config.NoAutoComplete.build_def = inputs[5].checked;
+                g_config.NoAutoComplete.sims = inputs[6].checked;
+                g_config.NoAutoComplete.marchand = inputs[7].checked;
+                g_config.NoAutoComplete.scrapdealer = inputs[8].checked;
                 break;
             case "Markit":
                 inputs = options[4].getElementsByTagName("input");
-                config.Markit.color.fridge = inputs[0].value;
-                config.Markit.color.bunker = inputs[1].value;
-                config.Markit.color.raidy = inputs[2].value;
-                config.Markit.color.dont = inputs[3].value;
+                g_config.Markit.color.fridge = inputs[0].value;
+                g_config.Markit.color.bunker = inputs[1].value;
+                g_config.Markit.color.raidy = inputs[2].value;
+                g_config.Markit.color.dont = inputs[3].value;
                 break;
             case "GalaxyRanks":
                 inputs = options[5].getElementsByTagName('input');
@@ -825,36 +825,82 @@ function saveSettings() {
                     vals.push(inputs[j * 2 + 1].value);
                 }
                 vals.push(inputs[inputs.length - 3].value);
-                config.GalaxyRanks.ranks = rs;
-                config.GalaxyRanks.values = vals;
-                config.GalaxyRanks.inactives = inputs[inputs.length - 2].checked;
+                g_config.GalaxyRanks.ranks = rs;
+                g_config.GalaxyRanks.values = vals;
+                g_config.GalaxyRanks.inactives = inputs[inputs.length - 2].checked;
                 break;
             case "BetterEmpire":
                 inputs = options[6].getElementsByTagName('input');
-                config.BetterEmpire.byMainSort = inputs[0].checked;
-                config.BetterEmpire.moonsLast = inputs[1].checked;
+                g_config.BetterEmpire.byMainSort = inputs[0].checked;
+                g_config.BetterEmpire.moonsLast = inputs[1].checked;
                 break;
             case "More":
                 inputs = options[7].getElementsByTagName("input");
-                config.More.moonsList = inputs[0].checked;
-                config.More.convertDeut = inputs[2].checked;
-                config.More.traductor = inputs[4].checked;
-                config.More.resources = inputs[6].checked;
-                config.More.redirectFleet = inputs[8].checked;
-                config.More.arrows = inputs[10].checked;
-                config.More.returns = inputs[12].checked;
-                config.More.deutRow = inputs[14].checked;
-                config.More.convertClick = inputs[16].checked;
-                config.More.mcTransport = inputs[18].checked;
+                g_config.More.moonsList = inputs[0].checked;
+                g_config.More.convertDeut = inputs[2].checked;
+                g_config.More.traductor = inputs[4].checked;
+                g_config.More.resources = inputs[6].checked;
+                g_config.More.redirectFleet = inputs[8].checked;
+                g_config.More.arrows = inputs[10].checked;
+                g_config.More.returns = inputs[12].checked;
+                g_config.More.deutRow = inputs[14].checked;
+                g_config.More.convertClick = inputs[16].checked;
+                g_config.More.mcTransport = inputs[18].checked;
                 break;
             default:
                 break;
         }
     }
-    GM_setValue("config_scripts_uni_" + uni, JSON.stringify(config));
+    GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
     GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     saveButton.value = "Saved";
     setTimeout(function() {
         $("#save")[0].value = "Save";
     }, 2000);
+}
+
+/**
+ * Delete all spaceswars related storage
+ */
+function deleteAllData() {
+    var uniKeys = ["fleet_points_uni_", "config_scripts_uni_", "galaxy_data_", "markit_data_", "DoNotSpy_uni", "InactiveList_"];
+    for (var i = 0; i < 19; i++) {
+        for (var j = 0; j < uniKeys.length; j++) {
+            try {
+                GM_deleteValue(uniKeys[i] + i);
+            } catch (ex) {
+                console.log(uniKeys[i] + i + " not found");
+            }
+        }
+    }
+
+    // TODO: everything but infos_scripts and infos_version should probably be uni specific
+    var singleKeys =
+        [
+            "infos_scripts",
+            "infos_version",
+            "fp_redirect",
+            "InactiveList",
+            "ResourceRedirect",
+            "ResourceRedirectType",
+            "ResourceRedirectRef",
+            "scan",
+            "SpyForMe",
+            "AutoAttackMasterSwitch",
+            "AutoAttackWaves",
+            "AutoAttackMC",
+            "AutoAttackIndex",
+            "spacesCount",
+            "spacesGalaxy",
+            "autoSpyLength",
+            "savedFleet",
+            "redirToSpy"
+        ];
+    for (i = 0; i < singleKeys.length; i++) {
+        try {
+            GM_deleteValue(singleKeys);
+        } catch (ex) {
+            console.log(singleKeys + " not found");
+        }
+    }
 }
