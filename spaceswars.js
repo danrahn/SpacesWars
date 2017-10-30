@@ -2646,15 +2646,32 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             // clicking on the div
             if (infos_scripts.EasyTarget) {
                 for (j = 1; j < 14; j += 2) {
-                    $(row.childNodes[j]).click(function() {
-                        // TODO: Set this to targetPlanet
-                        var kid = this.parentNode.childNodes[this.parentNode.childNodes.length - 1];
-                        if (kid.style.display === 'block') {
-                            kid.style.display = 'none';
-                        } else {
-                            kid.style.display = 'block';
-                        }
-                    });
+                    (function(i, rows) {
+                        $(row.childNodes[j]).click(function() {
+                            var kid = this.parentNode.childNodes[this.parentNode.childNodes.length - 1];
+                            if (kid.style.display === 'block') {
+                                kid.style.display = 'none';
+                            } else {
+                                kid.style.display = 'block';
+                            }
+
+                            // When clicked, make it the active planet, allowing us
+                            // to then navigate with P/N
+                            if (targetPlanet !== -1) {
+                                var oldPos = gal + ":" + sys + ":" + targetPlanet;
+                                console.log(oldPos);
+                                if (markit[oldPos] !== undefined) {
+                                    var c =  hexToRgb('#' + config.Markit.color[markit[oldPos]]);
+                                    c.a = 0.5;
+                                    animateBackground(rows[targetPlanet - 1], c, 600);
+                                } else {
+                                    animateBackground(rows[targetPlanet - 1], targetPlanet % 2 === 0 ? "#111111" : "transparent", 600)
+                                }
+                            }
+                            targetPlanet = i + 1;
+                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600);
+                        });
+                    })(i, rows);
                 }
 
                 // Go to the correct system when clicking on a location
