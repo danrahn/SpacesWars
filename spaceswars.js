@@ -9,6 +9,8 @@
 /* global GM_xmlhttpRequest*/
 /* global calcul*/
 
+// TODO: I was going to try an get rid of all the jQuery dependencies, then I realized I need its tooltips
+
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
 // reports show they have nothing of use
@@ -75,6 +77,7 @@ if (g_page === "achatbonus" && window.location.search.includes("config=1")) {
 // Persistent left menu
 if (g_page === "leftmenu") {
     setupSidebar();
+    setSharedDicts();
 }
 
 if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
@@ -1012,23 +1015,72 @@ function setupSidebar() {
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
 
-    var smfCheck = buildNode("input", ["type"], ["checkbox"]);
+    var sfmCheck = buildNode("input", ["type"], ["checkbox"]);
     var aaCheck = buildNode("input", ["type"], ["checkbox"]);
 
-    // SpyForMe and AutoAttack check boxes
-    $(smfCheck).change(function() {
+    sfmCheck.onchange = function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
         spyForMe = this.checked;
-    });
+    };
 
-    $(aaCheck).change(function() {
+    aaCheck.onchange = function() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
-    });
-    langBox.appendChild(smfCheck);
+        autoAttack = this.checked;
+    };
+
+    langBox.appendChild(sfmCheck);
     langBox.appendChild(aaCheck);
 
-    $(smfCheck).prop("checked", spyForMe);
-    $(aaCheck).prop("checked", autoAttack);
+    sfmCheck.checked = spyForMe ? "checked" : "";
+    aaCheck.checked = autoAttack ? "checked" : "";
+}
+
+/**
+ * TODO: EXPAND
+ *
+ * This is just a test of potential functionality. Instead of setting
+ * a bunch of global variables with each page load, we can attach it to
+ * the parent frame, which persists. Could probably check for `frames.php`
+ * and load that way instead of using leftmenu.
+ *
+ * This could greatly reduce resource consumption with things like galaxy
+ * navigation, as we don't have to load a giant JSON object with each page load
+ */
+function setSharedDicts() {
+    console.log("Setting up global dictionaries");
+        window.parent.g_fleetNames = [
+            L_["small_cargo"],
+            L_["large_cargo"],
+            L_["light_fighter"],
+            L_["heavy_fighter"],
+            L_["cruiser"],
+            L_["battleship"],
+            L_["colony_ship"],
+            L_["recycler"],
+            L_["espionage_probe"],
+            L_["bomber"],
+            L_["solar_satellite"],
+            L_["destroyer"],
+            L_["deathstar"],
+            L_["battlecruiser"],
+            L_["supernova"],
+            L_["massive_cargo"],
+            L_["collector"],
+            L_["blast"],
+            L_["extractor"]
+        ];
+
+        window.parent.g_defNames = [
+            "Rocket Launcher",
+            "Light Laser",
+            "Heavy Laser",
+            "Gauss Cannon",
+            "Ion Cannon",
+            "Plasma Turret",
+            "Small Shield Dome",
+            "Large Shield Dome",
+            "Ultimate guard"
+        ];
 }
 
 function globalShortcutHandler(e) {
@@ -1127,6 +1179,7 @@ function loadClickNGo() {
     var clicngo = buildNode("div", ["style", "id"], ["float:right;cursor:pointer;padding:4px 0 0 4px;", "clicngo"],
         "<img src='" + scriptsIcons + "Clic&Go/connecting_people.png'/>");
 
+    // noinspection JSAnnotator
     var script = buildNode("script", ["type"], ["text/javascript"],
         "$('#clicngo').click(function(){$('#clicngo_contents').css('display','block');$('body').css('opacity', '0.2');});");
 
@@ -1394,10 +1447,10 @@ function loadRConverter() {
 }
 
 /**
- * Highlights spy reports that have lots of resources/fleet,
- * among other things
+ * If we're coming from an autoattack and are on the general
+ * messages page, redirect to spy messages
  */
-function loadEasyFarm() {
+function checkEasyFarmRedirect() {
     if (parseInt(GM_getValue("redirToSpy")) === 1) {
         GM_deleteValue("redirToSpy");
         var aLinks = document.getElementsByTagName("a");
@@ -1407,9 +1460,28 @@ function loadEasyFarm() {
             }
         }
     }
-    var fleetNames = [L_["small_cargo"], L_["large_cargo"], L_["light_fighter"], L_["heavy_fighter"], L_["cruiser"], L_["battleship"], L_["colony_ship"], L_["recycler"], L_["espionage_probe"], L_["bomber"], L_["solar_satellite"], L_["destroyer"], L_["deathstar"], L_["battlecruiser"], L_["supernova"], L_["massive_cargo"], L_["collector"], L_["blast"], L_["extractor"]];
-    var defNames = ["Rocket Launcher", "Light Laser", "Heavy Laser", "Gauss Cannon", "Ion Cannon", "Plasma Turret", "Small Shield Dome", "Large Shield Dome", "Ultimate guard"];
+}
+
+/**
+ * Highlights spy reports that have lots of resources/fleet,
+ * among other things
+ */
+function loadEasyFarm() {
+    checkEasyFarmRedirect();
+
+    if (window.parent === window) {
+        console.log("Not in an iframe");
+    }
+
+    if (window.parent.g_fleetNames) {
+        console.log("Shared dicts set!");
+    } else {
+        console.log("uh oh");
+        setSharedDicts();
+    }
+
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
+
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", document, -1);
     getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
     var attackIndex = -1;
@@ -1422,7 +1494,7 @@ function loadEasyFarm() {
         doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
     } catch (ex) {
         doNotSpy = new Array(8);
-        for (i = 0; i < 8; i++) {
+        for (var i = 0; i < 8; i++) {
             doNotSpy[i] = new Array(500);
             for (var j = 0; j < 500; j++) {
                 doNotSpy[i][j] = new Array(16);
@@ -1452,10 +1524,10 @@ function loadEasyFarm() {
         var classRank = 4,
             total = 0;
         var hasShips = false;
-        for (j = 0; j < fleetNames.length; j++)
-            if (messages[i].innerHTML.indexOf(fleetNames[j] + " : ") !== -1) {
+        for (j = 0; j < window.parent.g_fleetNames.length; j++)
+            if (messages[i].innerHTML.indexOf(window.parent.g_fleetNames[j] + " : ") !== -1) {
                 // get deut value of ship j
-                if (fleetNames[j] !== L_["solar_satellite"])
+                if (window.parent.g_fleetNames[j] !== L_["solar_satellite"])
                     hasShips = true;
                 total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
                 classRank++;
@@ -1467,8 +1539,8 @@ function loadEasyFarm() {
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
-        for (j = 0; j < defNames.length; j++) {
-            if (messages[i].innerHTML.indexOf(defNames[j] + " : ") !== -1) {
+        for (j = 0; j < window.parent.g_defNames.length; j++) {
+            if (messages[i].innerHTML.indexOf(window.parent.g_defNames[j] + " : ") !== -1) {
                 var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
                 if (i !== 8)
                     totDef += n;
@@ -1578,6 +1650,10 @@ function loadEasyFarm() {
 //        (kinda)       //
 //////////////////////////
 
+/**
+ * Replaces any question marks in the simulator with whatever
+ * value is above/below
+ */
 function setSimDefaults() {
     if ($('.simu_120').length === 22) {
         // Who needs loops?
@@ -1880,8 +1956,6 @@ function loadConvertClick() {
     $('#metalClick').click(function() {
         GM_setValue('ResourceRedirect', window.location.href);
         GM_setValue('ResourceRedirectType', 0);
-        //localStorage.spacesResourceRedirect = window.location.href;
-        //localStorage.spacesResourceRedirectType = 0;
         window.location = "marchand.php";
     });
     $('#crystalClick').click(function() {
@@ -2577,7 +2651,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             // to then navigate with P/N
                             if (targetPlanet !== -1) {
                                 var oldPos = gal + ":" + sys + ":" + targetPlanet;
-                                console.log(oldPos);
                                 if (markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[markit[oldPos]]);
                                     c.a = 0.5;
@@ -3112,7 +3185,7 @@ function loadMore() {
     // Make return fleets transparent in the overview
     if (canLoadInPage("More_returns") && g_config.More.returns) {
         var returns = document.getElementsByClassName('curvedtot return');
-        for (vari = 0; i < returns.length; i++)
+        for (var i = 0; i < returns.length; i++)
             returns[i].style.opacity = "0.6";
     }
 
@@ -3161,11 +3234,9 @@ function loadConvertDeut() {
             GM_setValue('ResourceRedirect', 1);
 
             var merchantItem = GM_getValue("MerchantItem");
-            console.log(merchantItem);
             GM_deleteValue("MerchantItem");
             if (merchantItem) {
                 GM_deleteValue("MerchantItem");
-                console.log(merchantItem);
                 $("input[value='" + MerchantMap[merchantItem] + "']").prop("checked", true);
                 $(":submit")[1].click();
             } else {
