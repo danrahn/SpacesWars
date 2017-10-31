@@ -1600,46 +1600,6 @@ function setSimDefaults() {
     }
 }
 
-// Definitely a bot, scans the entire galaxy autonomously to update
-// the universe graph
-var search_galaxy = false;
-GM_deleteValue("spacesCount");
-GM_deleteValue("spacesGalaxy");
-
-if (canLoadInPage("EasyTarget") && search_galaxy) {
-    setTimeout(goRight, Math.random() * 100);
-}
-
-function goRight() {
-    var count, gal;
-    try {
-        count = parseInt(GM_getValue("spacesCount"));
-    } catch (err) {
-        count = 1;
-    }
-    try {
-        gal = parseInt(GM_getValue("spacesGalaxy"));
-        if (isNaN(gal))
-            gal = 1;
-    } catch (err) {
-        gal = 1;
-    }
-    if (count < 500) {
-        count++;
-        GM_setValue("spacesCount", count);
-        document.getElementsByName('systemRight')[0].click();
-    } else {
-        GM_setValue("spacesCount", 1);
-        if (gal === 7) GM_setValue("spacesCount", 500);
-        else {
-            document.getElementById("galaxy").value = (gal + 1);
-            document.getElementsByName("system")[0].value = 1;
-            GM_setValue("spacesGalaxy", gal + 1);
-            document.forms["galaxy_form"].submit()
-        }
-    }
-}
-
 /**
  * Display who's inactive in the statistics page, as well
  * as build up a database of current points for given categories,
@@ -3376,6 +3336,48 @@ function galScan() {
             }, wait);
         } else {
             GM_setValue("scan", "false");
+        }
+    }
+}
+
+
+
+// Definitely a bot, scans the entire galaxy autonomously to update
+// the universe graph
+var search_galaxy = false;
+//GM_deleteValue("spacesCount");
+//GM_deleteValue("spacesGalaxy");
+
+if (canLoadInPage("EasyTarget") && search_galaxy) {
+    setTimeout(goRight, Math.random() * 100);
+}
+
+function goRight() {
+    var count, gal;
+    try {
+        count = parseInt(GM_getValue("spacesCount"));
+    } catch (err) {
+        count = 1;
+    }
+    try {
+        gal = parseInt(GM_getValue("spacesGalaxy"));
+        if (isNaN(gal))
+            gal = 1;
+    } catch (err) {
+        gal = 1;
+    }
+    if (count < 500) {
+        count++;
+        GM_setValue("spacesCount", count);
+        document.getElementsByName('systemRight')[0].click();
+    } else {
+        GM_setValue("spacesCount", 1);
+        if (gal === 7) GM_setValue("spacesCount", 500);
+        else {
+            document.getElementById("galaxy").value = (gal + 1);
+            document.getElementsByName("system")[0].value = 1;
+            GM_setValue("spacesGalaxy", gal + 1);
+            document.forms["galaxy_form"].submit()
         }
     }
 }
