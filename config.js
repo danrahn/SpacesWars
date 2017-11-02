@@ -44,7 +44,7 @@ function createAndLoadConfigurationPage() {
         if (confirm("Are you sure you want to delete all data across all universes?")) {
             deleteAllData();
             this.value = "Deleted";
-            window.location = 'achatbonus.php?lang=' + g_lang + '&uni=' + uni + '&config=1';
+            window.location = 'achatbonus.php?lang=' + g_lang + '&uni=' + g_uni + '&config=1';
         }
     });
 

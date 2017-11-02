@@ -11,6 +11,12 @@
 
 // TODO: I was going to try an get rid of all the jQuery dependencies, then I realized I need its tooltips
 
+var g_info = getInfoFromPage();
+var g_page = g_info.loc;
+var g_uni = g_info.universe;
+
+if (g_page === "frames") return;
+
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
 // reports show they have nothing of use
@@ -27,10 +33,8 @@ var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
 
-// Language dictionary. FR and EN
-var L_ = [];
-
-var g_versionInfo, g_scriptInfo;
+var g_versionInfo;
+var g_scriptInfo = getScriptInfo();
 try {
     g_versionInfo = JSON.parse(GM_getValue("infos_version"));
 } catch (ex) {
@@ -38,20 +42,23 @@ try {
 }
 
 checkVersionInfo();
-g_scriptInfo = getScriptInfo();
 
-// More globals...
 // the variable name 'location' makes Opera bugging
-var g_info = getInfoFromPage();
-var g_page = g_info.loc;
-var g_uni = g_info.universe;
 var g_lang = g_versionInfo.language;
-L_ = setDictionary();
-var MerchantMap = setMerchantMap();
+
+// Language dictionary. FR and EN
+var L_ = setDictionary();
+
+var g_merchantMap = setMerchantMap();
 var nbUnis = g_versionInfo.nbUnis;
+
+if (!g_canLoadMap) {
+    g_canLoadMap = getLoadMap();
+}
 var g_canLoadMap = getLoadMap();
 
 var g_config = getConfig();
+
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
 
 var KEYS = {
@@ -63,6 +70,8 @@ var KEYS = {
     Q : 81, R : 82, S : 83, T : 84, U : 85, V : 86, W : 87, X : 88,
     Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
+
+var g_keyArray = [];
 
 setGlobalKeyboardShortcuts();
 
@@ -77,7 +86,6 @@ if (g_page === "achatbonus" && window.location.search.includes("config=1")) {
 // Persistent left menu
 if (g_page === "leftmenu") {
     setupSidebar();
-    setSharedDicts();
 }
 
 if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
@@ -161,6 +169,9 @@ if (g_page === 'simulator') {
  * @returns {{}}
  */
 function getLoadMap() {
+    if (window.top.g_canLoadMap)
+        return window.top.g_canLoadMap;
+
     var canLoad = {};
 
     // Type 1 - indicates any page listed is a page
@@ -299,6 +310,7 @@ function getLoadMap() {
         search : false
     };
     
+    window.top.g_canLoadMap = canLoad;
     return canLoad;
 }
 
@@ -338,9 +350,14 @@ function getSlashedNb(nStr) {
  * @returns {[]} The dictionary
  */
 function setDictionary() {
+    if (window.top.L_ && window.top.L_.lang === g_lang)
+        return window.top.L_;
+    
+    console.log("Setting dictionary: " + g_lang);
     var tab = [];
     switch (g_lang) {
         case "fr":
+            tab.lang = "fr";
             tab.newVersion = "Nouvelle version disponible.\r\nCliquez sur l'icône du menu de gauche pour plus d'informations.";
             tab.cantxml = "Votre navigateur ne vous permet pas d'envoyer des données vers la cartographie";
             tab.ClicNGo_universe = "Univers";
@@ -464,6 +481,7 @@ function setDictionary() {
             tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
             break;
         case "en":
+            tab.lang = "en";
             tab.newVersion = "New version avaliable.\r\nClick on the left menu icon for more information.";
             tab.cantxml = "Your browser can't send datas to your cartography";
             tab.ClicNGo_universe = "Universe";
@@ -591,6 +609,8 @@ function setDictionary() {
             alert("Error with language !");
             return [];
     }
+    
+    window.top.L_ = tab;
     return tab;
 }
 
@@ -601,6 +621,9 @@ function setDictionary() {
  * @returns {{}} Merchant map
  */
 function setMerchantMap() {
+    if (window.top.merchantMap)
+        return window.top.merchantMap;
+
     var m = {};
 
     // Buildings
@@ -682,6 +705,7 @@ function setMerchantMap() {
     m["Anti-Ballistic Missiles"] = 502;
     m["Interplanetary Missiles"] = 503;
 
+    window.top.merchantMap = m;
     return m;
 }
 
@@ -710,6 +734,7 @@ function setInfosVersion() {
  * @returns {{}} the list of top-level script options
  */
 function setScriptsInfo() {
+    console.log("Setting Script Info");
     var list = {};
     list.RConverter = 1;
     list.EasyFarm = 1;
@@ -927,24 +952,25 @@ function checkVersionInfo() {
             GM_deleteValue("config_scripts_uni_0");
             setConfigScripts(0);
             for (var i = 1; i <= 17; i++) {
+                var config;
                 try {
-                    g_config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
+                    config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
                 } catch (ex) {
-                    g_config = null;
+                    config = null;
                 }
-                if (g_config !== undefined && g_config !== null) {
-                    g_config.Markit.topX = 50;
-                    g_config.Markit.topColor = "FF2626";
-                    g_config.More.returns = 1;
-                    g_config.EasyFarm.colorPill = "871717";
-                    g_config.EasyFarm.colorCDR = "178717";
-                    g_config.TChatty.color = "FFFFFF";
-                    g_config.Markit.color["default"] = "FFFFFF";
-                    g_config.Markit.color["fridge"] = "30A5FF";
-                    g_config.Markit.color["bunker"] = "FF9317";
-                    g_config.Markit.color["raidy"] = "44BA1F";
-                    g_config.Markit.color["dont"] = "FF2626";
-                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(g_config));
+                if (config !== undefined && config !== null) {
+                    config.Markit.topX = 50;
+                    config.Markit.topColor = "FF2626";
+                    config.More.returns = 1;
+                    config.EasyFarm.colorPill = "871717";
+                    config.EasyFarm.colorCDR = "178717";
+                    config.TChatty.color = "FFFFFF";
+                    config.Markit.color["default"] = "FFFFFF";
+                    config.Markit.color["fridge"] = "30A5FF";
+                    config.Markit.color["bunker"] = "FF9317";
+                    config.Markit.color["raidy"] = "44BA1F";
+                    config.Markit.color["dont"] = "FF2626";
+                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
                 }
             }
             g_versionInfo = setInfosVersion();
@@ -964,14 +990,20 @@ function checkVersionInfo() {
  * @returns {*}
  */
 function getConfig() {
+    if (window.top.swConfig)
+        return window.top.swConfig;
+
+    var config;
     try {
-        var config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
+        config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
         if (config === null || config === undefined)
             config = setConfigScripts(g_uni);
-        return config;
     } catch (ex) {
-        return setConfigScripts(g_uni);
+        config = setConfigScripts(g_uni);
     }
+
+    window.top.swConfig = config;
+    return config;
 }
 
 /**
@@ -979,14 +1011,21 @@ function getConfig() {
  * @returns {{}}
  */
 function getScriptInfo() {
+    if (window.top.g_scriptInfo)
+        return window.top.g_scriptInfo;
+
+    var info;
     try {
-        var info = JSON.parse(GM_getValue("infos_scripts"));
-        if (info === null || info === undefined)
-            return setScriptsInfo();
-        return info;
+        info = JSON.parse(GM_getValue("infos_scripts"));
+        if (info === null || info === undefined) {
+            info = setScriptsInfo();
+        }
     } catch (ex) {
-        return setScriptsInfo();
+        info = setScriptsInfo();
     }
+
+    window.top.g_scriptInfo = info;
+    return info;
 }
 
 /**
@@ -1035,58 +1074,14 @@ function setupSidebar() {
     aaCheck.checked = autoAttack ? "checked" : "";
 }
 
-/**
- * TODO: EXPAND
- *
- * This is just a test of potential functionality. Instead of setting
- * a bunch of global variables with each page load, we can attach it to
- * the parent frame, which persists. Could probably check for `frames.php`
- * and load that way instead of using leftmenu.
- *
- * This could greatly reduce resource consumption with things like galaxy
- * navigation, as we don't have to load a giant JSON object with each page load
- */
-function setSharedDicts() {
-    console.log("Setting up global dictionaries");
-        window.parent.g_fleetNames = [
-            L_["small_cargo"],
-            L_["large_cargo"],
-            L_["light_fighter"],
-            L_["heavy_fighter"],
-            L_["cruiser"],
-            L_["battleship"],
-            L_["colony_ship"],
-            L_["recycler"],
-            L_["espionage_probe"],
-            L_["bomber"],
-            L_["solar_satellite"],
-            L_["destroyer"],
-            L_["deathstar"],
-            L_["battlecruiser"],
-            L_["supernova"],
-            L_["massive_cargo"],
-            L_["collector"],
-            L_["blast"],
-            L_["extractor"]
-        ];
-
-        window.parent.g_defNames = [
-            "Rocket Launcher",
-            "Light Laser",
-            "Heavy Laser",
-            "Gauss Cannon",
-            "Ion Cannon",
-            "Plasma Turret",
-            "Small Shield Dome",
-            "Large Shield Dome",
-            "Ultimate guard"
-        ];
-}
-
 function globalShortcutHandler(e) {
     var key = e.keyCode ? e.keyCode : e.which;
     if (isTextInputActive()) {
         return;
+    }
+
+    if (key === KEYS.ESC) {
+        g_keyArray = [];
     }
 
     var target = "";
@@ -1114,7 +1109,14 @@ function globalShortcutHandler(e) {
                 target = "build_fleet.php";
                 break;
             case KEYS.D:
-                target = "build_def.php";
+                if (e.altKey)
+                    window.parent.frames[1].document.getElementById("deutClick").click();
+                else
+                    target = "build_def.php";
+                break;
+            case KEYS.M:
+                if (e.altKey)
+                    window.parent.frames[1].document.getElementById("metalClick").click();
                 break;
             default:
                 break;
@@ -1129,12 +1131,6 @@ function globalShortcutHandler(e) {
             case KEYS.CLOSE_BRACKET:
                 window.parent.frames[1].document.getElementById("nextplanet").click();
                 break;
-            case KEYS.D:
-                window.parent.frames[1].document.getElementById("deutClick").click();
-                break;
-            case KEYS.M:
-                window.parent.frames[1].document.getElementById("metalClick").click();
-                break;
             default:
                 break;
         }
@@ -1142,6 +1138,35 @@ function globalShortcutHandler(e) {
 
     if (target.length > 0) {
         window.open(target, "Hauptframe");
+    } else if (e.shiftKey && key) {
+        // Bad Shift+key combo
+        g_keyArray = [];
+    }
+
+    if (key !== KEYS.ESC)
+        g_keyArray.push(String.fromCharCode(key));
+
+    // TODO: LeftMenu handling
+    if (g_page === "build_fleet") {
+        $("#keystrokes").text(g_keyArray.join(" + "));
+        var element = 0;
+        switch(g_keyArray.join("")) {
+            case "BL":
+                element = 219;
+                break;
+            case "MC":
+                element = 217;
+                break;
+            default:
+                break;
+        }
+
+        if (element !== 0) {
+            g_keyArray = [];
+            $("input[name=" + element + "]").focus().val("");
+        }
+    } else if (g_page === "leftmenu") {
+        window.parent.frames[1].document.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
     }
 }
 
@@ -1151,6 +1176,10 @@ function globalShortcutHandler(e) {
  */
 function setGlobalKeyboardShortcuts() {
     if (canLoadInPage("navigatorShortcuts")) {
+        if (g_page !== "frames" && g_page !== "leftmenu") {
+            var shortcutDiv = buildNode("div", ["id", "style"], ["keystrokes", "position:fixed;bottom:5px;left:0;font-size:12pt;color:green;background-color:rgba(0,0,0,.7);border:2px solid black;vertical-align:middle;line-height:50px;padding-left:15px;width:300px;height:50px;"], "KEYSTROKES");
+            document.body.appendChild(shortcutDiv);
+        }
         window.onkeyup = function(e) {
             globalShortcutHandler(e);
         };
@@ -1469,17 +1498,39 @@ function checkEasyFarmRedirect() {
 function loadEasyFarm() {
     checkEasyFarmRedirect();
 
-    if (window.parent === window) {
-        console.log("Not in an iframe");
-    }
+    var fleetNames = [
+        L_["small_cargo"],
+        L_["large_cargo"],
+        L_["light_fighter"],
+        L_["heavy_fighter"],
+        L_["cruiser"],
+        L_["battleship"],
+        L_["colony_ship"],
+        L_["recycler"],
+        L_["espionage_probe"],
+        L_["bomber"],
+        L_["solar_satellite"],
+        L_["destroyer"],
+        L_["deathstar"],
+        L_["battlecruiser"],
+        L_["supernova"],
+        L_["massive_cargo"],
+        L_["collector"],
+        L_["blast"],
+        L_["extractor"]
+    ];
 
-    if (window.parent.g_fleetNames) {
-        console.log("Shared dicts set!");
-    } else {
-        console.log("uh oh");
-        setSharedDicts();
-    }
-
+    var defNames = [
+        "Rocket Launcher",
+        "Light Laser",
+        "Heavy Laser",
+        "Gauss Cannon",
+        "Ion Cannon",
+        "Plasma Turret",
+        "Small Shield Dome",
+        "Large Shield Dome",
+        "Ultimate guard"
+    ];
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", document, -1);
@@ -1491,7 +1542,10 @@ function loadEasyFarm() {
     // they have very little resources
     var doNotSpy;
     try {
-        doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
+        if (window.top.doNotSpy)
+            doNotSpy = window.top.doNotSpy;
+        else
+            doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
     } catch (ex) {
         doNotSpy = new Array(8);
         for (var i = 0; i < 8; i++) {
@@ -1501,6 +1555,9 @@ function loadEasyFarm() {
             }
         }
     }
+
+    if (!window.top.doNotSpy)
+        window.top.doNotSpy = doNotSpy;
 
     if (isNaN(aaIndex))
         aaIndex = -1;
@@ -1524,10 +1581,10 @@ function loadEasyFarm() {
         var classRank = 4,
             total = 0;
         var hasShips = false;
-        for (j = 0; j < window.parent.g_fleetNames.length; j++)
-            if (messages[i].innerHTML.indexOf(window.parent.g_fleetNames[j] + " : ") !== -1) {
+        for (j = 0; j < fleetNames.length; j++)
+            if (messages[i].innerHTML.indexOf(fleetNames[j] + " : ") !== -1) {
                 // get deut value of ship j
-                if (window.parent.g_fleetNames[j] !== L_["solar_satellite"])
+                if (fleetNames[j] !== L_["solar_satellite"])
                     hasShips = true;
                 total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
                 classRank++;
@@ -1539,8 +1596,8 @@ function loadEasyFarm() {
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
-        for (j = 0; j < window.parent.g_defNames.length; j++) {
-            if (messages[i].innerHTML.indexOf(window.parent.g_defNames[j] + " : ") !== -1) {
+        for (j = 0; j < defNames.length; j++) {
+            if (messages[i].innerHTML.indexOf(defNames[j] + " : ") !== -1) {
                 var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
                 if (i !== 8)
                     totDef += n;
@@ -1695,7 +1752,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var types, i, space;
     if (scriptsInfo.FleetPoints) {
         try {
-            fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
+            if (window.top.fleetPoints)
+                fp = window.top.fleetPoints;
+            else
+                fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
             if (fp === undefined || fp === null) fp = {
                 "1": {},
                 "2": {},
@@ -1708,6 +1768,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                 "3": {}
             };
         }
+
+        if (!window.top.fleetPoints)
+            window.top.fleetPoints = fp;
+
         fpRedirect = !!(GM_getValue("fp_redirect"));
         GM_setValue('fp_redirect', 0);
         if (!fp['1']) fp['1'] = {};
@@ -1715,11 +1779,17 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         if (!fp['3']) fp['3'] = {};
     }
     try {
-        lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
+        if (window.top.inactiveList)
+            lst = window.top.inactiveList;
+        else
+            lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
         if (lst === undefined || lst === null) lst = {};
     } catch (err) {
         lst = {};
     }
+
+    if (!window.top.inactiveList)
+        window.top.inactiveList = lst;
 
     var players = document.getElementsByClassName('space0')[2].childNodes;
 
@@ -1820,7 +1890,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                 if (confirm(msg)) {
                     var storage;
                     try {
-                        storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+                        if (window.top.galaxyData)
+                            storage = window.top.galaxyData;
+                        else
+                            storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
                         if (storage.universe === null || storage.universe === undefined) storage = {
                             'universe': {},
                             'players': {}
@@ -1829,7 +1902,11 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                         storage = {
                             'universe': {},
                             'players': {}
-                        };}
+                        };
+                    }
+
+                    if (!window.top.galaxyData)
+                        window.top.galaxyData = storage;
 
                     for (var i = 0; i < arr.length; i++) {
                         if (fp[who][arr[i][0]][1][1] !== dte.getTime()) {
@@ -2218,10 +2295,16 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // TODO: pull out into own method
     if (infos_scripts.Markit) {
         try {
-            markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
+            if (window.top.markit)
+                markit = window.top.markit;
+            else
+                markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
             if (markit === undefined || markit === null) markit = {};
         } catch (err) {
             markit = {};
+        }
+        if (!window.top.markit) {
+            window.top.markit = markit;
         }
 
         choosebox = buildNode(
@@ -2277,6 +2360,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     }
 
     var changed = false;
+    var inactiveChanged = false;
     var storage;
     var inactiveList;
     var gal = parseInt(document.getElementById('galaxy').value);
@@ -2284,7 +2368,12 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     if (infos_scripts.EasyTarget) {
         // Grab the user data. If something goes wrong, reset it completely
         try {
-            storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+            if (window.top.galaxyData)
+                storage = window.top.galaxyData;
+            else {
+                console.log("Must get galaxy data from storage");
+                storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+            }
             if (storage === undefined) storage = {
                 'universe': {},
                 'players': {}
@@ -2305,12 +2394,23 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         'players': {}
     };
 
+    if (!window.top.galaxyData)
+        window.top.galaxyData = storage;
+
     try {
-        inactiveList = JSON.parse(GM_getValue("InactiveList_" + g_uni));
+        if (window.top.inactiveList)
+            inactiveList = window.top.inactiveList;
+        else {
+            console.log("Grabbing inactive list");
+            inactiveList = JSON.parse(GM_getValue("InactiveList_" + g_uni));
+        }
         if (inactiveList === undefined || inactiveList === null) inactiveList = {};
     } catch (err) {
         inactiveList = {};
     }
+
+    if (!window.top.inactiveList)
+        window.top.inactiveList = inactiveList;
 
     // Nice hack to know if we want to highlight a planet. Before we redirected, we set some
     // local storage.
@@ -2421,10 +2521,15 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     var sfmLen = parseInt(GM_getValue("autoSpyLength"));
     if (!isNaN(sfmLen) && sfmLen >= 0 && spyForMe) {
         try {
-            doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
+            if (window.top.doNotSpy)
+                doNotSpy = window.top.doNotSpy;
+            else
+                doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
         } catch (ex) {
             doNotSpy = null;
         }
+        if (!window.top.doNotSpy)
+            window.top.doNotSpy = doNotSpy;
     }
 
     // THE loop. Iterates over each row and sets up everything related
@@ -2497,7 +2602,10 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             // Change the color of the rank according to the values set in GalaxyRanks
             if (name.className.indexOf('inactive') === -1 || config.GalaxyRanks.inactives) {
                 // Remove them from the inactives list if they're active again
-                if (inactiveList[newName] !== undefined && name.className.indexOf('inactive') === -1) delete inactiveList[newName];
+                if (inactiveList[newName] !== undefined && name.className.indexOf('inactive') === -1) {
+                    inactiveChanged = true;
+                    delete inactiveList[newName];
+                }
                 span.style.color = '#' + gRanksColors[gRanksColors.length - 1];
                 for (j = 0; j < gRanksRanks.length; j++) {
                     if (rank <= parseInt(gRanksRanks[j])) {
@@ -2509,7 +2617,11 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             if (name.className.indexOf('inactive') !== -1) {
                 if (!config.GalaxyRanks.inactives) span.style.color = window.getComputedStyle(name).color;
-                inactiveList[newName] = name.className.indexOf('longinactive') === -1;
+                var newValue = name.className.indexOf('longinactive');
+                if (!inactiveList[newName] || inactiveList[newName] !== newValue) {
+                    inactiveList[newName] = newValue;
+                    inactiveChanged = true;
+                }
 
                 if (rank < 800 && (doNotSpy === null || !doNotSpy[gal][sys][planet])) {
                     spyNeeded.push(row);
@@ -2738,9 +2850,11 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // Only write the potentially massive text file if we need to
     // TODO: Separate into smaller chunks?
     if (infos_scripts.EasyTarget && changed) {
+        console.log("Setting galaxy Data");
         GM_setValue("galaxy_data_" + g_uni, JSON.stringify(storage));
     }
-    GM_setValue('InactiveList_' + g_uni, JSON.stringify(inactiveList));
+    if (inactiveChanged)
+        GM_setValue('InactiveList_' + g_uni, JSON.stringify(inactiveList));
 }
 
 /**
@@ -3237,7 +3351,7 @@ function loadConvertDeut() {
             GM_deleteValue("MerchantItem");
             if (merchantItem) {
                 GM_deleteValue("MerchantItem");
-                $("input[value='" + MerchantMap[merchantItem] + "']").prop("checked", true);
+                $("input[value='" + g_merchantMap[merchantItem] + "']").prop("checked", true);
                 $(":submit")[1].click();
             } else {
                 var type = parseInt(GM_getValue('ResourceRedirectType'));
