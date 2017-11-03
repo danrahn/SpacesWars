@@ -23,7 +23,7 @@ function createAndLoadConfigurationPage() {
 
     //First time using DTR's scripts, reset the config file.
     if (g_config.GalaxyRanks === undefined || g_config.NoAutoComplete === undefined) {
-        g_config = setConfigScripts(uni);
+        g_config = setConfigScripts(g_uni);
     }
     if (g_config.BetterEmpire === undefined) {
         g_config.BetterEmpire = {};

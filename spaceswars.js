@@ -71,7 +71,22 @@ var KEYS = {
     Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
 
-var g_keyArray = [];
+var g_keyArray;
+if (window.top === window) {
+    console.log("No frames!");
+    g_keyArray = [];
+}
+else {
+    if (!window.top.g_keyArray) {
+        window.top.g_keyArray = [];
+    }
+
+    g_keyArray = window.top.g_keyArray;
+    if (g_page !== "leftmenu") {
+        window.top.g_keyArray.length = 0;
+        console.log(window.top.g_keyArray);
+    }
+}
 
 setGlobalKeyboardShortcuts();
 
@@ -172,6 +187,7 @@ function getLoadMap() {
     if (window.top.g_canLoadMap)
         return window.top.g_canLoadMap;
 
+    console.log("Setting canLoad map");
     var canLoad = {};
 
     // Type 1 - indicates any page listed is a page
@@ -352,7 +368,7 @@ function getSlashedNb(nStr) {
 function setDictionary() {
     if (window.top.L_ && window.top.L_.lang === g_lang)
         return window.top.L_;
-    
+
     console.log("Setting dictionary: " + g_lang);
     var tab = [];
     switch (g_lang) {
@@ -624,6 +640,7 @@ function setMerchantMap() {
     if (window.top.merchantMap)
         return window.top.merchantMap;
 
+    console.log("Setting merchant map");
     var m = {};
 
     // Buildings
@@ -993,6 +1010,7 @@ function getConfig() {
     if (window.top.swConfig)
         return window.top.swConfig;
 
+    console.log("Grabbing uni" + g_uni + " config");
     var config;
     try {
         config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
@@ -1014,6 +1032,7 @@ function getScriptInfo() {
     if (window.top.g_scriptInfo)
         return window.top.g_scriptInfo;
 
+    console.log("grabbing infos_scripts");
     var info;
     try {
         info = JSON.parse(GM_getValue("infos_scripts"));
@@ -1081,7 +1100,7 @@ function globalShortcutHandler(e) {
     }
 
     if (key === KEYS.ESC) {
-        g_keyArray = [];
+        g_keyArray.length = 0;
     }
 
     var target = "";
@@ -1140,29 +1159,30 @@ function globalShortcutHandler(e) {
         window.open(target, "Hauptframe");
     } else if (e.shiftKey && key) {
         // Bad Shift+key combo
-        g_keyArray = [];
+        g_keyArray.length = 0;
     }
 
     if (key !== KEYS.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
+    console.log(g_keyArray);
+
     // TODO: LeftMenu handling
     if (g_page === "build_fleet") {
         $("#keystrokes").text(g_keyArray.join(" + "));
-        var element = 0;
-        switch(g_keyArray.join("")) {
-            case "BL":
-                element = 219;
-                break;
-            case "MC":
-                element = 217;
-                break;
-            default:
-                break;
-        }
+        var map = {
+            "SC" : 202, "LC" : 203, "LF" : 204, "HF" : 205,
+            "CR" : 206, "BS" : 207, "CS" : 208, "RE" : 209,
+            "EP" : 210, "BM" : 211, "SS" : 212, "DE" : 213,
+            "DS" : 214, "BC" : 215, "SN" : 216, "MC" : 217,
+            "HR" : 218, "BL" : 219, "EX" : 220
+        };
 
-        if (element !== 0) {
-            g_keyArray = [];
+        var element = map[g_keyArray.join("")];
+        console.log(element);
+
+        if (element) {
+            g_keyArray.length = 0;
             $("input[name=" + element + "]").focus().val("");
         }
     } else if (g_page === "leftmenu") {
@@ -1544,8 +1564,10 @@ function loadEasyFarm() {
     try {
         if (window.top.doNotSpy)
             doNotSpy = window.top.doNotSpy;
-        else
+        else {
+            console.log("Grabbing DoNotSpy_uni" + g_uni + " from storage");
             doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
+        }
     } catch (ex) {
         doNotSpy = new Array(8);
         for (var i = 0; i < 8; i++) {
@@ -1561,6 +1583,8 @@ function loadEasyFarm() {
 
     if (isNaN(aaIndex))
         aaIndex = -1;
+
+    var changed = false;
     for (i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
@@ -1628,10 +1652,11 @@ function loadEasyFarm() {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
-        if (allDeut < g_config.EasyFarm.minPillage / 2) {
-            doNotSpy[galaxy][system][position] = 1;
-        } else {
-            doNotSpy[galaxy][system][position] = 0;
+        var oldValue = doNotSpy[galaxy][system][position];
+        var newValue = allDeut < g_config.EasyFarm.minPillage / 2;
+        if (oldValue !== newValue) {
+            changed = true;
+            doNotSpy[galaxy][system][position] = newValue;
         }
 
         var deutTotal = allDeut;
@@ -1698,7 +1723,8 @@ function loadEasyFarm() {
             $(messages[attackIndex].getElementsByTagName("a")[2]).click();
         }, Math.random() * 200 + 200);
     }
-    GM_setValue("DoNotSpy_uni" + g_uni, JSON.stringify(doNotSpy));
+    if (changed)
+        GM_setValue("DoNotSpy_uni" + g_uni, JSON.stringify(doNotSpy));
 }
 
 //////////////////////////
@@ -1754,8 +1780,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         try {
             if (window.top.fleetPoints)
                 fp = window.top.fleetPoints;
-            else
+            else {
+                console.log("grabbing fp uni" + g_uni);
                 fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
+            }
             if (fp === undefined || fp === null) fp = {
                 "1": {},
                 "2": {},
@@ -1781,8 +1809,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     try {
         if (window.top.inactiveList)
             lst = window.top.inactiveList;
-        else
+        else {
+            console.log("Grabbing InactiveList_" + g_uni);
             lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
+        }
         if (lst === undefined || lst === null) lst = {};
     } catch (err) {
         lst = {};
@@ -1892,8 +1922,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                     try {
                         if (window.top.galaxyData)
                             storage = window.top.galaxyData;
-                        else
+                        else {
+                            console.log("Grabbing galaxy_data_" + g_uni + " from storage");
                             storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+                        }
                         if (storage.universe === null || storage.universe === undefined) storage = {
                             'universe': {},
                             'players': {}
@@ -2297,8 +2329,10 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         try {
             if (window.top.markit)
                 markit = window.top.markit;
-            else
+            else {
+                console.log("grabbing markit_data_" + g_uni + " from storage");
                 markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
+            }
             if (markit === undefined || markit === null) markit = {};
         } catch (err) {
             markit = {};
@@ -2523,8 +2557,10 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         try {
             if (window.top.doNotSpy)
                 doNotSpy = window.top.doNotSpy;
-            else
+            else {
+                console.log("grabbing DoNotSpy_uni" + g_uni + " from storage");
                 doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
+            }
         } catch (ex) {
             doNotSpy = null;
         }
