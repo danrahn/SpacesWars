@@ -14,7 +14,7 @@ function createAndLoadConfigurationPage() {
 
     // Clear out the current contents and replace with
     // the settings div
-    var main = document.getElementById("main");
+    var main = f.document.getElementById("main");
     main.innerHTML = "";
     main.removeAttribute("id");
     main.className = "mainSettings";
@@ -31,7 +31,7 @@ function createAndLoadConfigurationPage() {
         g_config.BetterEmpire.moonsLast = 1;
     }
     // Needed to get new tooltips to work
-    getDomXpath("//body", document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
+    getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
     ));
 
@@ -65,16 +65,26 @@ function createAndLoadConfigurationPage() {
             col2.append(scripts[i]);
     }
 
-    document.body.appendChild(main);
+    f.document.body.appendChild(main);
+    var x = f.document.getElementsByClassName("jscolor");
+    for (i = 0; i < x.length; i++) {
+        x[i].addEventListener("keyup", function() {
+           if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(this.value)) {
+               this.style.backgroundColor = "#" + this.value;
+           } else {
+               this.style.backgroundColor = "black";
+           }
+        });
+    }
 
     //
-    $('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
+    f.$('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
         if (!this.checked) {
-            var betterEmpId = $("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
+            var betterEmpId = f.$("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
             betterEmpId.attr("checked", false);
             betterEmpId.attr("disabled", true);
         } else {
-            $("#" + L_.betterEmpMoon.replace(" ", "") + "_check").removeAttr("disabled");
+            f.$("#" + L_.betterEmpMoon.replace(" ", "") + "_check").removeAttr("disabled");
         }
     });
 
@@ -89,7 +99,7 @@ function setStyle() {
         // Set custom CSS inline in JS, because why not
         var style = document.createElement('style');
         //noinspection JSAnnotator,JSAnnotator
-        style.appendChild(document.createTextNode(
+        style.appendChild(f.document.createTextNode(
             `
         .hidden {
             display: none;
@@ -211,7 +221,7 @@ function setStyle() {
 		    max-width: 96%
 		}
 		`));
-        document.head.appendChild(style);
+        f.document.head.appendChild(style);
     })();
 }
 
@@ -220,9 +230,9 @@ function setStyle() {
  */
 function populateConfig() {
 
-    var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1),
+    var actives = getDomXpath("//div[@class='script_active']/input[1]", f.document, -1),
         script;
-    var options = getDomXpath("//div[@class='script_options']", document, -1),
+    var options = getDomXpath("//div[@class='script_options']", f.document, -1),
         inputs;
 
     if (g_scriptInfo === undefined || g_scriptInfo === null) {
@@ -242,14 +252,16 @@ function populateConfig() {
     inputs = options[1].getElementsByTagName("input");
     inputs[0].value = g_config.EasyFarm.minPillage;
     inputs[1].value = g_config.EasyFarm.colorPill;
+    inputs[1].style.backgroundColor = "#" + g_config.EasyFarm.colorPill;
     inputs[2].value = g_config.EasyFarm.minCDR;
     inputs[3].value = g_config.EasyFarm.colorCDR;
+    inputs[3].style.backgroundColor = "#" + g_config.EasyFarm.colorCDR;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
     inputs[0].addEventListener('click', function() {
         // EasyTarget import
-        var easyTargetText = $('#EasyTarget_text')[0];
+        var easyTargetText = f.$('#EasyTarget_text')[0];
         var data = easyTargetText.value;
         try {
             JSON.parse(data);
@@ -264,7 +276,7 @@ function populateConfig() {
         }
     });
     inputs[1].addEventListener('click', function() {
-        var easyTargetText = $('#EasyTarget_text')[0];
+        var easyTargetText = f.$('#EasyTarget_text')[0];
         easyTargetText.value = GM_getValue('galaxy_data_' + g_uni);
         easyTargetText.focus();
         easyTargetText.select();
@@ -288,6 +300,10 @@ function populateConfig() {
     inputs[1].value = g_config.Markit.color.bunker;
     inputs[2].value = g_config.Markit.color.raidy;
     inputs[3].value = g_config.Markit.color.dont;
+    inputs[0].style.backgroundColor = "#" + g_config.Markit.color.fridge;
+    inputs[1].style.backgroundColor = "#" + g_config.Markit.color.bunker;
+    inputs[2].style.backgroundColor = "#" + g_config.Markit.color.raidy;
+    inputs[3].style.backgroundColor = "#" + g_config.Markit.color.dont;
     inputs[4].addEventListener("click", function() {
         if (confirm("Reset ?")) {
             g_config.Markit.coord = {};
@@ -301,6 +317,7 @@ function populateConfig() {
     for (var j = 0; j < g_config.GalaxyRanks.ranks.length; j++) {
         inputs[j * 2].value = g_config.GalaxyRanks.ranks[j];
         inputs[j * 2 + 1].value = g_config.GalaxyRanks.values[j];
+        inputs[j * 2 + 1].style.backgroundColor = "#" + g_config.GalaxyRanks.values[j];
     }
     inputs[inputs.length - 3].value = g_config.GalaxyRanks.values[g_config.GalaxyRanks.values.length - 1];
     if (g_config.GalaxyRanks.inactives) inputs[inputs.length - 2].checked = true;
@@ -382,11 +399,13 @@ function createRConvScript() {
  */
 function createEasyFarmScript() {
     var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
+    var color = buildNode("a", ["href", "target"], ["http://www.colorpicker.com/", "_blank"], "Find colors here");
     var easyFarmContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyFarmOptions = createEasyFarmOptions();
     for (var i = 0; i < easyFarmOptions.length; i++) {
         easyFarmContainer.appendChild(easyFarmOptions[i]);
     }
+    easyFarmContainer.appendChild(color);
     return packScript(easyFarm, easyFarmContainer, "EasyFarm");
 }
 
@@ -595,7 +614,7 @@ function createScriptOption(types, attributes, values, contents) {
  */
 function createRadioScriptOption(name, niceName) {
     var arr = [];
-    arr.push(document.createTextNode(niceName + " : "));
+    arr.push(f.document.createTextNode(niceName + " : "));
     arr.push(buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
     arr.push(buildNode("label", ["for"], [name + '_activate'], L_["activate"]));
     arr.push(buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
@@ -771,11 +790,11 @@ function createMoreDesc() {
 
 // When "Save" is clicked...
 function saveSettings() {
-    var saveButton = $("#save")[0];
+    var saveButton = f.$("#save")[0];
     saveButton.value = "Saving";
     var inputs, script;
-    var actives = getDomXpath("//div[@class='script_active']/input[1]", document, -1);
-    var options = getDomXpath("//div[@class='script_options']", document, -1);
+    var actives = getDomXpath("//div[@class='script_active']/input[1]", f.document, -1);
+    var options = getDomXpath("//div[@class='script_options']", f.document, -1);
 
     for (var i = 0; i < g_nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
@@ -854,7 +873,7 @@ function saveSettings() {
     GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     saveButton.value = "Saved";
     setTimeout(function() {
-        $("#save")[0].value = "Save";
+        f.$("#save")[0].value = "Save";
     }, 2000);
 }
 

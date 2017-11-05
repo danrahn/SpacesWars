@@ -1,12 +1,9 @@
 // ==UserScript==
-// @name        SpacesWars_Revamped
+// @name        SpacesWars_Outer
 // @namespace   none
 //
-// @include     http://spaceswars.fr*
-// @include     http://www.spaceswars.fr*
-// @include     http://spaceswars.com*
-// @include     http://www.spaceswars.com*
-// @include     http://niark.spaceswars.fr/userscripts/NiArK_SpacesWars/config.php*
+// @include     http://spaceswars.com/*/frames.php*
+// @include     http://www.spaceswars.com/*/frames.php*
 //
 // @grant GM_setValue
 // @grant GM_getValue
