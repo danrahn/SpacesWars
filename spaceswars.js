@@ -112,13 +112,15 @@ else {
 }
 
 setGlobalKeyboardShortcuts();
-window.addEventListener("beforeunload", function (e) {
-    changeHandler(true /*forcecSave*/);
-    var confirmationMessage = "/";
+if (g_page !== "forum") {
+    window.addEventListener("beforeunload", function (e) {
+        changeHandler(true /*forcecSave*/);
+        var confirmationMessage = "/";
 
-    e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
-    return confirmationMessage;              // Gecko, WebKit, Chrome <34
-});
+        e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
+        return confirmationMessage;              // Gecko, WebKit, Chrome <34
+    });
+}
 
 if (g_page === "frames") {
     console.log("Top level frame!");
@@ -142,6 +144,9 @@ if (g_page === "frames") {
             f.addEventListener("keyup", function(e) {
                 globalShortcutHandler(e);
             });
+            f.addEventListener('keydown', function(e) {
+                globalKeypressHandler(e);
+            });
         }
 
         // SpacesWars did away with userscripts, and along with it the
@@ -159,6 +164,9 @@ if (g_page === "frames") {
             setupSidebar();
             lm.addEventListener("keyup", function(e) {
                 globalShortcutHandler(e);
+            });
+            lm.addEventListener('keydown', function(e) {
+                globalKeypressHandler(e);
             });
             var shortcutDiv = buildNode("div", ["id", "style"], ["keystrokes", "position:fixed;bottom:5px;left:0;font-size:12pt;color:green;background-color:rgba(0,0,0,.7);border:2px solid black;vertical-align:middle;line-height:50px;padding-left:15px;width:300px;height:50px;"], "KEYSTROKES");
             lm.document.body.appendChild(shortcutDiv);
@@ -798,7 +806,7 @@ function setMerchantMap() {
     m["Plasma Turret"] = 406;
     m["Small Shield Dome"] = 407;
     m["Large Shield Dome"] = 408;
-    m["Ultimate Guard"] = 409;
+    m["Ultimate guard"] = 409;
     m["Anti-Ballistic Missiles"] = 502;
     m["Interplanetary Missiles"] = 503;
 
@@ -1277,7 +1285,7 @@ function globalShortcutHandler(e) {
     }
 
     var target = "";
-    if (e.shiftKey) {
+    if (e.shiftKey && !e.ctrlKey) {
         switch (key) {
             case KEYS.O:
                 target = "overview.php";
@@ -1300,15 +1308,17 @@ function globalShortcutHandler(e) {
             case KEYS.S:
                 target = "build_fleet.php";
                 break;
+            case KEYS.M:
+                if (e.altKey)
+                    window.parent.frames[1].document.getElementById("metalClick").click();
+                else
+                    target = "messages.php";
+                break;
             case KEYS.D:
                 if (e.altKey)
                     window.parent.frames[1].document.getElementById("deutClick").click();
                 else
                     target = "build_def.php";
-                break;
-            case KEYS.M:
-                if (e.altKey)
-                    window.parent.frames[1].document.getElementById("metalClick").click();
                 break;
             default:
                 break;
@@ -1339,17 +1349,90 @@ function globalShortcutHandler(e) {
         g_keyArray.push(String.fromCharCode(key));
 
     // TODO: LeftMenu handling
-    if (g_page === "build_fleet") {
-        buildFleetKeyHandler(e);
-    } else if (g_page === "leftmenu") {
-        lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
+    switch (g_page) {
+        case "build_fleet":
+            buildFleetKeyHandler();
+            break;
+        case "leftmenu":
+            lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
+            break;
+        case "floten1":
+            if (!e.shiftKey) {
+                if (key === KEYS.N) {
+                    f.$('.flotte_2_4 a')[0].click();
+                    setTimeout(function() {
+                        f.$('input[type=submit]')[0].click();
+                    }, 200);
+                }
+            }
+            break;
+        case "floten2":
+            if (!e.shiftKey) {
+                if (key === KEYS.A) {
+                    f.$('.flotte_bas .space a')[3].click();
+                } else if (key === KEYS.N) {
+                    f.$('input[type=text]').val('');
+                    f.$('.flotte_bas .space a')[2].click();
+                } else if (key === KEYS.S) {
+                    f.$('input[type=submit]')[0].click();
+                }
+            }
+            break;
+        case "messages":
+            target = -1;
+            console.log(key);
+            switch (key) {
+                case KEYS.S:
+                    target = 0;
+                    break;
+                case KEYS.P:
+                    target = 1;
+                    break;
+                case KEYS.A:
+                    if (g_keyArray[0] === "D") {
+                        g_keyArray.length = 0;
+                        f.$("#deletemessages1>option:eq(3)").prop("selected", true);
+                        f.$("#deletemessages2>option:eq(3)").prop("selected", true);
+                        setTimeout(function() {
+                            f.$("input[type=submit]")[0].click();
+                        }, 100);
+                    } else {
+                        target = 2;
+                    }
+                    break;
+                case KEYS.C:
+                    target = 3;
+                    break;
+                case KEYS.H:
+                    target = 4;
+                    break;
+                case KEYS.T:
+                    target = 5;
+                    break;
+                case KEYS.E:
+                    target = 6;
+                    break;
+                case KEYS.M:
+                    target = 7;
+                    break;
+                case KEYS.L:
+                    target = 8;
+                    break;
+            }
+
+            if (target >= 0) {
+                f.$(".message_button1 a")[target].click();
+                g_keyArray.length = 0;
+            }
+        default:
+            break;
     }
 }
 
-function buildFleetKeyHandler(e) {
-    var key = e.keyCode ? e.keyCode : e.which;
-    if (!numericalKey(key)) {
-        e.preventDefault();
+function buildFleetKeyHandler() {
+    if (g_keyArray.length > 2) {
+        // build_fleet has a max length of 2. reset if we go above it.
+        g_keyArray.length = 0;
     }
 
     lm.$("#keystrokes").text(g_keyArray.join(" + "));
@@ -1393,8 +1476,8 @@ function buildFleetKeyHandler(e) {
     }
 }
 
-function numericalKey(key) {
-    return key >= KEYS.ZERO && key <= KEYS.NINE;
+function isAlphaKey(key) {
+    return key >= KEYS.A && key <= KEYS.Z;
 }
 
 /**
@@ -1406,6 +1489,17 @@ function setGlobalKeyboardShortcuts() {
         document.addEventListener('keyup', function(e) {
             globalShortcutHandler(e);
         });
+        document.addEventListener('keydown', function(e) {
+            globalKeypressHandler(e);
+        });
+    }
+}
+
+function globalKeypressHandler(e) {
+    if (g_page === "build_fleet") {
+        if (isAlphaKey(e.keyCode)) {
+            e.preventDefault();
+        }
     }
 }
 
@@ -2543,9 +2637,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     var changedMoons = [];
 
     // Don't add non-digit characters to galaxySelector
-    galaxySelector.keypress(function(e) {
+    galaxySelector[0].addEventListener("keydown", function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
-        if (key >= KEYS.A && key <= KEYS.Z) {
+        if (isAlphaKey(key)) {
             e.preventDefault();
         }
     });
@@ -2596,9 +2690,11 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var gal = galaxySelector[0].value;
                 var sys = f.document.getElementsByName('system')[0].value;
                 var ploc = gal + ":" + sys + ":" + targetPlanet;
+                console.log(ploc);
                 // var ploc = sum.substring(0, sum.indexOf(':', sum.indexOf(':') + 1) + 1);
                 // ploc += targetPlanet;
                 var n = g_galaxyData.universe[ploc];
+                console.log(n);
                 var player = g_galaxyData.players[n][0];
                 var index = player.indexOf(ploc);
                 if (key === KEYS.N) {
@@ -3309,21 +3405,7 @@ function saveFleetPage() {
  * More autoattack and keyboard shortcuts
  */
 function continueAttack() {
-    var aai = parseInt(GM_getValue("AutoAttackIndex"));
-    if (isNaN(aai))
-        f.addEventListener("keyup", function(e) {
-            var key = e.keyCode ? e.keyCode : e.which;
-            if (!e.shiftKey) {
-                if (key === KEYS.N) {
-                    f.$('.flotte_2_4 a')[0].click();
-                    setTimeout(function() {
-                        f.$('input[type=submit]')[0].click();
-                    }, 200);
-                }
-            }
-        });
-
-    if (autoAttack && aai >= 0) {
+    if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click()
         }, Math.random() * 100);
@@ -3331,21 +3413,6 @@ function continueAttack() {
 }
 
 function setupFleet2() {
-    if (isNaN(parseInt(GM_getValue("AutoAttackIndex"))))
-        f.addEventListener("keyup", function(e) {
-            var key = e.keyCode ? e.keyCode : e.which;
-            if (!e.shiftKey) {
-                if (key === KEYS.A) {
-                    f.$('.flotte_bas .space a')[3].click();
-                } else if (key === KEYS.N) {
-                    f.$('input[type=text]').val('');
-                    f.$('.flotte_bas .space a')[2].click();
-                } else if (key === KEYS.S) {
-                    f.$('input[type=submit]')[0].click();
-                }
-            }
-        });
-
     sendAttack();
 }
 
