@@ -83,6 +83,19 @@ var KEYS = {
     Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
 
+var g_fleetNames = [
+    L_.small_cargo,     L_.large_cargo,   L_.light_fighter,   L_.heavy_fighter,
+    L_.cruiser,         L_.battleship,    L_.colony_ship,     L_.recycler,
+    L_.espionage_probe, L_.bomber,        L_.solar_satellite, L_.destroyer,
+    L_.deathstar,       L_.battlecruiser, L_.supernova,       L_.massive_cargo,
+    L_.collector,       L_.blast,         L_.extractor
+];
+
+var g_defNames = [
+    L_.rl, L_.ll,  L_.hl,  L_.gc, L_.ic,
+    L_.pt, L_.ssd, L_.lsd, L_.ug
+];
+
 var g_keyArray;
 if (window.top === window) {
     g_keyArray = [];
@@ -1327,24 +1340,61 @@ function globalShortcutHandler(e) {
 
     // TODO: LeftMenu handling
     if (g_page === "build_fleet") {
-        lm.$("#keystrokes").text(g_keyArray.join(" + "));
-        var map = {
-            "SC" : 202, "LC" : 203, "LF" : 204, "HF" : 205,
-            "CR" : 206, "BS" : 207, "CS" : 208, "RE" : 209,
-            "EP" : 210, "BM" : 211, "SS" : 212, "DE" : 213,
-            "DS" : 214, "BC" : 215, "SN" : 216, "MC" : 217,
-            "HR" : 218, "BL" : 219, "EX" : 220
-        };
-
-        var element = map[g_keyArray.join("")];
-
-        if (element) {
-            g_keyArray.length = 0;
-            f.$("input[name=" + element + "]").focus().val("");
-        }
+        buildFleetKeyHandler(e);
     } else if (g_page === "leftmenu") {
-        window.parent.frames[1].document.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
+        lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
     }
+}
+
+function buildFleetKeyHandler(e) {
+    var key = e.keyCode ? e.keyCode : e.which;
+    if (!numericalKey(key)) {
+        e.preventDefault();
+    }
+
+    lm.$("#keystrokes").text(g_keyArray.join(" + "));
+    var combos = [ "SC", "LC", "LF", "HF", "CR", "BS", "CS", "RE", "EP", "BM", "SS", "DE", "DS", "BC", "SN", "MC", "HR", "BL", "EX" ];
+    var map = {};
+    for (var i = 0; i < 19; i++) {
+        map[combos[i]] = [i + 202, g_fleetNames[i]];
+    }
+
+    var element = map[g_keyArray.join("")];
+
+    if (element) {
+        g_keyArray.length = 0;
+        var input = f.$("input[name=" + element[0] + "]");
+        if (input && input.length > 0) {
+            input.focus().val("");
+            return;
+        }
+
+        input = f.$("a:contains('" + element[1] + "')");
+        if (input && input.length > 0) {
+            input.parent().parent().parent()[0].scrollIntoView();
+            return;
+        }
+
+        console.log(element);
+        // Otherwise, give a brief message stating that it doesn't exist
+        var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot", "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-asign:middle;line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;width:500px;margin-left:-250px;margin-top:-400px;"], element[1] + " could not be found.");
+        f.document.body.appendChild(div);
+        f.$(div).fadeTo(500, 0.7);
+        setTimeout(function() {
+            var bod = f.document.body;
+            if (bod.children[bod.children.length - 1] === div) {
+                f.$(div).fadeOut(500, function() {
+                    if (bod === f.document.body) {
+                        bod.removeChild(bod.children[bod.children.length - 1]);
+                    }
+                });
+            }
+        }, 2000);
+    }
+}
+
+function numericalKey(key) {
+    return key >= KEYS.ZERO && key <= KEYS.NINE;
 }
 
 /**
@@ -1670,40 +1720,6 @@ function checkEasyFarmRedirect() {
  */
 function loadEasyFarm() {
     checkEasyFarmRedirect();
-
-    var fleetNames = [
-        L_.small_cargo,
-        L_.large_cargo,
-        L_.light_fighter,
-        L_.heavy_fighter,
-        L_.cruiser,
-        L_.battleship,
-        L_.colony_ship,
-        L_.recycler,
-        L_.espionage_probe,
-        L_.bomber,
-        L_.solar_satellite,
-        L_.destroyer,
-        L_.deathstar,
-        L_.battlecruiser,
-        L_.supernova,
-        L_.massive_cargo,
-        L_.collector,
-        L_.blast,
-        L_.extractor
-    ];
-
-    var defNames = [
-        L_.rl,
-        L_.ll,
-        L_.hl,
-        L_.gc,
-        L_.ic,
-        L_.pt,
-        L_.ssd,
-        L_.lsd,
-        L_.ug
-    ];
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
@@ -1734,10 +1750,10 @@ function loadEasyFarm() {
         var classRank = 4,
             total = 0;
         var hasShips = false;
-        for (var j = 0; j < fleetNames.length; j++)
-            if (messages[i].innerHTML.indexOf(fleetNames[j] + " : ") !== -1) {
+        for (var j = 0; j < g_fleetNames.length; j++)
+            if (messages[i].innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
                 // get deut value of ship j
-                if (fleetNames[j] !== L_["solar_satellite"])
+                if (g_fleetNames[j] !== L_["solar_satellite"])
                     hasShips = true;
                 total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
                 classRank++;
@@ -1750,8 +1766,8 @@ function loadEasyFarm() {
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
         // TODO: could be much more efficient with a map instead of array
-        for (j = 0; j < defNames.length; j++) {
-            if (messages[i].innerHTML.indexOf(defNames[j] + " : ") !== -1) {
+        for (j = 0; j < g_defNames.length; j++) {
+            if (messages[i].innerHTML.indexOf(g_defNames[j] + " : ") !== -1) {
                 var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
                 if (i !== 8)
                     totDef += n;
