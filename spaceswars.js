@@ -1424,23 +1424,16 @@ function globalShortcutHandler(e) {
                 f.$(".message_button1 a")[target].click();
                 g_keyArray.length = 0;
             }
+            break;
+        case "build_def":
+            BuildDefKeyHandler();
+            break;
         default:
             break;
     }
 }
 
-function buildFleetKeyHandler() {
-    if (g_keyArray.length > 2) {
-        // build_fleet has a max length of 2. reset if we go above it.
-        g_keyArray.length = 0;
-    }
-
-    lm.$("#keystrokes").text(g_keyArray.join(" + "));
-    var combos = [ "SC", "LC", "LF", "HF", "CR", "BS", "CS", "RE", "EP", "BM", "SS", "DE", "DS", "BC", "SN", "MC", "HR", "BL", "EX" ];
-    var map = {};
-    for (var i = 0; i < 19; i++) {
-        map[combos[i]] = [i + 202, g_fleetNames[i]];
-    }
+function inputSelector(map) {
 
     var element = map[g_keyArray.join("")];
 
@@ -1458,7 +1451,6 @@ function buildFleetKeyHandler() {
             return;
         }
 
-        console.log(element);
         // Otherwise, give a brief message stating that it doesn't exist
         var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot", "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-asign:middle;line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;width:500px;margin-left:-250px;margin-top:-400px;"], element[1] + " could not be found.");
         f.document.body.appendChild(div);
@@ -1474,6 +1466,39 @@ function buildFleetKeyHandler() {
             }
         }, 2000);
     }
+}
+
+function buildFleetKeyHandler() {
+    if (g_keyArray.length > 2) {
+        // build_fleet has a max length of 2. reset if we go above it.
+        g_keyArray.length = 0;
+    }
+
+    lm.$("#keystrokes").text(g_keyArray.join(" + "));
+    var combos = [ "SC", "LC", "LF", "HF", "CR", "BS", "CS", "RE", "EP", "BM", "SS", "DE", "DS", "BC", "SN", "MC", "HR", "BL", "EX" ];
+    var map = {};
+    for (var i = 0; i < 19; i++) {
+        map[combos[i]] = [i + 202, g_fleetNames[i]];
+    }
+
+    inputSelector(map);
+}
+
+function BuildDefKeyHandler() {
+    if (g_keyArray.length > 2) {
+        // build_fleet has a max length of 2. reset if we go above it.
+        g_keyArray.length = 0;
+    }
+
+    lm.$("#keystrokes").text(g_keyArray.join(" + "));
+    var combos = [ "RL", "LL", "HL", "GC", "IC", "PT", "SD", "LD", "AB", "IP" ];
+    var ids = [ 401, 402, 403, 404, 405, 406, 407, 408, 409, 502, 503 ];
+    var map = {};
+    for (var i = 0; i < ids.length; i++) {
+        map[combos[i]] = [ids[i], g_defNames[i]];
+    }
+
+    inputSelector(map);
 }
 
 function isAlphaKey(key) {
@@ -1496,7 +1521,7 @@ function setGlobalKeyboardShortcuts() {
 }
 
 function globalKeypressHandler(e) {
-    if (g_page === "build_fleet") {
+    if (g_page === "build_fleet" || g_page === "build_def") {
         if (isAlphaKey(e.keyCode)) {
             e.preventDefault();
         }
