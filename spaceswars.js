@@ -73,8 +73,9 @@ var g_inactivesChanged = false;
 
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
 
-var KEYS = {
+var KEY = {
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
+    UP    : 38, RIGHT : 39, DOWN  : 40, LEFT  : 41,
     ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
     FIVE  : 53, SIX   : 54, SEVEN : 55, EIGHT : 56, NINE : 57,
     A : 65, B : 66, C : 67, D : 68, E : 69, F : 70, G : 71, H : 72,
@@ -1274,47 +1275,71 @@ function setupSidebar() {
     aaCheck.checked = autoAttack ? "checked" : "";
 }
 
+/**
+ * Processes keyboard input. Some pages have specialized processing,
+ * but there are also global handlers
+ *
+ * [ - Previous Planet
+ * ] - Next Planet
+ *
+ * SHIFT +
+ *     O - Overview
+ *     G - Galaxy
+ *     F - Fleet
+ *     E - Empire/Imperium
+ *     B - Buildings
+ *     R - Research
+ *     S - Shipyard
+ *     M - Messages
+ *     D - Defenses
+ *
+ * SHIFT + ALT +
+ *     M - Convert to metal
+ *     D - Convert to deut
+ *
+ * @param e
+ */
 function globalShortcutHandler(e) {
     var key = e.keyCode ? e.keyCode : e.which;
     if (isTextInputActive()) {
         return;
     }
 
-    if (key === KEYS.ESC) {
+    if (key === KEY.ESC) {
         g_keyArray.length = 0;
     }
 
     var target = "";
     if (e.shiftKey && !e.ctrlKey) {
         switch (key) {
-            case KEYS.O:
+            case KEY.O:
                 target = "overview.php";
                 break;
-            case KEYS.G:
+            case KEY.G:
                 target = "galaxy.php";
                 break;
-            case KEYS.F:
+            case KEY.F:
                 target = "fleet.php";
                 break;
-            case KEYS.E:
+            case KEY.E:
                 target = "imperium.php";
                 break;
-            case KEYS.B:
+            case KEY.B:
                 target = "buildings.php";
                 break;
-            case KEYS.R:
+            case KEY.R:
                 target = "research.php";
                 break;
-            case KEYS.S:
+            case KEY.S:
                 target = "build_fleet.php";
                 break;
-            case KEYS.M:
+            case KEY.M:
                 if (e.altKey)
                     window.parent.frames[1].document.getElementById("metalClick").click();
                 else
                     target = "messages.php";
                 break;
-            case KEYS.D:
+            case KEY.D:
                 if (e.altKey)
                     window.parent.frames[1].document.getElementById("deutClick").click();
                 else
@@ -1327,10 +1352,10 @@ function globalShortcutHandler(e) {
         // Need to use window.parent.frames[1] in case we're focused on leftmenu,
         // which happens quite a bit.
         switch (key) {
-            case KEYS.OPEN_BRACKET:
+            case KEY.OPEN_BRACKET:
                 window.parent.frames[1].document.getElementById("previousplanet").click();
                 break;
-            case KEYS.CLOSE_BRACKET:
+            case KEY.CLOSE_BRACKET:
                 window.parent.frames[1].document.getElementById("nextplanet").click();
                 break;
             default:
@@ -1345,7 +1370,7 @@ function globalShortcutHandler(e) {
         g_keyArray.length = 0;
     }
 
-    if (key !== KEYS.ESC)
+    if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
     // TODO: LeftMenu handling
@@ -1356,9 +1381,12 @@ function globalShortcutHandler(e) {
         case "leftmenu":
             lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
             break;
+        case "fleet":
+            fleetKeyHandler(key);
+            break;
         case "floten1":
             if (!e.shiftKey) {
-                if (key === KEYS.N) {
+                if (key === KEY.N) {
                     f.$('.flotte_2_4 a')[0].click();
                     setTimeout(function() {
                         f.$('input[type=submit]')[0].click();
@@ -1368,71 +1396,34 @@ function globalShortcutHandler(e) {
             break;
         case "floten2":
             if (!e.shiftKey) {
-                if (key === KEYS.A) {
+                if (key === KEY.A) {
                     f.$('.flotte_bas .space a')[3].click();
-                } else if (key === KEYS.N) {
+                } else if (key === KEY.N) {
                     f.$('input[type=text]').val('');
                     f.$('.flotte_bas .space a')[2].click();
-                } else if (key === KEYS.S) {
+                } else if (key === KEY.S) {
                     f.$('input[type=submit]')[0].click();
                 }
             }
             break;
         case "messages":
-            target = -1;
-            console.log(key);
-            switch (key) {
-                case KEYS.S:
-                    target = 0;
-                    break;
-                case KEYS.P:
-                    target = 1;
-                    break;
-                case KEYS.A:
-                    if (g_keyArray[0] === "D") {
-                        g_keyArray.length = 0;
-                        f.$("#deletemessages1>option:eq(3)").prop("selected", true);
-                        f.$("#deletemessages2>option:eq(3)").prop("selected", true);
-                        setTimeout(function() {
-                            f.$("input[type=submit]")[0].click();
-                        }, 100);
-                    } else {
-                        target = 2;
-                    }
-                    break;
-                case KEYS.C:
-                    target = 3;
-                    break;
-                case KEYS.H:
-                    target = 4;
-                    break;
-                case KEYS.T:
-                    target = 5;
-                    break;
-                case KEYS.E:
-                    target = 6;
-                    break;
-                case KEYS.M:
-                    target = 7;
-                    break;
-                case KEYS.L:
-                    target = 8;
-                    break;
-            }
-
-            if (target >= 0) {
-                f.$(".message_button1 a")[target].click();
-                g_keyArray.length = 0;
-            }
+            messagePageKeyHandler(key);
             break;
         case "build_def":
-            BuildDefKeyHandler();
+            buildDefKeyHandler();
             break;
         default:
             break;
     }
 }
 
+/**
+ * Goes to the desired input given the input map. If the input field cannot
+ * be found, attempt to scroll the div into view. If the div cannot be found,
+ * flash a message stating as much.
+ *
+ * @param map
+ */
 function inputSelector(map) {
 
     var element = map[g_keyArray.join("")];
@@ -1452,7 +1443,11 @@ function inputSelector(map) {
         }
 
         // Otherwise, give a brief message stating that it doesn't exist
-        var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot", "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-asign:middle;line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;width:500px;margin-left:-250px;margin-top:-400px;"], element[1] + " could not be found.");
+        var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
+            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
+            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
+            "width:500px;margin-left:-250px;margin-top:-400px;"],
+            element[1] + " could not be found.");
         f.document.body.appendChild(div);
         f.$(div).fadeTo(500, 0.7);
         setTimeout(function() {
@@ -1468,6 +1463,14 @@ function inputSelector(map) {
     }
 }
 
+/** Handles keyboard input from the build_fleet page
+ *
+ * SC : Small Cargo,     LC : Large Cargo, LF : Light Fighter,   HF : Heavy Fighter
+ * CR : CRuiser,         BS : BattleShip,  CS : Colony Ship,     RE : REcycler,
+ * EP : Espionage Probe, BM : BoMber,      SS : Solar Satellite, DE : DEstroyer,
+ * DS : DeathStar,       SN : SuperNova    MC : Massive Cargo,   HR : Heavy Recycler,
+ * BL : BLast,           EX : EXtractor
+ */
 function buildFleetKeyHandler() {
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
@@ -1484,14 +1487,21 @@ function buildFleetKeyHandler() {
     inputSelector(map);
 }
 
-function BuildDefKeyHandler() {
+/**
+ * Handles keyboard input from the build_def page
+ *
+ * (R)ocket (L)auncher, (L)ight (L)aser,   (H)eavy (L)aser, (G)uass (C)annon.
+ * (I)on (C)annon,      (P)lasma (T)urret, (S)mall Shield   (D)ome, (L)arge Shield (D)ome,
+ * (A)nti-(B)allastic Missiles,            (I)nter(P)lanetary Missiles
+ */
+function buildDefKeyHandler() {
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
         g_keyArray.length = 0;
     }
 
     lm.$("#keystrokes").text(g_keyArray.join(" + "));
-    var combos = [ "RL", "LL", "HL", "GC", "IC", "PT", "SD", "LD", "AB", "IP" ];
+    var combos = [ "RL", "LL", "HL", "GC", "IC", "PT", "SD", "LD", "UG", "AB", "IP" ];
     var ids = [ 401, 402, 403, 404, 405, 406, 407, 408, 409, 502, 503 ];
     var map = {};
     for (var i = 0; i < ids.length; i++) {
@@ -1501,8 +1511,146 @@ function BuildDefKeyHandler() {
     inputSelector(map);
 }
 
+/**
+ * Handles keyboard input from the messages page
+ *
+ * S - Spy
+ * P - Player
+ * A - Alliance
+ * C - Combat
+ * H - Harvest
+ * T - Transport
+ * E - Extraction
+ * M - Missiles
+ * L - alL
+ *
+ * DM - Delete Marked
+ * DU - Delete Unmarked
+ * DP - Delete all on Page
+ * DA - Delete All
+ *
+ * @param key
+ */
+function messagePageKeyHandler(key) {
+    var target = -1;
+    switch (key) {
+        case KEY.S:
+            target = 0;
+            break;
+        case KEY.P:
+            if (g_keyArray[0] === "D") {
+                deleteMessages(2 /*deleteType*/);
+            } else {
+                target = 1;
+            }
+            break;
+        case KEY.A:
+            if (g_keyArray[0] === "D") {
+                deleteMessages(3 /*deleteType*/);
+            } else {
+                target = 2;
+            }
+            break;
+        case KEY.C:
+            target = 3;
+            break;
+        case KEY.H:
+            target = 4;
+            break;
+        case KEY.T:
+            target = 5;
+            break;
+        case KEY.E:
+            target = 6;
+            break;
+        case KEY.M:
+            if (g_keyArray[0] === "D") {
+                deleteMessages(0 /*deleteType*/);
+            } else {
+                target = 7;
+            }
+            break;
+        case KEY.L:
+            target = 8;
+            break;
+        case KEY.U:
+            if (g_keyArray[0] === "D") {
+                deleteMessages(1 /*deleteType*/);
+            }
+            g_keyArray.length = 0;
+            break;
+    }
+
+    if (target >= 0) {
+        f.$(".message_button1 a")[target].click();
+        g_keyArray.length = 0;
+    }
+}
+
+/**
+ * Delete messages based on the given deleteType
+ *
+ * 0 - Marked
+ * 1 - Unmarked
+ * 2 - Page
+ * 3 - All
+ *
+ * @param deleteType
+ */
+function deleteMessages(deleteType) {
+    g_keyArray.length = 0;
+    f.$("#deletemessages1>option:eq(" + deleteType + ")").prop("selected", true);
+    f.$("#deletemessages2>option:eq(" + deleteType + ")").prop("selected", true);
+    // Sometimes if we go immediately, things haven't registered yet
+    setTimeout(function() {
+        if (f.$("input[type=submit]")) {
+            f.$("input[type=submit]")[0].click();
+        }
+    }, 100);
+}
+
+
+/**
+ * Handles key input on the fleet page
+ *
+ * T  - Select the number of MC needed to transport all resources, iff mcTransport is active
+ * A  - Select all of the given ship
+ * X  - Select none of the given ship
+ * UP - Select the previous ship
+ * DN - Select the next ship
+ *
+ * @param key
+ */
+function fleetKeyHandler(key) {
+    var active = f.document.activeElement;
+    if (g_config.More.mcTransport && key === KEY.T) {
+        f.$('#transport').click();
+        f.$('input[type=submit]')[0].click();
+    } else if (active.tagName.toLowerCase() === "input") {
+        if (key === KEY.A) {
+            active.value = active.parentNode.parentNode.childNodes[1].childNodes[0].innerHTML.replace(/\./g, "");
+        } else if (key === KEY.X) {
+            active.value = "";
+        } else if (key === KEY.DOWN || key === KEY.UP) {
+            var currentIndex = 0;
+            var options = f.$(".current_ship_selected:visible");
+            for (var i = 0; i < options.length; i++) {
+                if (options[i] === active) {
+                    currentIndex = i;
+                    break;
+                }
+            }
+
+            // Can't go up/down if we're at the end of the list
+            if (key === KEY.DOWN && currentIndex < options.length - 1 || key === KEY.UP && currentIndex > 0) {
+                f.$(options[currentIndex + (key === KEY.DOWN ? 1 : -1)]).focus();
+            }
+        }
+    }
+}
+
 function isAlphaKey(key) {
-    return key >= KEYS.A && key <= KEYS.Z;
+    return key >= KEY.A && key <= KEY.Z;
 }
 
 /**
@@ -1521,8 +1669,8 @@ function setGlobalKeyboardShortcuts() {
 }
 
 function globalKeypressHandler(e) {
-    if (g_page === "build_fleet" || g_page === "build_def") {
-        if (isAlphaKey(e.keyCode)) {
+    if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet") {
+        if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey) {
             e.preventDefault();
         }
     }
@@ -2682,7 +2830,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         if (targetPlanet !== -1) {
             var key = e.keyCode ? e.keyCode : e.which;
 
-            if (key === KEYS.S) {
+            if (key === KEY.S) {
                 e.preventDefault();
                 var element = rows[targetPlanet - 1].childNodes[15].childNodes[1];
                 if (element !== undefined) {
@@ -2691,7 +2839,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         element.click();
                     }
                 }
-            } else if (key === KEYS.L) {
+            } else if (key === KEY.L) {
                 e.preventDefault();
                 var row = rows[targetPlanet - 1];
                 var name = row.childNodes[7].childNodes[1];
@@ -2709,7 +2857,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
             }
 
-            if (key === KEYS.N || key === KEYS.P) {
+            if (key === KEY.N || key === KEY.P) {
                 var coords = '';
 
                 var gal = galaxySelector[0].value;
@@ -2722,7 +2870,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 console.log(n);
                 var player = g_galaxyData.players[n][0];
                 var index = player.indexOf(ploc);
-                if (key === KEYS.N) {
+                if (key === KEY.N) {
                     coords = player[(index + 1) % player.length];
                 } else {
                     if (index === 0) index += player.length;
@@ -2936,7 +3084,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 f.$('#img_' + (i + 1)).click(function() {
                     window.addEventListener("keyup", function(e) {
                         var key = e.keyCode ? e.keyCode : e.which;
-                        if (key === KEYS.ESC) {
+                        if (key === KEY.ESC) {
                             f.$('#markit_choose').fadeOut(750);
                         }
                     });
@@ -3313,7 +3461,7 @@ function loadTChatty() {
         } else {
             f.document.getElementById("message").value = this.value;
         }
-        if (e.keyCode === KEYS.ENTER) {
+        if (e.keyCode === KEY.ENTER) {
             this.value = "";
             if (navigator.userAgent.indexOf("Firefox") !== -1) {
                 f.document.getElementById("send").click();
@@ -3340,20 +3488,6 @@ function disableAutoComplete() {
  * keyboard shortcuts
  */
 function saveFleetPage() {
-    f.addEventListener("keyup", function(e) {
-        var key = e.keyCode ? e.keyCode : e.which;
-
-        if (key === KEYS.M) {
-            f.$('#transport').click();
-            f.$('input[type=submit]')[0].click();
-        } else if (key === KEYS.N) {
-            f.$('#nextplanet').click();
-        } else if (key === KEYS.P) {
-            f.$('#previousplanet').click();
-        } else if (key === KEYS.D) {
-            f.$('#allin').click();
-        }
-    });
 
     var locData = JSON.stringify(f.location);
     GM_setValue("savedFleet", locData);
