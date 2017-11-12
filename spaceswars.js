@@ -9,11 +9,22 @@
 /* global GM_xmlhttpRequest*/
 /* global calcul*/
 
+/*
+ * In general, the actual game consists of three frames. The top-level frame is frames.php, and it contains
+ * two child frames, leftmenu.php and whatever part of the actual game we're on. To save memory and prevent
+ * us from having to load the script every time a page changes, we can attach to the top-level frames.php,
+ * which allows us to persist state across pages. This prevents us from loading things unnecessarily, and
+ * let's us not have to save changes every time (as the galaxy data can be upwards of 3MB of text).
+ *
+ * The biggest caveat of this design is that if you open a page in a new window without frames.php present,
+ * nothing will load. In general I think that's fine, since it's a fairly uncommon scenario, and you can
+ * "work around" it by just having another instance of the full frames. I think the benefit of not having
+ * to load 4000+ lines of JS every time a new page loads is beneficial, espeically with some of the automated
+ * tasks I've created. There are some exceptions, such as rw.php, which will always load without frames.
+ * Because of that, I chose to include all the necessary methods/dependencies for RConverter in InnerPage.
+ */
 // TODO: I was going to try an get rid of all the jQuery dependencies, then I realized I need its tooltips
-// TODO: Probably get rid of DoNotSpy, or at least have a setting that deactivates it. Likely a big memory culprit
 // TODO: Ensure everything works with French language
-// TODO: RConverter is probably broken, as with any instance in which we aren't given a top level frame (worth fixing?)
-// TODO: Shortcut handling work -> consolidate into single entry point
 
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
@@ -71,11 +82,14 @@ var g_dnsChanged = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
+var g_firstTab = true;
+
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
 
 var KEY = {
+    TAB : 9,
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
-    UP    : 38, RIGHT : 39, DOWN  : 40, LEFT  : 41,
+    LEFT  : 37, UP    : 38, RIGHT : 39, DOWN  : 40,
     ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
     FIVE  : 53, SIX   : 54, SEVEN : 55, EIGHT : 56, NINE : 57,
     A : 65, B : 66, C : 67, D : 68, E : 69, F : 70, G : 71, H : 72,
@@ -1357,13 +1371,10 @@ function globalShortcutHandler(e) {
         g_keyArray.length = 0;
     }
 
-    if (key !== KEY.ESC)
-        g_keyArray.push(String.fromCharCode(key));
-
     // TODO: LeftMenu handling
     switch (g_page) {
         case "build_fleet":
-            buildFleetKeyHandler();
+            buildFleetKeyHandler(key);
             break;
         case "leftmenu":
             lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
@@ -1394,10 +1405,11 @@ function globalShortcutHandler(e) {
             }
             break;
         case "messages":
-            messagePageKeyHandler(key);
+            if (!e.shiftKey)
+                messagePageKeyHandler(key);
             break;
         case "build_def":
-            buildDefKeyHandler();
+            buildDefKeyHandler(key);
             break;
         default:
             break;
@@ -1458,7 +1470,10 @@ function inputSelector(map) {
  * DS : DeathStar,       SN : SuperNova    MC : Massive Cargo,   HR : Heavy Recycler,
  * BL : BLast,           EX : EXtractor
  */
-function buildFleetKeyHandler() {
+function buildFleetKeyHandler(key) {
+    if (key !== KEY.ESC)
+        g_keyArray.push(String.fromCharCode(key));
+
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
         g_keyArray.length = 0;
@@ -1481,7 +1496,12 @@ function buildFleetKeyHandler() {
  * (I)on (C)annon,      (P)lasma (T)urret, (S)mall Shield   (D)ome, (L)arge Shield (D)ome,
  * (A)nti-(B)allastic Missiles,            (I)nter(P)lanetary Missiles
  */
-function buildDefKeyHandler() {
+function buildDefKeyHandler(key) {
+    if (key !== KEY.ESC)
+        g_keyArray.push(String.fromCharCode(key));
+
+    console.log(g_keyArray);
+
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
         g_keyArray.length = 0;
@@ -1516,11 +1536,72 @@ function buildDefKeyHandler() {
  * DP - Delete all on Page
  * DA - Delete All
  *
+ * TAB/Down Arrow       - Next message
+ * SHIFT + TAB/Up Arrow - Previous Message
+ * Right Arrow          - Expand message
+ * Left Arrow           - Collapse message
+ * X                    - Toggle message checked
  * @param key
  */
 function messagePageKeyHandler(key) {
     var target = -1;
+    var active = f.document.activeElement;
+    var messages, currentIndex, i;
     switch (key) {
+        case KEY.TAB:
+            if (active.className.toLowerCase() !== "message_space0 curvedtot") {
+                f.$(".message_2a > .message_space0.curvedtot")[0].focus();
+            }
+            break;
+        case KEY.DOWN:
+            messages = f.$(".message_2a > .message_space0.curvedtot");
+            if (active.className.toLowerCase() !== "message_space0 curvedtot") {
+                messages[0].focus();
+            } else {
+                currentIndex = 0;
+                for (i = 0; i < messages.length; i++) {
+                    if (active === messages[i]) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                if (currentIndex !== messages.length - 1) {
+                    messages[currentIndex + 1].focus();
+                }
+            }
+            break;
+        case KEY.UP:
+            messages = f.$(".message_2a > .message_space0.curvedtot");
+            if (active.className.toLowerCase() !== "message_space0 curvedtot") {
+                messages[messages.length - 1].focus();
+            } else {
+                currentIndex = 0;
+                for (i = 0; i < messages.length; i++) {
+                    if (active === messages[i]) {
+                        currentIndex = i;
+                        break;
+                    }
+                }
+                if (currentIndex !== 0)
+                    messages[currentIndex - 1].focus();
+            }
+            break;
+        case KEY.RIGHT:
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                active.childNodes[1].click();
+            }
+            break;
+        case KEY.LEFT:
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                f.$(active).find("div:contains('Close this message')")[1].click();
+            }
+            break;
+        case KEY.X:
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                var checkbox = f.$(active).find(".checkbox");
+                checkbox[0].checked = !checkbox[0].checked;
+            }
+            break;
         case KEY.S:
             target = 0;
             break;
@@ -1566,6 +1647,13 @@ function messagePageKeyHandler(key) {
             }
             g_keyArray.length = 0;
             break;
+        case KEY.D:
+            g_keyArray.length = 1;
+            g_keyArray[0] = "D";
+            break;
+        default:
+            break;
+
     }
 
     if (target >= 0) {
@@ -1609,6 +1697,9 @@ function deleteMessages(deleteType) {
  * @param key
  */
 function fleetKeyHandler(key) {
+    if (key !== KEY.ESC)
+        g_keyArray.push(String.fromCharCode(key));
+
     var active = f.document.activeElement;
     if (g_config.More.mcTransport && key === KEY.T) {
         f.$('#transport').click();
@@ -1794,6 +1885,11 @@ function checkEasyFarmRedirect() {
 function loadEasyFarm() {
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
+
+    var tabs = f.$(".message_2a > .message_space0.curvedtot");
+    for (var t = 0; t < tabs.length; t++) {
+        tabs[t].tabIndex = t + 1;
+    }
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
