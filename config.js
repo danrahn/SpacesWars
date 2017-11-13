@@ -352,7 +352,7 @@ function createScripts() {
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
-        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (g_bottiness ? "(No longer working, sorry!)" : "") + "</span>"), null, "FleetPoints"),
+        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (g_bottiness ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
         createMoreScript()
     ];
 }

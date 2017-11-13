@@ -74,7 +74,7 @@ var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
 var g_dnsChanged = false;
-var g_bottiness = true;
+var g_bottiness = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
@@ -1272,8 +1272,13 @@ function setupSidebar() {
         advancedAutoAttack = autoAttack;
     };
 
-    langBox.appendChild(sfmCheck);
-    langBox.appendChild(aaCheck);
+    if (g_bottiness) {
+        langBox.appendChild(sfmCheck);
+        langBox.appendChild(aaCheck);
+    } else {
+        saveData.value = "Save";
+        saveData.style.width = "40px";
+    }
     langBox.append(saveData);
 
     sfmCheck.checked = spyForMe ? "checked" : "";
