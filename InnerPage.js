@@ -45,13 +45,18 @@ function getInfoFromPage() {
     return list;
 }
 
+if (g_page === "chat") {
+    document.getElementsByTagName("head")[0].appendChild(buildNodeInner("script", [
+        "src", "type"
+    ], ["https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js", "text/javascript"], ""));
+}
+
 if (window.top.notifyNewPage)
     window.top.notifyNewPage(g_page);
 
 if (g_page === "rw") {
     loadRConverter();
 }
-
 
 
 /**

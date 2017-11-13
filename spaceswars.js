@@ -82,9 +82,8 @@ var g_dnsChanged = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
-var g_firstTab = true;
-
-var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text"];
+// List of excluded input ids that indicate we should not process shortcuts
+var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
 
 var KEY = {
     TAB : 9,
@@ -587,6 +586,7 @@ function setDictionary() {
             tab.FPDescrip2 = "Travaux dans la page de classements";
             tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
             tab.spy = "Espionner";
+            tab.closeMessage = "Fermer ce message";
             break;
         case "en":
             tab.lang = "en";
@@ -722,6 +722,7 @@ function setDictionary() {
             tab.FPDescrip2 = "Works in the statistics page";
             tab.FPAlert = "If this person changed their name and shouldn't be in the stats anymore, press enter.";
             tab.spy = "Espionage";
+            tab.closeMessage = "Close this message";
             break;
         default:
             alert("Error with language !");
@@ -1405,7 +1406,7 @@ function globalShortcutHandler(e) {
             }
             break;
         case "messages":
-            if (!e.shiftKey)
+            if (!e.shiftKey && !e.ctrlKey)
                 messagePageKeyHandler(key);
             break;
         case "build_def":
@@ -1593,7 +1594,7 @@ function messagePageKeyHandler(key) {
             break;
         case KEY.LEFT:
             if (active.className.toLowerCase() === "message_space0 curvedtot") {
-                f.$(active).find("div:contains('Close this message')")[1].click();
+                f.$(active).find("div:contains('" + L_.closeMessage + "')")[1].click();
             }
             break;
         case KEY.X:
@@ -3321,11 +3322,8 @@ function loadTChatty() {
     var send = f.document.getElementById("send");
     var message = f.document.getElementById("message");
     toolbar.removeChild(f.document.getElementById("chat_couleur"));
-    f.document.getElementsByTagName("head")[0].appendChild(buildNode("script", [
-        "src", "type"
-    ], [scripts_scripts + "jscolor/jscolor.js", "text/javascript"], ""));
 
-    toolbar.innerHTML = '<input class="color" id="jscolorid" value="' + color +
+    toolbar.innerHTML = '<input class="jscolor" id="jscolorid" value="' + color +
         '">' + toolbar.innerHTML;
     message.cols = 90;
     message.id = "message2";
