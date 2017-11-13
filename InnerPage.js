@@ -45,7 +45,8 @@ function getInfoFromPage() {
     return list;
 }
 
-if (g_page === "chat") {
+// Only load jscolor if it's needed. It's currently used by the chat page and the config page
+if (g_page === "chat" || (g_page === "achatbonus") && window.location.search.includes("config=1")) {
     document.getElementsByTagName("head")[0].appendChild(buildNodeInner("script", [
         "src", "type"
     ], ["https://cdnjs.cloudflare.com/ajax/libs/jscolor/2.0.4/jscolor.min.js", "text/javascript"], ""));

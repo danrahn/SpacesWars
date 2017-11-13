@@ -126,7 +126,7 @@ On pages where you use 2+ character combinations, pressing ESC will clear the cu
  * `SHIFT + B` : Buildings
  * `SHIFT + R` : Research
  * `SHIFT + D` : Defense
- * `HIFT + M` : Messages
+ * `SHIFT + M` : Messages
  * `[` : Previous Planet/Moon
  * `]` : Next Planet/Moon
  

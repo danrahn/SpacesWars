@@ -1372,7 +1372,6 @@ function globalShortcutHandler(e) {
         g_keyArray.length = 0;
     }
 
-    // TODO: LeftMenu handling
     switch (g_page) {
         case "build_fleet":
             buildFleetKeyHandler(key);
@@ -1411,6 +1410,11 @@ function globalShortcutHandler(e) {
             break;
         case "build_def":
             buildDefKeyHandler(key);
+            break;
+        case "galaxy":
+            if (key === KEY.ESC) {
+                f.$('#markit_choose').fadeOut(750);
+            }
             break;
         default:
             break;
@@ -2984,13 +2988,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             // Add the target for Markit
             if (infos_scripts.Markit) {
+
                 f.$('#img_' + (i + 1)).click(function() {
-                    window.addEventListener("keyup", function(e) {
-                        var key = e.keyCode ? e.keyCode : e.which;
-                        if (key === KEY.ESC) {
-                            f.$('#markit_choose').fadeOut(750);
-                        }
-                    });
                     var gal = galaxySelector[0].value;
                     var sys = f.document.getElementsByName('system')[0].value;
                     var planet = this.id.substring(this.id.indexOf('_') + 1);

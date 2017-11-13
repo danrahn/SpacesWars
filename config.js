@@ -66,18 +66,7 @@ function createAndLoadConfigurationPage() {
     }
 
     f.document.body.appendChild(main);
-    var x = f.document.getElementsByClassName("jscolor");
-    for (i = 0; i < x.length; i++) {
-        x[i].addEventListener("keyup", function() {
-           if (/^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(this.value)) {
-               this.style.backgroundColor = "#" + this.value;
-           } else {
-               this.style.backgroundColor = "black";
-           }
-        });
-    }
 
-    //
     f.$('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
         if (!this.checked) {
             var betterEmpId = f.$("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
@@ -252,10 +241,8 @@ function populateConfig() {
     inputs = options[1].getElementsByTagName("input");
     inputs[0].value = g_config.EasyFarm.minPillage;
     inputs[1].value = g_config.EasyFarm.colorPill;
-    inputs[1].style.backgroundColor = "#" + g_config.EasyFarm.colorPill;
     inputs[2].value = g_config.EasyFarm.minCDR;
     inputs[3].value = g_config.EasyFarm.colorCDR;
-    inputs[3].style.backgroundColor = "#" + g_config.EasyFarm.colorCDR;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -300,10 +287,6 @@ function populateConfig() {
     inputs[1].value = g_config.Markit.color.bunker;
     inputs[2].value = g_config.Markit.color.raidy;
     inputs[3].value = g_config.Markit.color.dont;
-    inputs[0].style.backgroundColor = "#" + g_config.Markit.color.fridge;
-    inputs[1].style.backgroundColor = "#" + g_config.Markit.color.bunker;
-    inputs[2].style.backgroundColor = "#" + g_config.Markit.color.raidy;
-    inputs[3].style.backgroundColor = "#" + g_config.Markit.color.dont;
     inputs[4].addEventListener("click", function() {
         if (confirm("Reset ?")) {
             g_config.Markit.coord = {};
