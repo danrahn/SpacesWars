@@ -36,11 +36,6 @@ console.log("OUTER RUNNING ON PAGE " + g_page);
 // reports show they have nothing of use
 var spyForMe = !!parseInt(GM_getValue("SpyForMe"));
 
-// Ah, the bread and butter. Should we go through every spy report
-// and attack? True bottiness
-var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch"));
-var advancedAutoAttack = autoAttack; // No longer used?
-
 var g_nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
@@ -79,6 +74,7 @@ var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
 var g_dnsChanged = false;
+var g_bottiness = true;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
@@ -125,6 +121,11 @@ else {
     }
 }
 
+// Ah, the bread and butter. Should we go through every spy report
+// and attack? True bottiness
+var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && g_bottiness;
+var advancedAutoAttack = autoAttack; // No longer used?
+
 setGlobalKeyboardShortcuts();
 if (g_page !== "forum") {
     window.addEventListener("beforeunload", function (e) {
@@ -138,6 +139,8 @@ if (g_page !== "forum") {
 
 if (g_page === "frames") {
     console.log("Top level frame!");
+    // We have to insert the js directly into the page, otherwise the inner frame
+    // won't have access to these internals.
     // noinspection JSAnnotator
     window.top.document.head.appendChild(buildNode("script", ["type"], ["text/javascript"],
         `
@@ -1265,7 +1268,7 @@ function setupSidebar() {
 
     aaCheck.onchange = function() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
-        autoAttack = this.checked;
+        autoAttack = this.checked && g_bottiness;
         advancedAutoAttack = autoAttack;
     };
 
@@ -2135,7 +2138,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var fpRedirect = false;
     var changed = false;
     var types, i, space;
-    if (scriptsInfo.FleetPoints) {
+    if (scriptsInfo.FleetPoints && g_bottiness) {
 
         fpRedirect = !!(GM_getValue("fp_redirect"));
         GM_setValue('fp_redirect', 0);
@@ -2146,7 +2149,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
 
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
 
-    if (scriptsInfo.FleetPoints) {
+    if (scriptsInfo.FleetPoints && g_bottiness) {
         var timeSelector = f.$('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
         var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -2276,7 +2279,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         }
     }
 
-    if (scriptsInfo.FleetPoints) {
+    if (scriptsInfo.FleetPoints && g_bottiness) {
         space = f.$('.space0')[1];
         var del = space.removeChild(space.childNodes[3]);
 
@@ -3082,15 +3085,17 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     }
 
-    var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
-    var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
-        var num = f.$("#autoSpyLength").val();
-        GM_setValue("autoSpyLength", num);
+    if (g_bottiness) {
+        var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
+        var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
+            var num = f.$("#autoSpyLength").val();
+            GM_setValue("autoSpyLength", num);
 
-    });
-    var inputDiv = f.$(".galaxy_float100")[0];
-    inputDiv.append(len);
-    inputDiv.append(goBox);
+        });
+        var inputDiv = f.$(".galaxy_float100")[0];
+        inputDiv.append(len);
+        inputDiv.append(goBox);
+    }
 
     // If we've added entries for a player, sort
     // the coordinates before storing them
