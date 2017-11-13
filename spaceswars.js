@@ -56,6 +56,7 @@ checkVersionInfo();
 var g_lang = g_versionInfo.language;
 var f;
 var lm; // Left Menu
+var g_noFrames;
 
 // Language dictionary. FR and EN
 var L_ = setDictionary();
@@ -1021,7 +1022,7 @@ function getNbFromStringtab(tab) {
  * from before 2012 to the latest.
  */
 function checkVersionInfo() {
-// checking...
+    // checking...
     if (g_versionInfo !== undefined && g_versionInfo !== null && g_versionInfo.version === thisVersion) {
         return;
     }
@@ -1110,6 +1111,12 @@ function getConfig() {
             config = setConfigScripts(g_uni);
     } catch (ex) {
         config = setConfigScripts(g_uni);
+    }
+
+    try {
+        g_noFrames = JSON.parse(GM_getValue("noFrames"));
+    } catch (ex) {
+        g_noFrames = false;
     }
 
     return config;
@@ -1355,6 +1362,18 @@ function globalShortcutHandler(e) {
                 else
                     target = "build_def.php";
                 break;
+            case KEY.V:
+                var vote = f.document.getElementById("avote2");
+                if (vote) {
+                    vote.childNodes[0].click();
+                }
+                break;
+            case KEY.C:
+                var vote2 = f.document.getElementById("avote1");
+                if (vote2) {
+                    vote2.childNodes[0].click();
+                }
+                break;
             default:
                 break;
         }
@@ -1385,7 +1404,7 @@ function globalShortcutHandler(e) {
             buildFleetKeyHandler(key);
             break;
         case "leftmenu":
-            lm.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
+            lm.document.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
             break;
         case "fleet":
             fleetKeyHandler(key);
@@ -1422,6 +1441,14 @@ function globalShortcutHandler(e) {
         case "galaxy":
             if (key === KEY.ESC) {
                 f.$('#markit_choose').fadeOut(750);
+            }
+            break;
+        case "vote":
+            if (!e.ctrlKey && !e.altKey && key === KEY.V) {
+                var voteLink = f.$("a.linkgreen");
+                if (voteLink) {
+                    voteLink[1].click();
+                }
             }
             break;
         default:
@@ -2778,11 +2805,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var gal = galaxySelector[0].value;
                 var sys = f.document.getElementsByName('system')[0].value;
                 var ploc = gal + ":" + sys + ":" + targetPlanet;
-                console.log(ploc);
-                // var ploc = sum.substring(0, sum.indexOf(':', sum.indexOf(':') + 1) + 1);
-                // ploc += targetPlanet;
                 var n = g_galaxyData.universe[ploc];
-                console.log(n);
                 var player = g_galaxyData.players[n][0];
                 var index = player.indexOf(ploc);
                 if (key === KEY.N) {
@@ -2798,7 +2821,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
     var spyNeeded = [];
     var sfmLen = parseInt(GM_getValue("autoSpyLength"));
-    //ar useDNS = !isNaN(sfmLen) && sfmLen >= 0 && spyForMe;
 
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
@@ -2820,6 +2842,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         //Name of the person previously stored at the given coord
         var storedName = g_galaxyData.universe[position];
 
+        var saveDiv;
         if (name !== undefined) { // There's a player here
             // Create span that shows rank
             var span = f.document.createElement("span");
@@ -2835,36 +2858,93 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             else newName = newName.substring(0, newName.length - 1);
 
             if (infos_scripts.EasyTarget && storedName !== undefined && storedName !== null && storedName !== newName) {
-                // There's a different person at this location than what we have stored
-                g_galaxyDataChanged = true;
+                console.log("Different Person at " + position);
+                if (g_bottiness) {
+                    // There's a different person at this location than what we have stored
+                    g_galaxyDataChanged = true;
 
-                if (g_galaxyData.players[newName] === undefined) {
-                    // If the owner of a planet has changed, and the new owner is not in the list, assume that
-                    // the user changed names and change things accordingly. I think
-                    var locations = g_galaxyData.players[storedName][0];
-                    for (j = 0; j < locations.length; j++) {
+                    if (g_galaxyData.players[newName] === undefined) {
+                        // If the owner of a planet has changed, and the new owner is not in the list, assume that
+                        // the user changed names and change things accordingly. I think
+                        var locations = g_galaxyData.players[storedName][0];
+                        for (j = 0; j < locations.length; j++) {
 
-                        g_galaxyData.universe[locations[j]] = newName;
+                            g_galaxyData.universe[locations[j]] = newName;
+                        }
+                        g_galaxyData.players[newName] = g_galaxyData.players[storedName];
+                        delete g_galaxyData.players[storedName];
                     }
-                    g_galaxyData.players[newName] = g_galaxyData.players[storedName];
-                    delete g_galaxyData.players[storedName];
-                }
 
-                g_galaxyData.universe[position] = newName;
-                if (g_galaxyData.players[storedName] !== undefined) {
-                    g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-                    var moon = g_galaxyData.players[storedName][1].indexOf(position);
-                    if (moon !== -1) {
-                        g_galaxyData.players[storedName][1].splice(moon, 1);
+                    g_galaxyData.universe[position] = newName;
+                    if (g_galaxyData.players[storedName] !== undefined) {
+                        g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+                        var moon = g_galaxyData.players[storedName][1].indexOf(position);
+                        if (moon !== -1) {
+                            g_galaxyData.players[storedName][1].splice(moon, 1);
+                        }
                     }
+                } else {
+                    var save = "https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_save_48px-128.png";
+                    saveDiv = buildNode('img', ['src', 'id', "style"], [save, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px"], "");
+                    (function(newName, storedName, position, saveDiv) {
+                        saveDiv.addEventListener("click", function() {
+                            // There's a different person at this location than what we have stored
+                            g_galaxyDataChanged = true;
+
+                            if (g_galaxyData.players[newName] === undefined) {
+                                // If the owner of a planet has changed, and the new owner is not in the list, assume that
+                                // the user changed names and change things accordingly. I think
+                                var locations = g_galaxyData.players[storedName][0];
+                                for (j = 0; j < locations.length; j++) {
+
+                                    g_galaxyData.universe[locations[j]] = newName;
+                                }
+                                g_galaxyData.players[newName] = g_galaxyData.players[storedName];
+                                delete g_galaxyData.players[storedName];
+                            }
+
+                            g_galaxyData.universe[position] = newName;
+                            if (g_galaxyData.players[storedName] !== undefined) {
+                                g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+                                var moon = g_galaxyData.players[storedName][1].indexOf(position);
+                                if (moon !== -1) {
+                                    g_galaxyData.players[storedName][1].splice(moon, 1);
+                                }
+                            }
+                            this.src = "https://i.imgur.com/Ldr8fWG.png";
+                            this.style.opacity = 0.5;
+                        });
+                    })(newName, storedName, position, saveDiv);
                 }
             }
 
             var lune = (row.childNodes[7].childNodes.length > 1);
 
             if (infos_scripts.EasyTarget && g_galaxyData.universe[position] !== newName) {
-                g_galaxyData.universe[position] = newName;
-                g_galaxyDataChanged = true;
+                if (g_bottiness) {
+                    g_galaxyData.universe[position] = newName;
+                    g_galaxyDataChanged = true;
+                } else {
+                    var save = "https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_save_48px-128.png";
+                    saveDiv = buildNode('img', ['src', 'id', "style"], [save, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px"], "");
+                    (function(newName, position, saveDiv) {
+                        saveDiv.addEventListener("click", function() {
+                            g_galaxyData.universe[position] = newName;
+                            g_galaxyDataChanged = true;
+                            this.src = "https://i.imgur.com/Ldr8fWG.png";
+                            this.style.opacity = 0.5;
+                        });
+                    })(newName, position, saveDiv);
+                }
+            } else {
+                var saved = "https://i.imgur.com/Ldr8fWG.png";
+                saveDiv = buildNode('img', ['src', 'id', "style"], [saved, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
+                (function(i, row, img) {
+                    img.addEventListener("click", function() {
+                        console.log(row);
+                        alert("Clicked " + i);
+                    });
+                })(i, row, saveDiv);
             }
 
             // Change the color of the rank according to the values set in GalaxyRanks
@@ -2897,6 +2977,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             }
 
             if (infos_scripts.GalaxyRanks) name.parentNode.appendChild(span);
+            if (infos_scripts.EasyTarget && !g_bottiness) name.parentNode.appendChild(saveDiv);
 
             if (infos_scripts.EasyTarget) {
                 if (g_galaxyData.players[newName] === undefined) {
