@@ -258,7 +258,11 @@ function populateConfig() {
         }
         if (data.length !== 0) {
             var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
-            if (conf) GM_setValue('galaxy_data_' + g_uni, data);
+            if (conf) {
+                GM_setValue('galaxy_data_' + g_uni, data);
+                g_galaxyData = JSON.parse(data);
+                g_galaxyDataChanged = true;
+            }
             easyTargetText.value = '';
         }
     });

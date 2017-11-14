@@ -79,6 +79,11 @@ var g_bottiness = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
+var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
+var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
+
+var g_targetPlanet = -1;
+
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
 
@@ -128,6 +133,7 @@ var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && g_bottines
 var advancedAutoAttack = autoAttack; // No longer used?
 
 setGlobalKeyboardShortcuts();
+
 if (g_page !== "forum") {
     window.addEventListener("beforeunload", function (e) {
         changeHandler(true /*forcecSave*/);
@@ -763,7 +769,7 @@ function setMerchantMap() {
     m["Terraformer"] = 33;
     m["Alliance Depot"] = 34;
     m["Advanced Lab"] = 35;
-    m["Training Center"] = 36;
+    m["Training center"] = 36;
     m["Missile Silo"] = 44;
     m["Lunar Base"] = 41;
     m["Sensor Phalanx"] = 42;
@@ -2722,7 +2728,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // local storage.
     var galaxySelector = f.$('#galaxy');
 
-    var targetPlanet = -1;
+    g_targetPlanet = -1;
     var redir;
     try {
         redir = JSON.parse(localStorage.EasyTargetRedirect);
@@ -2739,7 +2745,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 f.document.getElementsByName('system')[0].value = redir.s;
                 f.document.forms['galaxy_form'].submit();
             } else {
-                targetPlanet = parseInt(redir.planet);
+                g_targetPlanet = parseInt(redir.planet);
             }
         }
         localStorage.EasyTargetRedirect = JSON.stringify({
@@ -2754,7 +2760,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     // Don't add non-digit characters to galaxySelector
     galaxySelector[0].addEventListener("keydown", function(e) {
         var key = e.keyCode ? e.keyCode : e.which;
-        if (isAlphaKey(key)) {
+        if (isAlphaKey(key) && !e.ctrlKey) {
             e.preventDefault();
         }
     });
@@ -2769,12 +2775,12 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     });
 
     f.addEventListener("keyup", function(e) {
-        if (targetPlanet !== -1) {
+        if (g_targetPlanet !== -1) {
             var key = e.keyCode ? e.keyCode : e.which;
 
             if (key === KEY.S) {
                 e.preventDefault();
-                var element = rows[targetPlanet - 1].childNodes[15].childNodes[1];
+                var element = rows[g_targetPlanet - 1].childNodes[15].childNodes[1];
                 if (element !== undefined) {
                     var title = element.getAttribute('title');
                     if (title === 'Spy') {
@@ -2783,7 +2789,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
             } else if (key === KEY.L) {
                 e.preventDefault();
-                var row = rows[targetPlanet - 1];
+                var row = rows[g_targetPlanet - 1];
                 var name = row.childNodes[7].childNodes[1];
                 if (!name)
                     return; // No moon
@@ -2804,8 +2810,28 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
                 var gal = galaxySelector[0].value;
                 var sys = f.document.getElementsByName('system')[0].value;
-                var ploc = gal + ":" + sys + ":" + targetPlanet;
+                var ploc = gal + ":" + sys + ":" + g_targetPlanet;
                 var n = g_galaxyData.universe[ploc];
+                if (!n) {
+                    var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
+                            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
+                            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
+                            "width:500px;margin-left:-250px;margin-top:-400px;"],
+                        "You must save the planet before navigating!");
+                    f.document.body.appendChild(div);
+                    f.$(div).fadeTo(500, 0.7);
+                    setTimeout(function() {
+                        var bod = f.document.body;
+                        if (bod.children[bod.children.length - 1] === div) {
+                            f.$(div).fadeOut(500, function() {
+                                if (bod === f.document.body) {
+                                    bod.removeChild(bod.children[bod.children.length - 1]);
+                                }
+                            });
+                        }
+                    }, 2000);
+                    return;
+                }
                 var player = g_galaxyData.players[n][0];
                 var index = player.indexOf(ploc);
                 if (key === KEY.N) {
@@ -2814,7 +2840,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     if (index === 0) index += player.length;
                     coords = player[(index - 1) % player.length];
                 }
-                targetPlanet = easyTargetRedirect(ploc, coords, rows, rows[targetPlanet - 1].childNodes[11].childNodes[1], infos_scripts, g_markit);
+                g_targetPlanet = easyTargetRedirect(ploc, coords, rows, rows[g_targetPlanet - 1].childNodes[11].childNodes[1], infos_scripts, g_markit);
             }
         }
     });
@@ -2834,7 +2860,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         if (infos_scripts.Markit && g_markit[position] !== undefined) {
             var c = hexToRgb('#' + config.Markit.color[g_markit[position]]);
             c.a = 0.5;
-            if (name !== undefined && planet !== targetPlanet)
+            if (name !== undefined && planet !== g_targetPlanet)
                 animateBackground(row, c, 750);
             else if (name === undefined) delete g_markit[position];
         }
@@ -2842,8 +2868,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         //Name of the person previously stored at the given coord
         var storedName = g_galaxyData.universe[position];
 
-        var saveDiv;
-        if (name !== undefined) { // There's a player here
+        var lune = (row.childNodes[7].childNodes.length > 1);
+
+        if (name) { // There's a player here
             // Create span that shows rank
             var span = f.document.createElement("span");
             var id = name.onclick.toString();
@@ -2853,107 +2880,102 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             rank = parseInt(rank.substring(rank.indexOf(":") + 2));
             span.innerHTML = '(' + rank + ')';
 
+            // Bot workaround, as they're displayed differently
             var newName = name.childNodes[0].nodeValue;
-            if (newName === null) newName = name.childNodes[0].innerHTML;
-            else newName = newName.substring(0, newName.length - 1);
+            if (!newName)
+                newName = name.childNodes[0].innerHTML;
+            else
+                newName = newName.substring(0, newName.length - 1);
 
-            if (infos_scripts.EasyTarget && storedName !== undefined && storedName !== null && storedName !== newName) {
-                console.log("Different Person at " + position);
-                if (g_bottiness) {
-                    // There's a different person at this location than what we have stored
-                    g_galaxyDataChanged = true;
 
-                    if (g_galaxyData.players[newName] === undefined) {
-                        // If the owner of a planet has changed, and the new owner is not in the list, assume that
-                        // the user changed names and change things accordingly. I think
-                        var locations = g_galaxyData.players[storedName][0];
-                        for (j = 0; j < locations.length; j++) {
+            if (infos_scripts.EasyTarget && !g_bottiness) {
+                var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
+                var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
+                var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
 
-                            g_galaxyData.universe[locations[j]] = newName;
-                        }
-                        g_galaxyData.players[newName] = g_galaxyData.players[storedName];
-                        delete g_galaxyData.players[storedName];
-                    }
-
-                    g_galaxyData.universe[position] = newName;
-                    if (g_galaxyData.players[storedName] !== undefined) {
-                        g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-                        var moon = g_galaxyData.players[storedName][1].indexOf(position);
-                        if (moon !== -1) {
-                            g_galaxyData.players[storedName][1].splice(moon, 1);
-                        }
-                    }
-                } else {
-                    var save = "https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_save_48px-128.png";
-                    saveDiv = buildNode('img', ['src', 'id', "style"], [save, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px"], "");
-                    (function(newName, storedName, position, saveDiv) {
-                        saveDiv.addEventListener("click", function() {
-                            // There's a different person at this location than what we have stored
-                            g_galaxyDataChanged = true;
-
-                            if (g_galaxyData.players[newName] === undefined) {
-                                // If the owner of a planet has changed, and the new owner is not in the list, assume that
-                                // the user changed names and change things accordingly. I think
-                                var locations = g_galaxyData.players[storedName][0];
-                                for (j = 0; j < locations.length; j++) {
-
-                                    g_galaxyData.universe[locations[j]] = newName;
-                                }
-                                g_galaxyData.players[newName] = g_galaxyData.players[storedName];
-                                delete g_galaxyData.players[storedName];
-                            }
-
+                (function (newName, storedName, position, lune, name, saveDiv, savedDiv) {
+                    saveDiv.addEventListener("click", function () {
+                        if (confirm("It looks like " + storedName + " may have changed their name to " + newName + ". Do you want to update all planets?")) {
+                            alert("Replacing " + storedName + " with " + newName);
+                            replacePlayerInDatabase(newName, storedName, position);
+                        } else {
                             g_galaxyData.universe[position] = newName;
-                            if (g_galaxyData.players[storedName] !== undefined) {
-                                g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-                                var moon = g_galaxyData.players[storedName][1].indexOf(position);
-                                if (moon !== -1) {
-                                    g_galaxyData.players[storedName][1].splice(moon, 1);
-                                }
-                            }
-                            this.src = "https://i.imgur.com/Ldr8fWG.png";
-                            this.style.opacity = 0.5;
+                        }
+                        updatePlayerInfo(newName, position, lune);
+                        f.$(this).fadeOut(500, function() {
+                            f.$(savedDiv).fadeTo(500, 0.5);
                         });
-                    })(newName, storedName, position, saveDiv);
-                }
+
+                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        writeLocationsOnMarkitTarget(newName, index);
+                        createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
+                    });
+                })(newName, storedName, position, lune, name, replaceDiv, savedDiv);
+
+                (function (newName, position, lune, name, saveDiv, savedDiv) {
+                    saveDiv.addEventListener("click", function () {
+                        g_galaxyData.universe[position] = newName;
+                        updatePlayerInfo(newName, position, lune);
+                        f.$(this).fadeOut(500, function() {
+                            f.$(savedDiv).fadeTo(500, 0.5);
+                        });
+
+                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        writeLocationsOnMarkitTarget(newName, index);
+                        createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
+                    });
+                })(newName, position, lune, name, saveDiv, savedDiv);
+
+                (function (position, storedName, row, name, img, saveDiv) {
+                    img.addEventListener("click", function () {
+                        delete g_galaxyData.universe[position];
+                        deleteUnusedPosition(position, storedName);
+                        f.$(this).fadeOut(500, function() {
+                            f.$(saveDiv).fadeIn(500);
+                        });
+
+                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        writeLocationsOnMarkitTarget(storedName, index);
+                        createEasyTargetLocationDiv(name, storedName, position, index, rows, infos_scripts)
+                    });
+                })(position, newName, row, name, savedDiv, saveDiv);
+                replaceDiv.style.display = "none";
+                saveDiv.style.display = "none";
+                savedDiv.style.display = "none";
+                name.parentNode.appendChild(replaceDiv);
+                name.parentNode.appendChild(saveDiv);
+                name.parentNode.appendChild(savedDiv);
             }
 
-            var lune = (row.childNodes[7].childNodes.length > 1);
-
-            if (infos_scripts.EasyTarget && g_galaxyData.universe[position] !== newName) {
+            if (infos_scripts.EasyTarget && storedName && storedName !== newName) {
+                console.log("Different Person at " + position);
+                if (g_bottiness) {
+                    replacePlayerInDatabase(newName, storedName, position);
+                } else {
+                    replaceDiv.style.display = "block";
+                }
+            } else if (infos_scripts.EasyTarget && !storedName) {
+                // Found a new player at a new position
                 if (g_bottiness) {
                     g_galaxyData.universe[position] = newName;
                     g_galaxyDataChanged = true;
                 } else {
-                    var save = "https://cdn3.iconfinder.com/data/icons/google-material-design-icons/48/ic_save_48px-128.png";
-                    saveDiv = buildNode('img', ['src', 'id', "style"], [save, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px"], "");
-                    (function(newName, position, saveDiv) {
-                        saveDiv.addEventListener("click", function() {
-                            g_galaxyData.universe[position] = newName;
-                            g_galaxyDataChanged = true;
-                            this.src = "https://i.imgur.com/Ldr8fWG.png";
-                            this.style.opacity = 0.5;
-                        });
-                    })(newName, position, saveDiv);
+                    saveDiv.style.display = "block";
                 }
             } else {
-                var saved = "https://i.imgur.com/Ldr8fWG.png";
-                saveDiv = buildNode('img', ['src', 'id', "style"], [saved, 'save_' + (i + 1), "width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
-                (function(i, row, img) {
-                    img.addEventListener("click", function() {
-                        console.log(row);
-                        alert("Clicked " + i);
-                    });
-                })(i, row, saveDiv);
+                // storedName === newName, no change. Add "saved" icon
+                savedDiv.style.display = "block";
             }
 
             // Change the color of the rank according to the values set in GalaxyRanks
             if (name.className.indexOf('inactive') === -1 || config.GalaxyRanks.inactives) {
+
                 // Remove them from the inactives list if they're active again
                 if (g_inactiveList[newName] && name.className.indexOf('inactive') === -1) {
                     g_inactivesChanged = true;
                     delete g_inactiveList[newName];
                 }
+
                 span.style.color = '#' + gRanksColors[gRanksColors.length - 1];
                 for (j = 0; j < gRanksRanks.length; j++) {
                     if (rank <= parseInt(gRanksRanks[j])) {
@@ -2963,52 +2985,57 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
             }
 
+            // The player is inactive
             if (name.className.indexOf('inactive') !== -1) {
-                if (!config.GalaxyRanks.inactives) span.style.color = f.getComputedStyle(name).color;
+
+                // Set the rank color to the correct inactive
+                // color iff we aren't coloring them
+                if (!config.GalaxyRanks.inactives)
+                    span.style.color = f.getComputedStyle(name).color;
+
+                // Kinda hacky. Set the inactive/longinactive flag to
+                // the index of 'longinactive'. A regular inactive will
+                // have an index of -1
                 var newValue = name.className.indexOf('longinactive');
-                if (g_inactiveList[newName] === undefined || g_inactiveList[newName] !== newValue) {
+                if (!g_inactiveList[newName] || g_inactiveList[newName] !== newValue) {
                     g_inactiveList[newName] = newValue;
                     g_inactivesChanged = true;
                 }
 
+                // Autobots, roll out!
                 if (rank < 800 && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
                     spyNeeded.push(row);
                 }
             }
 
-            if (infos_scripts.GalaxyRanks) name.parentNode.appendChild(span);
-            if (infos_scripts.EasyTarget && !g_bottiness) name.parentNode.appendChild(saveDiv);
+            // Append new icons to galaxy view
+            if (infos_scripts.GalaxyRanks)
+                name.parentNode.appendChild(span);
+            if (infos_scripts.EasyTarget && !g_bottiness)
+                name.parentNode.appendChild(saveDiv);
 
-            if (infos_scripts.EasyTarget) {
-                if (g_galaxyData.players[newName] === undefined) {
-                    g_galaxyDataChanged = true;
-                    g_galaxyData.players[newName] = [
-                        [],
-                        []
-                    ];
-                }
-                if (g_galaxyData.players[newName][0].indexOf(position) === -1) {
-                    if (changedPlayers.indexOf(newName) === -1) changedPlayers.push(newName);
-                    g_galaxyDataChanged = true;
-                    g_galaxyData.players[newName][0].push(position);
-                }
-                if (lune && g_galaxyData.players[newName][1].indexOf(position) === -1) {
-                    if (changedMoons.indexOf(newName) === -1) changedMoons.push(newName);
-                    g_galaxyDataChanged = true;
-                    g_galaxyData.players[newName][1].push(position);
-                }
-                if (!lune && g_galaxyData.players[newName][1].indexOf(position) !== -1) {
-                    g_galaxyDataChanged = true;
-                    g_galaxyData.players[newName][1].splice(g_galaxyData.players[newName][1].indexOf(position), 1);
-                }
+            if (infos_scripts.EasyTarget && g_bottiness) {
+                // Non-bottiness is taken care of by the click functions.
+                updatePlayerInfo(newName, position, lune);
             }
         } else {
-            if (infos_scripts.EasyTarget && g_galaxyData.universe[position] !== undefined) {
-                g_galaxyDataChanged = true;
-                g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-                if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
-                    g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
-                delete g_galaxyData.universe[position];
+            // Nothing here. If it was stored in the database, delete it.
+            if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
+                if (g_bottiness) {
+                    deleteUnusedPosition(position);
+                } else {
+                    var redX = "https://i.imgur.com/gUAQ51d.png";
+                    saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
+                    (function(position, storedName, img) {
+                        img.addEventListener("click", function() {
+                            console.log("deleting unused position");
+                            deleteUnusedPosition(position, storedName);
+                            f.$(this).fadeOut();
+                        });
+                    })(position, storedName, saveDiv);
+
+                    row.childNodes[11].appendChild(saveDiv);
+                }
             }
         }
 
@@ -3019,53 +3046,32 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip(" +
                     "{width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
                 ));
-                var html = "<div><span style='color:#FFCC33'>Locations :</span><br />";
-                var loc = g_galaxyData.players[newName][0];
-                for (j = 0; j < loc.length; j++) {
-                    var space = (j < 9) ? "&nbsp" : "";
-                    html += (j + 1) + space + " : " + loc[j];
-                    if (g_galaxyData.players[newName][1].indexOf(loc[j]) !== -1) html += " (L)";
-                    html += "<br />";
-                }
+
                 div = buildNode("div", ["style", "id"], ["display:none;", "divToolTip"], "");
                 f.document.getElementsByTagName("body")[0].appendChild(div);
-                div = buildNode("div", ['style', 'id'], ['display:none', 'data_tooltip_' + i], html);
+                div = buildNode("div", ['style', 'id'], ['display:none', 'data_tooltip_' + i], "");
                 f.document.getElementsByTagName("body")[0].appendChild(div);
+                writeLocationsOnMarkitTarget(newName, i);
             }
             div = buildNode('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + i, 'float:left; width:15px;'], "");
             var img = buildNode('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + (i + 1)], "");
             div.appendChild(img);
             if (infos_scripts.EasyTarget) {
-                var insertee = name.parentNode.parentNode;
-                var insert = f.document.createElement('div');
-                for (j = 0; j < g_galaxyData.players[newName][0].length; j++) {
-                    var element = f.document.createElement('a');
-                    element.innerHTML = g_galaxyData.players[newName][0][j];
-                    if (element.innerHTML === position) element.style.color = '#7595EB';
-                    if (g_galaxyData.players[newName][1].indexOf(g_galaxyData.players[newName][0][j]) !== -1) element.innerHTML += " (L)";
-                    element.id = 'target_' + (i + 1) + '_' + (j + 1);
-                    element.style.margin = '10px 10px 0px 10px';
-                    element.style.textAlign = 'left';
-                    element.style.float = 'left';
-                    insert.appendChild(element);
-                }
-                insert.style.clear = 'both';
-                insert.style.display = 'none';
-                insertee.appendChild(insert);
+                createEasyTargetLocationDiv(name, newName, position, i, rows, infos_scripts);
 
                 // We found our target!
-                if (targetPlanet === i + 1) {
+                if (g_targetPlanet === i + 1) {
                     name.parentNode.parentNode.style.backgroundColor = 'rgba(0, 100, 0, .8)';
                     if (infos_scripts.Markit && g_markit[position] !== undefined) {
                         // This person is also marked. Show the marking after a second.
                         (function (sum, name) {
                             setTimeout(function () {
                                 var ploc = sum.substring(0, sum.indexOf(':', sum.indexOf(':') + 1) + 1);
-                                ploc += targetPlanet;
+                                ploc += g_targetPlanet;
                                 var c = hexToRgb('#' + config.Markit.color[g_markit[ploc]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
-                                    animateBackground(rows[targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
                                 }
                             }, 1000);
                         })(position, name);
@@ -3096,42 +3102,34 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 for (j = 1; j < 14; j += 2) {
                     (function(i, rows) {
                         f.$(row.childNodes[j]).click(function() {
+                            // Don't do anything if we're clicking the save button
+                            console.log(this.id);
+                            if (this.id.indexOf("save") === 0) {
+                                return;
+                            }
+
                             var kid = this.parentNode.childNodes[this.parentNode.childNodes.length - 1];
                             if (kid.style.display === 'block') {
                                 kid.style.display = 'none';
                             } else {
                                 kid.style.display = 'block';
                             }
-
                             // When clicked, make it the active planet, allowing us
                             // to then navigate with P/N
-                            if (targetPlanet !== -1) {
-                                var oldPos = gal + ":" + sys + ":" + targetPlanet;
+                            if (g_targetPlanet !== -1) {
+                                var oldPos = gal + ":" + sys + ":" + g_targetPlanet;
                                 if (g_markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
                                     c.a = 0.5;
-                                    animateBackground(rows[targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
                                 } else {
-                                    animateBackground(rows[targetPlanet - 1], targetPlanet % 2 === 0 ? "#111111" : "transparent", 600)
+                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600)
                                 }
                             }
-                            targetPlanet = i + 1;
+                            g_targetPlanet = i + 1;
                             animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600);
                         });
                     })(i, rows);
-                }
-
-                // Go to the correct system when clicking on a location
-                for (j = 0; j < g_galaxyData.players[newName][0].length; j++) {
-                    (function(i, j, name) {
-                        f.$('#target_' + (i + 1) + '_' + (j + 1)).click(function() {
-                            var coords = this.innerHTML;
-                            coords = coords.replace(" (L)", "");
-                            var gal = galaxySelector[0].value;
-                            var sys = f.document.getElementsByName('system')[0].value;
-                            targetPlanet = easyTargetRedirect(gal + ":" + sys + ":" + targetPlanet, coords, rows, name, infos_scripts, g_markit);
-                        });
-                    })(i, j, name);
                 }
             }
         }
@@ -3241,7 +3239,7 @@ function galaxySort(a, b) {
  * @param oldCoords
  * @param newCoords
  * @param rows - Array of rows containing the planets in the current system
- * @param name - TODO
+ * @param name - 
  * @param infos_scripts - The current script settings
  * @param markit - the script markit data
  * @returns {string}
@@ -3298,6 +3296,165 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
         f.$('#galaxy')[0].value = newGal;
         f.document.getElementsByName('system')[0].value = newSys;
         f.document.forms['galaxy_form'].submit();
+    }
+}
+
+/**
+ * Replace player X with player Y. This will run if we detect a new
+ * player name at a position we have a record for. This could be wrong,
+ * but if it's right it's more helpful than one-off replacement
+ *
+ * @param newName
+ * @param storedName
+ * @param position
+ */
+function replacePlayerInDatabase(newName, storedName, position) {
+    // There's a different person at this location than what we have stored
+    g_galaxyDataChanged = true;
+    if (!g_galaxyData.players[newName]) {
+        // If the owner of a planet has changed, and the new owner is not in the list, assume that
+        // the user changed names and change things accordingly. I think
+        var locations = g_galaxyData.players[storedName][0];
+        for (var j = 0; j < locations.length; j++) {
+            g_galaxyData.universe[locations[j]] = newName;
+        }
+
+        g_galaxyData.players[newName] = g_galaxyData.players[storedName];
+        delete g_galaxyData.players[storedName];
+    }
+
+    // If the old player exists, remove the planet/moon from their lists
+    // I think the g_galaxyData.players entry gets updated later?
+    g_galaxyData.universe[position] = newName;
+    if (g_galaxyData.players[storedName]) {
+        g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+        var moon = g_galaxyData.players[storedName][1].indexOf(position);
+        if (moon !== -1) {
+            g_galaxyData.players[storedName][1].splice(moon, 1);
+        }
+    }
+}
+
+/**
+ * Update galaxyData player information
+ * @param newName
+ * @param position
+ * @param lune
+ */
+function updatePlayerInfo(newName, position, lune) {
+    if (!g_galaxyData.players[newName]) {
+        // No entry for this particular player, create it
+        g_galaxyDataChanged = true;
+        g_galaxyData.players[newName] = [
+            [],
+            []
+        ];
+    }
+
+    var changedPlayer = false;
+    var changedMoon = false;
+    // If we haven't added this planet location yet
+    if (g_galaxyData.players[newName][0].indexOf(position) === -1) {
+        changedPlayer = true;
+
+        g_galaxyDataChanged = true;
+        g_galaxyData.players[newName][0].push(position);
+    }
+
+    // If we have a moon and haven't added it yet
+    if (lune && g_galaxyData.players[newName][1].indexOf(position) === -1) {
+        changedMoon = true;
+
+        g_galaxyDataChanged = true;
+        g_galaxyData.players[newName][1].push(position);
+    }
+
+    // If we don't have a moon and we used to
+    if (!lune && g_galaxyData.players[newName][1].indexOf(position) !== -1) {
+        g_galaxyDataChanged = true;
+        g_galaxyData.players[newName][1].splice(g_galaxyData.players[newName][1].indexOf(position), 1);
+    }
+
+    if (changedPlayer) {
+        g_galaxyData.players[newName][0].sort(galaxySort);
+    }
+    if (changedMoon) {
+        g_galaxyData.players[newName][1].sort(galaxySort);
+    }
+}
+
+/**
+ * Delete a position from the galaxy data. MUST be called on a
+ * position/player combo that actually exists
+ * @param position
+ * @param storedName
+ */
+function deleteUnusedPosition(position, storedName) {
+    g_galaxyDataChanged = true;
+    console.log("Attempting to remove " + storedName + " at " + position);
+    g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+    if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
+        g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    delete g_galaxyData.universe[position];
+}
+
+function createGalaxyDataButton(saveIcon, id, index, opacity) {
+    return buildNode('img', ['src', 'id', "style"], [saveIcon, 'save_' + id + "_" + index, "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:" + opacity], "");
+}
+
+function writeLocationsOnMarkitTarget(newName, i) {
+    var div = f.document.getElementById("data_tooltip_" + i);
+    if (!div) {
+        return;
+    }
+
+    var html = "<div><span style='color:#FFCC33'>Locations :</span><br />";
+    var personExists = !!g_galaxyData.players[newName];
+    var loc = personExists ? g_galaxyData.players[newName][0] : [];
+    for (var j = 0; j < loc.length; j++) {
+        var space = (j < 9) ? "&nbsp" : "";
+        html += (j + 1) + space + " : " + loc[j];
+        if (g_galaxyData.players[newName][1].indexOf(loc[j]) !== -1) html += " (L)";
+        html += "<br />";
+    }
+
+    div.innerHTML = html;
+}
+
+function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows, infos_scripts) {
+    var oldInsert = f.document.getElementById("easyTargetList" + i);
+
+    var insert = f.document.createElement("div");
+    insert.id = "easyTargetList" + i;
+    var personExists = !!g_galaxyData.players[newName];
+    for (var j = 0; personExists && j < g_galaxyData.players[newName][0].length; j++) {
+        var element = f.document.createElement('a');
+        element.innerHTML = g_galaxyData.players[newName][0][j];
+        if (element.innerHTML === position) element.style.color = '#7595EB';
+        if (g_galaxyData.players[newName][1].indexOf(g_galaxyData.players[newName][0][j]) !== -1) element.innerHTML += " (L)";
+        element.id = 'target_' + (i + 1) + '_' + (j + 1);
+        element.style.margin = '10px 10px 0px 10px';
+        element.style.textAlign = 'left';
+        element.style.float = 'left';
+        insert.appendChild(element);
+    }
+    insert.style.clear = 'both';
+    insert.style.display = oldInsert ? oldInsert.style.display : 'none';
+    if (oldInsert)
+        f.$(oldInsert).remove();
+    nameDiv.parentNode.parentNode.appendChild(insert);
+
+    // Go to the correct system when clicking on a location
+    for (j = 0; personExists && j < g_galaxyData.players[newName][0].length; j++) {
+        (function(i, j, name) {
+            f.$('#target_' + (i + 1) + '_' + (j + 1)).click(function() {
+                var coords = this.innerHTML;
+                coords = coords.replace(" (L)", "");
+                var gal = f.$('#galaxy')[0].value;
+                var sys = f.document.getElementsByName('system')[0].value;
+                g_targetPlanet = easyTargetRedirect(gal + ":" + sys + ":" + g_targetPlanet, coords, rows, name, infos_scripts, g_markit);
+            });
+        })(i, j, nameDiv);
     }
 }
 
