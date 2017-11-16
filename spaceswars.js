@@ -29,7 +29,6 @@
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
-console.log("OUTER RUNNING ON PAGE " + g_page);
 
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
@@ -78,6 +77,7 @@ var g_dnsChanged = false;
 var g_bottiness = true;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
+var g_saveEveryTime = false;
 
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
@@ -134,7 +134,7 @@ var advancedAutoAttack = autoAttack; // No longer used?
 
 setGlobalKeyboardShortcuts();
 
-if (g_page !== "forum") {
+if (g_page !== "forum" && !g_saveEveryTime) {
     window.addEventListener("beforeunload", function (e) {
         changeHandler(true /*forcecSave*/);
         var confirmationMessage = "/";
@@ -157,6 +157,14 @@ if (g_page === "frames") {
             }
         `
     ));
+
+    if (window.location.href.indexOf("lang_change") !== -1) {
+        var newLang = window.location.href.substring(window.location.href.length - 2);
+        if (g_lang !== newLang) {
+            g_lang = newLang;
+            L_ = setDictionary();
+        }
+    }
 
     handleNewPage = function(page) {
         g_page = page;
@@ -461,6 +469,10 @@ function getSlashedNb(nStr) {
  */
 function setDictionary() {
     console.log("Setting dictionary: " + g_lang);
+
+    if (L_ && g_lang === L_.lang) {
+        return L_;
+    }
     var tab = [];
     switch (g_lang) {
         case "fr":
@@ -1268,11 +1280,14 @@ function setupSidebar() {
 
     var sfmCheck = buildNode("input", ["type"], ["checkbox"]);
     var aaCheck = buildNode("input", ["type"], ["checkbox"]);
-    var saveData = buildNode("input", ["type", "style", "value"],
-        ["button", "width:16px;margin-left:4px;", "S"],
-        "", "click", function() {
-        changeHandler(true /*forceSave*/);
-    });
+
+    if (!g_saveEveryTime) {
+        var saveData = buildNode("input", ["type", "style", "value"],
+            ["button", "width:16px;margin-left:4px;", "S"],
+            "", "click", function() {
+                changeHandler(true /*forceSave*/);
+            });
+    }
 
     sfmCheck.onchange = function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
@@ -1292,7 +1307,8 @@ function setupSidebar() {
         saveData.value = "Save";
         saveData.style.width = "40px";
     }
-    langBox.append(saveData);
+    if (!g_saveEveryTime)
+        langBox.append(saveData);
 
     sfmCheck.checked = spyForMe ? "checked" : "";
     aaCheck.checked = autoAttack ? "checked" : "";
@@ -1545,8 +1561,6 @@ function buildFleetKeyHandler(key) {
 function buildDefKeyHandler(key) {
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
-
-    console.log(g_keyArray);
 
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
@@ -2098,7 +2112,7 @@ function loadEasyFarm() {
  */
 function changeHandler(forceSave) {
     g_changeCount++;
-    if (++g_changeCount >= SAVE_INTERVAL || forceSave) {
+    if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
         console.log("Saving changed data...");
         g_changeCount = 0;
         if (g_dnsChanged) {
@@ -2607,8 +2621,11 @@ function hexToRgb(hex) {
  *                   - Hex string (#ABCDEF) - Must be full 6 values
  *                   - "transparent"
  * @param duration - How long the transition should last
+ * @param deleteAfterTransition - Whether or not to remove the styling after we transition.
+ *        This can be used if we're transitioning back to a default color and want a class/tag
+ *        style to apply afterwards
  */
-function animateBackground(element, newColor, duration) {
+function animateBackground(element, newColor, duration, deleteAfterTransition) {
     var steps = Math.round(duration / (50/3));
     var oldColorTemp = getComputedStyle(element).backgroundColor;
     var oldColor = {};
@@ -2630,13 +2647,16 @@ function animateBackground(element, newColor, duration) {
         }
     }
     for (var i = 1; i <= steps; i++) {
-        setTimeout(function(element, oldColor, newColor, i, steps) {
+        setTimeout(function(element, oldColor, newColor, i, steps, deleteAfterTransition) {
             element.style.backgroundColor = "rgba(" +
                 Math.round(oldColor.r + (((newColor.r - oldColor.r) / steps) * i)) + "," +
                 Math.round(oldColor.g + (((newColor.g - oldColor.g) / steps) * i)) + "," +
                 Math.round(oldColor.b + (((newColor.b - oldColor.b) / steps) * i)) + "," +
                 (oldColor.a + (((newColor.a - oldColor.a) / steps) * i)) + ")";
-        }, (50/3) * i, element, oldColor, newColor, i, steps)
+            if (i === steps && deleteAfterTransition) {
+                element.style.backgroundColor = null;
+            }
+        }, (50/3) * i, element, oldColor, newColor, i, steps, deleteAfterTransition)
     }
 }
 
@@ -2708,13 +2728,13 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 } else {
                     defCol = "transparent";
                 }
-                animateBackground(rows[num - 1], defCol, 500);
+                animateBackground(rows[num - 1], defCol, 500, true);
             } else {
                 // Fade to the corresponding color
                 g_markit[galaxy + ':' + sys + ':' + num] = markitTypeChecked.val();
                 var c = hexToRgb('#' + config.Markit.color[type]);
                 c.a = .5;
-                animateBackground(rows[num - 1], c, 500);
+                animateBackground(rows[num - 1], c, 500, false);
             }
             f.$('#markit_choose').fadeOut(500);
             changeHandler(false /*forceSave*/);
@@ -2861,7 +2881,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             var c = hexToRgb('#' + config.Markit.color[g_markit[position]]);
             c.a = 0.5;
             if (name !== undefined && planet !== g_targetPlanet)
-                animateBackground(row, c, 750);
+                animateBackground(row, c, 750, false);
             else if (name === undefined) delete g_markit[position];
         }
 
@@ -2893,8 +2913,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
 
-                (function (newName, storedName, position, lune, name, saveDiv, savedDiv) {
-                    saveDiv.addEventListener("click", function () {
+                (function (newName, storedName, position, lune, name, replaceDiv, savedDiv) {
+                    replaceDiv.addEventListener("click", function () {
                         if (confirm("It looks like " + storedName + " may have changed their name to " + newName + ". Do you want to update all planets?")) {
                             alert("Replacing " + storedName + " with " + newName);
                             replacePlayerInDatabase(newName, storedName, position);
@@ -2906,7 +2926,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
                     });
@@ -2920,21 +2940,21 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
                     });
                 })(newName, position, lune, name, saveDiv, savedDiv);
 
-                (function (position, storedName, row, name, img, saveDiv) {
-                    img.addEventListener("click", function () {
+                (function (position, storedName, row, name, savedDiv, saveDiv) {
+                    savedDiv.addEventListener("click", function () {
                         delete g_galaxyData.universe[position];
                         deleteUnusedPosition(position, storedName);
                         f.$(this).fadeOut(500, function() {
                             f.$(saveDiv).fadeIn(500);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(storedName, index);
                         createEasyTargetLocationDiv(name, storedName, position, index, rows, infos_scripts)
                     });
@@ -3071,7 +3091,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 var c = hexToRgb('#' + config.Markit.color[g_markit[ploc]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 }
                             }, 1000);
                         })(position, name);
@@ -3121,13 +3141,13 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 if (g_markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 } else {
-                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600)
+                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true)
                                 }
                             }
                             g_targetPlanet = i + 1;
-                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600);
+                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false);
                         });
                     })(i, rows);
                 }
@@ -3263,7 +3283,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
                 var c = hexToRgb('#' + g_config.Markit.color[markit[newCoords]]);
                 c.a = 0.5;
                 if (name !== undefined) {
-                    animateBackground(rows[newPlanet - 1], c, 600);
+                    animateBackground(rows[newPlanet - 1], c, 600, false);
                 }
             }, 1000);
         }
@@ -3272,16 +3292,16 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
             var c = hexToRgb('#' + g_config.Markit.color[markit[oldCoords]]);
             c.a = 0.5;
             if (name !== undefined) {
-                animateBackground(rows[oldPlanet - 1], c, 600);
+                animateBackground(rows[oldPlanet - 1], c, 600, false);
             }
         } else if (oldPlanet % 2 === 0) {
             // Otherwise fill it in with its default color
-            animateBackground(rows[oldPlanet - 1], "#111111", 200);
+            animateBackground(rows[oldPlanet - 1], "#111111", 200, true);
         } else if (parseInt(oldPlanet) !== -1) {
-            animateBackground(rows[oldPlanet - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200);
+            animateBackground(rows[oldPlanet - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200, true);
         }
         // Mark the next target green
-        animateBackground(rows[parseInt(newPlanet) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200);
+        animateBackground(rows[parseInt(newPlanet) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
 
         return newPlanet;
     } else {
