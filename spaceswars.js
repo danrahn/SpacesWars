@@ -75,7 +75,7 @@ var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
 var g_dnsChanged = false;
-var g_bottiness = false;
+var g_bottiness = true;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
@@ -2077,12 +2077,12 @@ function loadEasyFarm() {
         messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
         setTimeout(function() {
             f.document.getElementsByTagName("input")[5].click();
-        }, Math.random() * 200 + 200);
+        }, Math.random() * 300 + 400);
     } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
         GM_setValue("AutoAttackIndex", attackIndex);
         setTimeout(function() {
             f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
-        }, Math.random() * 200 + 200);
+        }, Math.random() * 400 + 1200);
     }
     if (g_dnsChanged) {
         console.log("DNS data changed");
@@ -2962,7 +2962,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 } else {
                     saveDiv.style.display = "block";
                 }
-            } else {
+            } else if (!g_bottiness) {
                 // storedName === newName, no change. Add "saved" icon
                 savedDiv.style.display = "block";
             }
@@ -3142,7 +3142,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (sfmLen > 0)
                 setTimeout(function() {
                     f.document.getElementsByName('systemRight')[0].click();
-                }, Math.random() * 200 + (spyForMe ? 300 : 400));
+                }, Math.random() * 300 + 500); // Admin's back. Make these more reasonable
         }
 
         for (i = 0; i < spyNeeded.length; i++) {
@@ -3162,9 +3162,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         if (sfmLen > 0)
                             setTimeout(function() {
                                 f.document.getElementsByName('systemRight')[0].click();
-                            }, Math.random() * 300);
+                            }, Math.random() * 400 + 400);
                     }
-                }, i * (spyForMe ? 300 : 300));
+                }, i * (spyForMe ? 300 : 300) + 500);
             }(row, last, i));
         }
     }
@@ -3239,7 +3239,7 @@ function galaxySort(a, b) {
  * @param oldCoords
  * @param newCoords
  * @param rows - Array of rows containing the planets in the current system
- * @param name - 
+ * @param name -
  * @param infos_scripts - The current script settings
  * @param markit - the script markit data
  * @returns {string}
@@ -3698,7 +3698,7 @@ function saveFleetPage() {
                 GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / 1000000) * 1000000);
                 setTimeout(function() {
                     f.$('input[type=submit]')[0].click()
-                }, Math.random() * 100);
+                }, Math.random() * 400 + 1200); // It takes awhile to enter ships, take a bit longer here
             }
         } else {
             GM_deleteValue("AutoAttackMC");
@@ -3714,7 +3714,7 @@ function continueAttack() {
     if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click()
-        }, Math.random() * 100);
+        }, Math.random() * 100 + 50); // Just Enter/Enter/Enter, doesn't take as long
     }
 }
 
@@ -3726,7 +3726,7 @@ function sendAttack() {
     if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click()
-        }, Math.random() * 100);
+        }, Math.random() * 100 + 50); // Again, just pressing enter. Much faster.
     }
 }
 
