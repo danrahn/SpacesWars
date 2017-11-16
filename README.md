@@ -58,10 +58,6 @@ Display and color a user's rank directly in galaxy view to quickly measure a pla
 
 Change empire view such that moons are listed last, and the totals column is first.
 
-### FleetPoints
-
-May have to remove, as I've been told it breaks the game rules. By default, one can only see the number of ships a player has, not the value of their fleet. The value can be discovered easily enough though by subtracting the value of the other categories by their total score (total - buildings - defenses - research = fleet). This script scans and saves the values found in the stats page and creates a new "Fleet Points" category that a user can select and determine the value of a user's fleet. The user also gets a notification if not all the values are up to date.
-
 ### More
 
 These are smaller scripts that aren't configurable other than on/off.
@@ -144,7 +140,7 @@ On pages where you use 2+ character combinations, pressing ESC will clear the cu
      * `L` : alL
  * Message Navigation
      * `Tab`/`Down Arrow` : Focus next message
-     * `HIFT + Tab`/`Up Arrow` : Focus previous message
+     * `SHIFT + Tab`/`Up Arrow` : Focus previous message
      * `Right Arrow` : Expand Message
      * `Left Arrow` : Collapse Message
  * Message Management
@@ -203,6 +199,3 @@ The following two-character combos will bring you to the specified item. If it c
    * `A` : Select all resosurces
    * `N` : Select all Deut
    * `S` : Submit/Send fleet
-   
-  ### Other
-  There are other undocumented features as well, but until they are entirely fleshed out, I won't be adding a description.
