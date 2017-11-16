@@ -31,12 +31,7 @@ var g_page = g_info.loc;
 var g_uni = g_info.universe;
 console.log("OUTER RUNNING ON PAGE " + g_page);
 
-// A bit of a misnomer, as it's function changed. Determines
-// whether to selectively ignore planets when spying because old
-// reports show they have nothing of use
-var spyForMe = !!parseInt(GM_getValue("SpyForMe"));
-
-var g_nbScripts = 13;
+var g_nbScripts = 12;
 var thisVersion = "4.1";
 var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
@@ -67,15 +62,12 @@ var nbUnis = g_versionInfo.nbUnis;
 var g_canLoadMap = getLoadMap();
 var g_config = getConfig();
 var g_galaxyData = getGalaxyData();
-var g_doNotSpy = getDoNotSpyData();
-var g_fleetPoints = getFleetPointsData();
 var g_inactiveList = getInactiveList();
 var g_markit = getMarkitData();
 var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
 var g_dnsChanged = false;
-var g_bottiness = true;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 
@@ -126,11 +118,6 @@ else {
         window.top.g_keyArray.length = 0;
     }
 }
-
-// Ah, the bread and butter. Should we go through every spy report
-// and attack? True bottiness
-var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && g_bottiness;
-var advancedAutoAttack = autoAttack; // No longer used?
 
 setGlobalKeyboardShortcuts();
 
@@ -205,8 +192,8 @@ if (g_page === "frames") {
         }
 
         // Shows who's inactive in the statistics page
-        if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
-            loadInactiveStatsAndFleetPoints(g_scriptInfo);
+        if (canLoadInPage("InactiveStats") && (g_scriptInfo.InactiveStats)) {
+            loadInactiveStats(g_scriptInfo);
         }
 
         if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
@@ -252,14 +239,6 @@ if (g_page === "frames") {
 
         if (g_page === "fleet") {
             saveFleetPage();
-        }
-
-        if (g_page === "floten1") {
-            continueAttack();
-        }
-
-        if (g_page === "floten2") {
-            setupFleet2();
         }
 
         if (g_page === 'simulator') {
@@ -592,9 +571,6 @@ function setDictionary() {
             tab.betterEmpDescrip2 = "Fonctionne dans la page de l'empire";
             tab.betterEmpMain = "commande standard";
             tab.betterEmpMoon = "lunes derniers";
-            tab.FPDescrip1 = "Ajouter des points de la flotte comme une option dans la page de classements.";
-            tab.FPDescrip2 = "Travaux dans la page de classements";
-            tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
             tab.spy = "Espionner";
             tab.closeMessage = "Fermer ce message";
             break;
@@ -728,9 +704,6 @@ function setDictionary() {
             tab.betterEmpDescrip2 = "Works in the empire page";
             tab.betterEmpMain = "Standard ordering";
             tab.betterEmpMoon = "Moons last";
-            tab.FPDescrip1 = "Add fleet points as an option in the statistics page.";
-            tab.FPDescrip2 = "Works in the statistics page";
-            tab.FPAlert = "If this person changed their name and shouldn't be in the stats anymore, press enter.";
             tab.spy = "Espionage";
             tab.closeMessage = "Close this message";
             break;
@@ -875,7 +848,6 @@ function setScriptsInfo() {
     list.EasyTarget = 1;
     list.GalaxyRanks = 1;
     list.BetterEmpire = 1;
-    list.FleetPoints = 1;
     list.More = 1;
     GM_setValue("infos_scripts", JSON.stringify(list));
     return list;
@@ -1151,48 +1123,6 @@ function getGalaxyData() {
     return storage;
 }
 
-function getDoNotSpyData() {
-
-    // Build up a list of planets we should avoid spying next time because
-    // they have very little resources
-    var doNotSpy;
-    try {
-        console.log("Grabbing DoNotSpy_uni" + g_uni + " from storage");
-        doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
-    } catch (ex) {
-        doNotSpy = new Array(8);
-        for (var i = 0; i < 8; i++) {
-            doNotSpy[i] = new Array(500);
-            for (var j = 0; j < 500; j++) {
-                doNotSpy[i][j] = new Array(16);
-            }
-        }
-    }
-
-    return doNotSpy;
-}
-
-function getFleetPointsData() {
-    var fp;
-    try {
-        console.log("grabbing fp uni" + g_uni);
-        fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
-        if (!fp) fp = {
-            "1": {},
-            "2": {},
-            "3": {}
-        };
-    } catch (err) {
-        fp = {
-            "1": {},
-            "2": {},
-            "3": {}
-        };
-    }
-
-    return fp;
-}
-
 function getInactiveList() {
     var lst;
     try {
@@ -1265,37 +1195,13 @@ function setupSidebar() {
         "<a href='achatbonus.php?lang=" + g_lang + "&uni=" + g_uni +
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
-
-    var sfmCheck = buildNode("input", ["type"], ["checkbox"]);
-    var aaCheck = buildNode("input", ["type"], ["checkbox"]);
     var saveData = buildNode("input", ["type", "style", "value"],
-        ["button", "width:16px;margin-left:4px;", "S"],
+        ["button", "width:40px;margin-left:4px;", "Save"],
         "", "click", function() {
         changeHandler(true /*forceSave*/);
     });
 
-    sfmCheck.onchange = function() {
-        GM_setValue("SpyForMe", this.checked ? 1 : 0);
-        spyForMe = this.checked;
-    };
-
-    aaCheck.onchange = function() {
-        GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
-        autoAttack = this.checked && g_bottiness;
-        advancedAutoAttack = autoAttack;
-    };
-
-    if (g_bottiness) {
-        langBox.appendChild(sfmCheck);
-        langBox.appendChild(aaCheck);
-    } else {
-        saveData.value = "Save";
-        saveData.style.width = "40px";
-    }
     langBox.append(saveData);
-
-    sfmCheck.checked = spyForMe ? "checked" : "";
-    aaCheck.checked = autoAttack ? "checked" : "";
 }
 
 /**
@@ -1901,7 +1807,6 @@ function loadClickNGo() {
         g_config.ClicNGo.usernames.splice(nb - 1, 1);
         g_config.ClicNGo.passwords.splice(nb - 1, 1);
         GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
-        //localStorage["config_scripts+_uni_0"] = JSON.stringify(config);
         f.document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -1909,27 +1814,10 @@ function loadClickNGo() {
 }
 
 /**
- * If we're coming from an autoattack and are on the general
- * messages page, redirect to spy messages
- */
-function checkEasyFarmRedirect() {
-    if (parseInt(GM_getValue("redirToSpy")) === 1) {
-        GM_deleteValue("redirToSpy");
-        var aLinks = f.document.getElementsByTagName("a");
-        for (var i = 0; i < aLinks.length; i++) {
-            if (aLinks[i].href.indexOf("messcat=0") !== -1) {
-                aLinks[i].click();
-            }
-        }
-    }
-}
-
-/**
  * Highlights spy reports that have lots of resources/fleet,
  * among other things
  */
 function loadEasyFarm() {
-    checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
@@ -1939,11 +1827,6 @@ function loadEasyFarm() {
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
-    var attackIndex = -1;
-    var aaIndex = parseInt(GM_getValue("AutoAttackIndex"));
-
-    if (isNaN(aaIndex))
-        aaIndex = -1;
 
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -1978,20 +1861,6 @@ function loadEasyFarm() {
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
         }
 
-        var shouldAttack = !hasShips && candidate;
-        var totDef = 0;
-        // TODO: could be much more efficient with a map instead of array
-        for (j = 0; j < g_defNames.length; j++) {
-            if (messages[i].innerHTML.indexOf(g_defNames[j] + " : ") !== -1) {
-                var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
-                if (i !== 8)
-                    totDef += n;
-                else
-                    shouldAttack = shouldAttack && n <= 200;
-            }
-        }
-        shouldAttack = shouldAttack && totDef < 500000;
-
         html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
         if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
             html += "<br/><div><span style='color:#55BBFF'>" + L_["EasyFarm_defenses"] + " :</span>";
@@ -2000,25 +1869,8 @@ function loadEasyFarm() {
             html += "</div>";
         }
 
-        var text = messages[i].childNodes[1].childNodes[7].innerHTML;
-        text = text.substr(5, text.indexOf("(") - 6);
-        var galaxy = parseInt(text.substr(0, 1));
-        text = text.substr(2);
-        var system = parseInt(text.substr(0, text.indexOf(":")));
-        var position = text.substr(text.indexOf(":") + 1);
-
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
-        if (allDeut < 4 * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
-            messages[i].getElementsByClassName("checkbox")[0].checked = true;
-        }
-
-        var oldValue = g_doNotSpy[galaxy][system][position];
-        var newValue = allDeut < g_config.EasyFarm.minPillage / 2;
-        if (oldValue !== newValue) {
-            g_dnsChanged = true;
-            g_doNotSpy[galaxy][system][position] = newValue;
-        }
 
         var deutTotal = allDeut;
         var snb = getSlashedNb;
@@ -2046,43 +1898,6 @@ function loadEasyFarm() {
         div = buildNode("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + i, xpath.href, "float:right; width:0;"],
             "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
         messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
-
-        // Definitely not a bot... I don't know what you're talking about
-        if (autoAttack) {
-            var href = messages[i].getElementsByTagName("a")[2].href;
-            (function(count, res, href) {
-                f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
-                    GM_setValue("AutoAttackWaves", count);
-                    res = Math.round((res + 500000) / 1000000) * 1000000;
-                    GM_setValue("AutoAttackMC", res);
-                    f.location = href;
-                });
-            })(count, res, href);
-
-            if (shouldAttack && advancedAutoAttack) {
-                if (attackIndex === -1 || attackIndex === aaIndex)
-                    attackIndex = i;
-            }
-        }
-    }
-
-    if (!autoAttack) {
-        GM_deleteValue("AutoAttackWaves");
-        GM_deleteValue("AutoAttackMC");
-        GM_setValue("AutoAttackIndex", -1);
-    }
-
-    if (messages.length > 0 && aaIndex !== -1 && autoAttack && advancedAutoAttack) {
-        GM_setValue("AutoAttackIndex", -1);
-        messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
-        setTimeout(function() {
-            f.document.getElementsByTagName("input")[5].click();
-        }, Math.random() * 300 + 400);
-    } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
-        GM_setValue("AutoAttackIndex", attackIndex);
-        setTimeout(function() {
-            f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
-        }, Math.random() * 400 + 1200);
     }
     if (g_dnsChanged) {
         console.log("DNS data changed");
@@ -2101,12 +1916,6 @@ function changeHandler(forceSave) {
     if (++g_changeCount >= SAVE_INTERVAL || forceSave) {
         console.log("Saving changed data...");
         g_changeCount = 0;
-        if (g_dnsChanged) {
-            console.log("Saving DNS data");
-            g_dnsChanged = false;
-            GM_setValue("DoNotSpy_uni" + g_uni, JSON.stringify(g_doNotSpy));
-        }
-
         if (g_markitChanged) {
             console.log("Saving markit data");
             g_markitChanged = false;
@@ -2172,178 +1981,27 @@ function setSimDefaults() {
  * @param scriptsInfo - The current script settings
  *
  */
-function loadInactiveStatsAndFleetPoints(scriptsInfo) {
-    var fpRedirect = false;
-    var changed = false;
-    var types, i, space;
-    if (scriptsInfo.FleetPoints && g_bottiness) {
-
-        fpRedirect = !!(GM_getValue("fp_redirect"));
-        GM_setValue('fp_redirect', 0);
-        if (!g_fleetPoints['1']) g_fleetPoints['1'] = {};
-        if (!g_fleetPoints['2']) g_fleetPoints['2'] = {};
-        if (!g_fleetPoints['3']) g_fleetPoints['3'] = {};
+function loadInactiveStats() {
+    if (!g_inactiveList) {
+        g_inactiveList = getInactiveList();
     }
 
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
+    for (var i = 1; i < players.length - 1; i++) {
+        var div;
+        // Top 5 have avatar, have to assign div differently
+        if (players[i].childNodes[5].childNodes.length === 2)
+            div = players[i].childNodes[5].childNodes[1].childNodes[0];
+        else
+            div = players[i].childNodes[5].childNodes[0];
+        var name = div.innerHTML;
 
-    if (scriptsInfo.FleetPoints && g_bottiness) {
-        var timeSelector = f.$('.divtop.curvedtot');
-        var time = timeSelector[0].innerHTML;
-        var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        if (g_lang === 'fr') types = ['Points de Flotte', 'Général', ' pas à jour!', 'Recherche', 'Bâtiment', 'Défense'];
-        else types = ['Fleet Points', 'General', ' not up to date!', 'Research', 'Buildings', 'Defense'];
-        if (g_lang === 'fr') {
-            time = time.substring(time.indexOf('nt') + 3);
-        } else time = time.substring(time.indexOf('on ') + 3);
-        var day = time.substring(0, time.indexOf(' '));
-        time = time.substring(time.indexOf(' ') + 1);
-        var month = months.indexOf(time.substring(0, time.indexOf(' ')));
-        time = time.substring(time.indexOf(' ') + 1);
-        var year = time.substring(0, time.indexOf(' '));
-        time = time.substring(time.indexOf(' ') + 1);
-        time = time.substring(time.indexOf(' ') + 1);
-        var hour = time.substring(0, time.indexOf(':'));
-        time = time.substring(time.indexOf(':') + 1);
-        var minutes = time.substring(0, time.indexOf(':'));
-        var seconds = time.substring(time.indexOf(':') + 1); // seconds
-        var dte = new Date(year, month, day, hour, minutes, seconds, 0);
-        var who = parseInt(f.$('select[name=who] :selected').val());
-        if (who === 2) dte = new Date(g_fleetPoints[1][Object.keys(g_fleetPoints[1])[0]][1][1]);
-
-        if (!fpRedirect) {
-            var type = f.$('select[name=type] :selected').val();
-            var ind = ((who === 2) ? 9 : 11);
-            if (type !== '2') {
-                for (i = 1; i < players.length - 1; i++) {
-                    var player;
-                    if (players[i].childNodes[5].childNodes.length === 2) player = players[i].childNodes[5].childNodes[1].childNodes[0];
-                    else player = players[i].childNodes[5].childNodes[0];
-                    player = player.innerHTML;
-                    var score = parseInt(players[i].childNodes[ind].innerHTML.replace(/\./g, ''));
-                    if (g_fleetPoints[who][player] === undefined) g_fleetPoints[who][player] = {
-                        '1': [0, 0],
-                        '3': [0, 0],
-                        '4': [0, 0],
-                        '5': [0, 0]
-                    };
-                    if (g_fleetPoints[who][player][type][1] !== dte.getTime()) {
-                        g_fleetPoints[who][player][type] = [score, dte.getTime()];
-                        changed = true;
-                    }
-                }
-                if (changed) GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
-            }
-        } else {
-            space = f.$('.space0')[1];
-            space.removeChild(space.childNodes[5]);
-            space.removeChild(space.childNodes[4]);
-            var head = timeSelector[1];
-            while (head.firstChild) head.removeChild(head.firstChild);
-            head.appendChild(buildNode('div', ['class'], ['stats_player_1'], "Place"));
-            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (g_lang === 'fr') ? 'Joueur' : 'Player'));
-            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], "Points"));
-            head.appendChild(buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
-            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (g_lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
-            players = f.document.getElementsByClassName('space0')[2];
-            while (players.firstChild) players.removeChild(players.firstChild);
-            var arr = [];
-            for (var k in g_fleetPoints[who]) {
-                if (g_fleetPoints[who].hasOwnProperty(k)) {
-                    arr.push([k, g_fleetPoints[who][k]['1'][0] - g_fleetPoints[who][k]['3'][0] - g_fleetPoints[who][k]['4'][0] - g_fleetPoints[who][k]['5'][0]]);
-                }
-            }
-            arr.sort(function(a, b) {
-                return b[1] - a[1]
-            });
-            for (i = 0; i < arr.length; i++) {
-                var container = buildNode('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
-                var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
-                var playr = buildNode('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
-                var point = buildNode('div', ['class'], ['stats_player_2'], getSlashedNb(arr[i][1]));
-                var notUpdated = '&nbsp;';
-                for (var j = 1; j < 5; j++) {
-                    if (j !== 2) {
-                        if (g_fleetPoints[who][arr[i][0]][j][1] !== dte.getTime()) {
-                            notUpdated = types[j] + types[2];
-                            break;
-                        }
-                    }
-                }
-                var info = buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], notUpdated);
-                container.appendChild(place);
-                container.appendChild(playr);
-                container.appendChild(point);
-                container.appendChild(info);
-                players.appendChild(container);
-            }
-            f.$('#nameChange').click(function() {
-                var en = "Make sure you have gone through all the stats in the General section, as this deletes any players where general is not up to date. It also deletes EasyTarget info, so be careful!";
-                var fr = "Assurez-vous que vous avez passé par toutes les statistiques de la section générale, car cela supprime tous les joueurs où le général est pas à jour. Il supprime également des informations EasyTarget, donc soyez prudent!";
-                var msg = (g_lang === 'en') ? en : fr;
-                if (confirm(msg)) {
-                    for (var i = 0; i < arr.length; i++) {
-                        if (g_fleetPoints[who][arr[i][0]][1][1] !== dte.getTime()) {
-                            delete g_fleetPoints[who][arr[i][0]];
-                            var locations = g_galaxyData.players[arr[i][0]][0];
-                            for (var j = 0; j < locations.length; j++) {
-                                delete g_galaxyData.universe[locations[j]];
-                            }
-                            delete g_galaxyData.players[arr[i][0]];
-                        }
-                    }
-                    GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
-                    GM_setValue('fp_redirect', 1);
-                    window.location = 'stat.php';
-                }
-            });
-        }
-    }
-
-    if (scriptsInfo.InactiveStats) {
-        for (i = 1; i < players.length - 1; i++) {
-            var div;
-            // Top 5 have avatar, have to assign div differently
-            if (players[i].childNodes[5].childNodes.length === 2) div = players[i].childNodes[5].childNodes[1].childNodes[0];
-            else div = players[i].childNodes[5].childNodes[0];
-            var name = div.innerHTML;
-            if (g_inactiveList[name] === true) {
-                div.style.color = '#CCC';
-                div.innerHTML += ' (i)'
-            } else if (g_inactiveList[name] === false) {
-                div.style.color = '#999';
-                div.innerHTML += ' (i I)';
-            }
-        }
-    }
-
-    if (scriptsInfo.FleetPoints && g_bottiness) {
-        space = f.$('.space0')[1];
-        var del = space.removeChild(space.childNodes[3]);
-
-        del.onchange = function() {
-            if (this.value === "6") {
-                GM_setValue('fp_redirect', 1);
-                this.value = 2;
-            }
-            f.document.forms[1].submit();
-        };
-        del.appendChild(buildNode('option', ['value'], ['6'], types[0]));
-        space.insertBefore(del, space.childNodes[3]);
-
-        del = space.removeChild(space.childNodes[1]);
-        del.onchange = function() {
-            var selector = f.$('select[name=type]');
-            if (selector.val() === '6') {
-                GM_setValue('fp_redirect', 1);
-                selector.val(2);
-            }
-            f.document.forms[1].submit();
-        };
-        space.insertBefore(del, space.childNodes[1]);
-        if (fpRedirect) {
-            f.$('select[name=type] :selected').removeAttr('selected');
-            f.$('select[name=type]').val(6);
+        if (g_inactiveList[name] === -1) {
+            div.style.color = '#CCC';
+            div.innerHTML += ' (i)'
+        } else if (g_inactiveList[name] === 0) {
+            div.style.color = '#999';
+            div.innerHTML += ' (i I)';
         }
     }
 }
@@ -2455,25 +2113,14 @@ function loadMcTransport() {
         //mc[0].value = "";
         var div = buildNode('div', ['class', 'style'], ['flotte_bas', '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'], '');
         var text = buildNode('a', ['class', 'id'], ['link_ship_selected', 'transport'], "MC Transport");
-        //var less = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'ten', 'font-size: 5pt'], "(-10) &nbsp;");
-        //var more = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'hundred', 'font-size: 5pt'], " &nbsp;(+10)");
-        //div.appendChild(less);
         div.appendChild(text);
-        //div.appendChild(more);
         var flotteBas = f.$('.flotte_bas');
         flotteBas[0].parentNode.insertBefore(div, flotteBas[1]);
         var w = parseInt(f.getComputedStyle(flotteBas[0], null).getPropertyValue('width'));
         flotteBas.css('width', (w * 2 / 3) + 'px');
         f.$('#transport').click(function() {
             f.$('#ship217')[0].value = getSlashedNb(num);
-            //document.forms[1].submit();
         });
-//         $('#ten').click(function() {
-//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) - 10000);
-//         });
-//         $('#hundred').click(function() {
-//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) + 10000);
-//         });
     }
 }
 
@@ -2845,9 +2492,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     });
 
-    var spyNeeded = [];
-    var sfmLen = parseInt(GM_getValue("autoSpyLength"));
-
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
     for (i = 0; i < 15; i++) {
@@ -2888,7 +2532,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 newName = newName.substring(0, newName.length - 1);
 
 
-            if (infos_scripts.EasyTarget && !g_bottiness) {
+            if (infos_scripts.EasyTarget) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
@@ -2949,20 +2593,11 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             if (infos_scripts.EasyTarget && storedName && storedName !== newName) {
                 console.log("Different Person at " + position);
-                if (g_bottiness) {
-                    replacePlayerInDatabase(newName, storedName, position);
-                } else {
-                    replaceDiv.style.display = "block";
-                }
+                replaceDiv.style.display = "block";
             } else if (infos_scripts.EasyTarget && !storedName) {
                 // Found a new player at a new position
-                if (g_bottiness) {
-                    g_galaxyData.universe[position] = newName;
-                    g_galaxyDataChanged = true;
-                } else {
-                    saveDiv.style.display = "block";
-                }
-            } else if (!g_bottiness) {
+                saveDiv.style.display = "block";
+            } else {
                 // storedName === newName, no change. Add "saved" icon
                 savedDiv.style.display = "block";
             }
@@ -2971,7 +2606,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (name.className.indexOf('inactive') === -1 || config.GalaxyRanks.inactives) {
 
                 // Remove them from the inactives list if they're active again
-                if (g_inactiveList[newName] && name.className.indexOf('inactive') === -1) {
+                if (g_inactiveList[newName] !== undefined && name.className.indexOf('inactive') === -1) {
                     g_inactivesChanged = true;
                     delete g_inactiveList[newName];
                 }
@@ -2997,45 +2632,31 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 // the index of 'longinactive'. A regular inactive will
                 // have an index of -1
                 var newValue = name.className.indexOf('longinactive');
-                if (!g_inactiveList[newName] || g_inactiveList[newName] !== newValue) {
+                if (g_inactiveList[newName] === undefined || g_inactiveList[newName] !== newValue) {
                     g_inactiveList[newName] = newValue;
                     g_inactivesChanged = true;
-                }
-
-                // Autobots, roll out!
-                if (rank < 800 && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
-                    spyNeeded.push(row);
                 }
             }
 
             // Append new icons to galaxy view
             if (infos_scripts.GalaxyRanks)
                 name.parentNode.appendChild(span);
-            if (infos_scripts.EasyTarget && !g_bottiness)
+            if (infos_scripts.EasyTarget)
                 name.parentNode.appendChild(saveDiv);
-
-            if (infos_scripts.EasyTarget && g_bottiness) {
-                // Non-bottiness is taken care of by the click functions.
-                updatePlayerInfo(newName, position, lune);
-            }
         } else {
             // Nothing here. If it was stored in the database, delete it.
             if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
-                if (g_bottiness) {
-                    deleteUnusedPosition(position);
-                } else {
-                    var redX = "https://i.imgur.com/gUAQ51d.png";
-                    saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
-                    (function(position, storedName, img) {
-                        img.addEventListener("click", function() {
-                            console.log("deleting unused position");
-                            deleteUnusedPosition(position, storedName);
-                            f.$(this).fadeOut();
-                        });
-                    })(position, storedName, saveDiv);
+                var redX = "https://i.imgur.com/gUAQ51d.png";
+                saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
+                (function(position, storedName, img) {
+                    img.addEventListener("click", function() {
+                        console.log("deleting unused position");
+                        deleteUnusedPosition(position, storedName);
+                        f.$(this).fadeOut();
+                    });
+                })(position, storedName, saveDiv);
 
-                    row.childNodes[11].appendChild(saveDiv);
-                }
+                row.childNodes[11].appendChild(saveDiv);
             }
         }
 
@@ -3133,52 +2754,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
             }
         }
-    }
-
-    if (!isNaN(sfmLen) && sfmLen >= 0)
-    {
-        if (spyNeeded.length === 0) {
-            GM_setValue("autoSpyLength", sfmLen - 1);
-            if (sfmLen > 0)
-                setTimeout(function() {
-                    f.document.getElementsByName('systemRight')[0].click();
-                }, Math.random() * 300 + 500); // Admin's back. Make these more reasonable
-        }
-
-        for (i = 0; i < spyNeeded.length; i++) {
-            row = spyNeeded[i];
-            var last = i === spyNeeded.length - 1;
-            (function(row, last, i) {
-                setTimeout(function () {
-                    var element = row.childNodes[15].childNodes[1];
-                    if (element !== undefined) {
-                        var title = element.getAttribute('title');
-                        if (title === 'Spy') {
-                            element.click();
-                        }
-                    }
-                    if (last) {
-                        GM_setValue("autoSpyLength", sfmLen - 1);
-                        if (sfmLen > 0)
-                            setTimeout(function() {
-                                f.document.getElementsByName('systemRight')[0].click();
-                            }, Math.random() * 400 + 400);
-                    }
-                }, i * (spyForMe ? 300 : 300) + 500);
-            }(row, last, i));
-        }
-    }
-
-    if (g_bottiness) {
-        var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
-        var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
-            var num = f.$("#autoSpyLength").val();
-            GM_setValue("autoSpyLength", num);
-
-        });
-        var inputDiv = f.$(".galaxy_float100")[0];
-        inputDiv.append(len);
-        inputDiv.append(goBox);
     }
 
     // If we've added entries for a player, sort
@@ -3630,10 +3205,6 @@ function disableAutoComplete() {
     }
 }
 
-/**
- * Autoattack handler, as well as defining some
- * keyboard shortcuts
- */
 function saveFleetPage() {
 
     var locData = JSON.stringify(f.location);
@@ -3641,93 +3212,6 @@ function saveFleetPage() {
     var mc = f.$('#ship217');
     if (mc[0])
         mc[0].focus();
-
-    if (autoAttack) {
-        var waves = 0;
-        try {
-            waves = parseInt(GM_getValue("AutoAttackWaves"));
-        } catch (ex) {
-            waves = 0;
-        }
-
-        if (waves !== 0 && !isNaN(waves))
-        {
-            var regx = /[a-z ]+([0-9]+)[on ]+([0-9]+)/;
-            var x = regx.exec(f.document.getElementsByClassName("flotte_header_left")[0].innerHTML);
-            var fleetOut = parseInt(x[1]);
-            var fleetMax = parseInt(x[2]);
-            if (fleetOut + waves > fleetMax) {
-                //alert("Not enough waves free!");
-                GM_deleteValue("AutoAttackMC");
-                GM_deleteValue("AutoAttackWaves");
-                GM_setValue("AutoAttackIndex", -1);
-                var div = f.document.createElement("div");
-                div.style.color = "Red";
-                div.style.fontWeight = "bold";
-                div.style.fontSize = "14pt";
-                div.innerHTML = "Not enough fleets, retrying in 30 seconds";
-                f.$("#main").prepend(div);
-                // Wait 30 seconds and try again
-                for (var i = 1; i <= 30; i++) {
-                    setTimeout(function(i) {
-                        f.$("#main").children()[0].innerHTML = "Not enough fleets, retrying in " + (30 - i) + " seconds";
-                        if (i === 30) {
-                            GM_setValue("redirToSpy", "1");
-                            f.location.href = "messages.php?mode=show?messcat=0";
-                        }
-                    }, i * 1000, i);
-                }
-                return;
-            }
-            var ships = 0;
-            try {
-                ships = parseInt(GM_getValue("AutoAttackMC"));
-            } catch (ex) {
-                ships = 0;
-            }
-
-            var dotted = mc.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, "");
-            var max = parseInt(dotted);
-            if (max < ships) {
-                alert("Not enough ships! \n" + max + " available, need " + ships);
-                GM_deleteValue("AutoAttackMC");
-                GM_deleteValue("AutoAttackWaves");
-            } else {
-                mc.val(ships);
-                GM_setValue("AutoAttackWaves", waves - 1);
-                GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / 1000000) * 1000000);
-                setTimeout(function() {
-                    f.$('input[type=submit]')[0].click()
-                }, Math.random() * 400 + 1200); // It takes awhile to enter ships, take a bit longer here
-            }
-        } else {
-            GM_deleteValue("AutoAttackMC");
-            GM_deleteValue("AutoAttackWaves");
-        }
-    }
-}
-
-/**
- * More autoattack and keyboard shortcuts
- */
-function continueAttack() {
-    if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
-        setTimeout(function() {
-            f.$('input[type=submit]')[0].click()
-        }, Math.random() * 100 + 50); // Just Enter/Enter/Enter, doesn't take as long
-    }
-}
-
-function setupFleet2() {
-    sendAttack();
-}
-
-function sendAttack() {
-    if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
-        setTimeout(function() {
-            f.$('input[type=submit]')[0].click()
-        }, Math.random() * 100 + 50); // Again, just pressing enter. Much faster.
-    }
 }
 
 /**
@@ -3941,91 +3425,10 @@ function loadRedirectFleet() {
         fullLoc = false;
     }
 
-    if (autoAttack && parseInt(GM_getValue("AutoAttackWaves")) === 0) {
-        GM_deleteValue("AutoAttackWaves");
-        GM_deleteValue("AutoAttackMC");
-        GM_setValue("redirToSpy", "1");
-        f.location.href = "messages.php?mode=show?messcat=0";
-    } else if (fullLoc) {
+    if (fullLoc) {
         f.location.href = loc.href;
     }
     else {
         f.location.href = "fleet.php";
-    }
-}
-
-
-/**
- * Old, unused function that scans the entire galaxy, updating the database
- * Prone to memory errors
- */
-function galScan() {
-    var scan = false;
-    if (!GM_getValue("scan") || GM_getValue("scan") === "true") {
-        scan = true;
-        GM_setValue("scan", "true");
-    }
-    if (scan) {
-        var gSel = f.$("#galaxy");
-        var sSel = f.$("[name=system]");
-        var g = parseInt(gSel.val());
-        var s = parseInt(sSel.val());
-        var wait = ((Math.random() / 2)) * 1000;
-        if (s < 499) {
-            $sSel.val(s + 1);
-            setTimeout(function() {
-                f.$("[type=submit]")[0].click()
-            }, wait);
-        } else if (g !== 7 && s !== 499) {
-            gSel.val(g + 1);
-            sSel.val(1);
-            setTimeout(function() {
-                f.$("[type=submit]")[0].click()
-            }, wait);
-        } else {
-            GM_setValue("scan", "false");
-        }
-    }
-}
-
-
-
-// Definitely a bot, scans the entire galaxy autonomously to update
-// the universe graph
-var search_galaxy = false;
-//GM_deleteValue("spacesCount");
-//GM_deleteValue("spacesGalaxy");
-
-if (canLoadInPage("EasyTarget") && search_galaxy) {
-    setTimeout(goRight, Math.random() * 100);
-}
-
-function goRight() {
-    var count, gal;
-    try {
-        count = parseInt(GM_getValue("spacesCount"));
-    } catch (err) {
-        count = 1;
-    }
-    try {
-        gal = parseInt(GM_getValue("spacesGalaxy"));
-        if (isNaN(gal))
-            gal = 1;
-    } catch (err) {
-        gal = 1;
-    }
-    if (count < 500) {
-        count++;
-        GM_setValue("spacesCount", count);
-        f.document.getElementsByName('systemRight')[0].click();
-    } else {
-        GM_setValue("spacesCount", 1);
-        if (gal === 7) GM_setValue("spacesCount", 500);
-        else {
-            f.document.getElementById("galaxy").value = (gal + 1);
-            f.document.getElementsByName("system")[0].value = 1;
-            GM_setValue("spacesGalaxy", gal + 1);
-            f.document.forms["galaxy_form"].submit()
-        }
     }
 }

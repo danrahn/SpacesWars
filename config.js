@@ -57,7 +57,7 @@ function createAndLoadConfigurationPage() {
     main.appendChild(deleteAll);
 
     // Current order: Col1: RConverter, EasyFarm, AllinDeut, iFly, TChatty, InactiveStats, EasyTarget, NoAutoComplete
-    //                Col2: Markit, GalaxyRanks, BetterEmpire, FleetPoints, More
+    //                Col2: Markit, GalaxyRanks, BetterEmpire, More
     for (var i = 0; i < scripts.length; i++) {
         if (i < col1Cutoff)
             col1.append(scripts[i]);
@@ -356,7 +356,6 @@ function createScripts() {
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
-        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (g_bottiness ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
         createMoreScript()
     ];
 }
@@ -868,7 +867,7 @@ function saveSettings() {
  * Delete all spaceswars related storage
  */
 function deleteAllData() {
-    var uniKeys = ["fleet_points_uni_", "config_scripts_uni_", "galaxy_data_", "markit_data_", "DoNotSpy_uni", "InactiveList_"];
+    var uniKeys = ["config_scripts_uni_", "galaxy_data_", "markit_data_", "InactiveList_"];
     for (var i = 0; i < 19; i++) {
         for (var j = 0; j < uniKeys.length; j++) {
             try {
@@ -884,22 +883,11 @@ function deleteAllData() {
         [
             "infos_scripts",
             "infos_version",
-            "fp_redirect",
             "InactiveList",
             "ResourceRedirect",
             "ResourceRedirectType",
             "ResourceRedirectRef",
-            "scan",
-            "SpyForMe",
-            "AutoAttackMasterSwitch",
-            "AutoAttackWaves",
-            "AutoAttackMC",
-            "AutoAttackIndex",
-            "spacesCount",
-            "spacesGalaxy",
-            "autoSpyLength",
-            "savedFleet",
-            "redirToSpy"
+            "savedFleet"
         ];
     for (i = 0; i < singleKeys.length; i++) {
         try {
