@@ -2307,10 +2307,10 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
             if (players[i].childNodes[5].childNodes.length === 2) div = players[i].childNodes[5].childNodes[1].childNodes[0];
             else div = players[i].childNodes[5].childNodes[0];
             var name = div.innerHTML;
-            if (g_inactiveList[name] === true) {
+            if (g_inactiveList[name] -1) {
                 div.style.color = '#CCC';
                 div.innerHTML += ' (i)'
-            } else if (g_inactiveList[name] === false) {
+            } else if (g_inactiveList[name] === 0) {
                 div.style.color = '#999';
                 div.innerHTML += ' (i I)';
             }
@@ -2971,7 +2971,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (name.className.indexOf('inactive') === -1 || config.GalaxyRanks.inactives) {
 
                 // Remove them from the inactives list if they're active again
-                if (g_inactiveList[newName] && name.className.indexOf('inactive') === -1) {
+                if (g_inactiveList[newName] !== undefined && name.className.indexOf('inactive') === -1) {
                     g_inactivesChanged = true;
                     delete g_inactiveList[newName];
                 }
@@ -2997,7 +2997,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 // the index of 'longinactive'. A regular inactive will
                 // have an index of -1
                 var newValue = name.className.indexOf('longinactive');
-                if (!g_inactiveList[newName] || g_inactiveList[newName] !== newValue) {
+                if (g_inactiveList[newName] === undefined || g_inactiveList[newName] !== newValue) {
                     g_inactiveList[newName] = newValue;
                     g_inactivesChanged = true;
                 }
