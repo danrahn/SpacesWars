@@ -44,7 +44,7 @@ function createAndLoadConfigurationPage() {
         if (confirm("Are you sure you want to delete all data across all universes?")) {
             deleteAllData();
             this.value = "Deleted";
-            window.location = 'achatbonus.php?lang=' + g_lang + '&uni=' + g_uni + '&config=1';
+            window.location = 'http://www.spaceswars.com/';
         }
     });
 
@@ -385,13 +385,11 @@ function createRConvScript() {
  */
 function createEasyFarmScript() {
     var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
-    var color = buildNode("a", ["href", "target"], ["http://www.colorpicker.com/", "_blank"], "Find colors here");
     var easyFarmContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyFarmOptions = createEasyFarmOptions();
     for (var i = 0; i < easyFarmOptions.length; i++) {
         easyFarmContainer.appendChild(easyFarmOptions[i]);
     }
-    easyFarmContainer.appendChild(color);
     return packScript(easyFarm, easyFarmContainer, "EasyFarm");
 }
 
@@ -871,9 +869,10 @@ function deleteAllData() {
     for (var i = 0; i < 19; i++) {
         for (var j = 0; j < uniKeys.length; j++) {
             try {
-                GM_deleteValue(uniKeys[i] + i);
+                GM_deleteValue(uniKeys[j] + i);
+                console.log("deleted " + uniKeys[j] + i);
             } catch (ex) {
-                console.log(uniKeys[i] + i + " not found");
+                console.log(uniKeys[j] + i + " not found");
             }
         }
     }
@@ -892,8 +891,9 @@ function deleteAllData() {
     for (i = 0; i < singleKeys.length; i++) {
         try {
             GM_deleteValue(singleKeys);
+            console.log("deleted " + singleKeys[i])
         } catch (ex) {
-            console.log(singleKeys + " not found");
+            console.log(singleKeys[i] + " not found");
         }
     }
 }

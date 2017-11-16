@@ -29,7 +29,6 @@
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
-console.log("OUTER RUNNING ON PAGE " + g_page);
 
 var g_nbScripts = 12;
 var thisVersion = "4.1";
@@ -67,9 +66,9 @@ var g_markit = getMarkitData();
 var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
-var g_dnsChanged = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
+var g_saveEveryTime = true;
 
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
@@ -119,31 +118,40 @@ else {
     }
 }
 
-setGlobalKeyboardShortcuts();
-
 if (g_page !== "forum") {
-    window.addEventListener("beforeunload", function (e) {
-        changeHandler(true /*forcecSave*/);
-        var confirmationMessage = "/";
+    if (!g_saveEveryTime) {
+        window.addEventListener("beforeunload", function (e) {
+            changeHandler(true /*forcecSave*/);
+            var confirmationMessage = "/";
 
-        e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
-        return confirmationMessage;              // Gecko, WebKit, Chrome <34
-    });
+            e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
+            return confirmationMessage;              // Gecko, WebKit, Chrome <34
+        });
+    }
 }
 
 if (g_page === "frames") {
-    console.log("Top level frame!");
+    console.log("Setting up outer loop (frames.php)");
     // We have to insert the js directly into the page, otherwise the inner frame
     // won't have access to these internals.
     // noinspection JSAnnotator
     window.top.document.head.appendChild(buildNode("script", ["type"], ["text/javascript"],
         `
             function notifyNewPage(page) {
-                console.log("New page: " + page);
                 handleNewPage(page);
             }
         `
     ));
+
+    if (window.location.href.indexOf("lang_change") !== -1) {
+        var newLang = window.location.href.substring(window.location.href.length - 2);
+        if (g_lang !== newLang) {
+            g_lang = newLang;
+            L_ = setDictionary();
+        }
+    }
+
+    setGlobalKeyboardShortcuts();
 
     handleNewPage = function(page) {
         g_page = page;
@@ -170,7 +178,6 @@ if (g_page === "frames") {
 
         // Persistent left menu
         if (g_page === "leftmenu") {
-            console.log("Setting left menu");
             lm = window.frames[0];
             setupSidebar();
             lm.addEventListener("keyup", function(e) {
@@ -247,11 +254,8 @@ if (g_page === "frames") {
     }
 
 } else {
-    console.log("How did we get here?");
     if (window.top.notifyNewPage)
         window.top.notifyNewPage(g_page);
-    else
-        console.log("Top frame doesn't have stuff :(");
 }
 
 /**
@@ -261,7 +265,6 @@ if (g_page === "frames") {
  * @returns {{}}
  */
 function getLoadMap() {
-    console.log("Setting canLoad map");
     var canLoad = {};
 
     // Type 1 - indicates any page listed is a page
@@ -440,6 +443,13 @@ function getSlashedNb(nStr) {
  */
 function setDictionary() {
     console.log("Setting dictionary: " + g_lang);
+    // No need to set the dictionary if it's already
+    // set to the correct language
+    if (L_ && g_lang === L_.lang) {
+        console.log("Dict already set!");
+        return L_;
+    }
+
     var tab = [];
     switch (g_lang) {
         case "fr":
@@ -722,8 +732,6 @@ function setDictionary() {
  * @returns {{}} Merchant map
  */
 function setMerchantMap() {
-
-    console.log("Setting merchant map");
     var m = {};
 
     // Buildings
@@ -960,6 +968,7 @@ function getInfoFromPage() {
     }
 
     list.universe = (/univers([0-9]{1,2})/.test(window.location.href)) ? /univers([0-9]{1,2})/.exec(window.location.href)[1] : 0;
+    console.log("Setting universe: " + list.universe);
     return list;
 }
 
@@ -1195,13 +1204,16 @@ function setupSidebar() {
         "<a href='achatbonus.php?lang=" + g_lang + "&uni=" + g_uni +
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
-    var saveData = buildNode("input", ["type", "style", "value"],
-        ["button", "width:40px;margin-left:4px;", "Save"],
-        "", "click", function() {
-        changeHandler(true /*forceSave*/);
-    });
 
-    langBox.append(saveData);
+    if (!g_saveEveryTime) {
+        var saveData = buildNode("input", ["type", "style", "value"],
+            ["button", "width:40px;margin-left:4px;", "Save"],
+            "", "click", function() {
+                changeHandler(true /*forceSave*/);
+            });
+
+        langBox.append(saveData);
+    }
 }
 
 /**
@@ -1451,8 +1463,6 @@ function buildFleetKeyHandler(key) {
 function buildDefKeyHandler(key) {
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
-
-    console.log(g_keyArray);
 
     if (g_keyArray.length > 2) {
         // build_fleet has a max length of 2. reset if we go above it.
@@ -1899,10 +1909,6 @@ function loadEasyFarm() {
             "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
         messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
     }
-    if (g_dnsChanged) {
-        console.log("DNS data changed");
-        changeHandler(false /*forceSave*/);
-    }
 }
 
 /**
@@ -1913,7 +1919,8 @@ function loadEasyFarm() {
  */
 function changeHandler(forceSave) {
     g_changeCount++;
-    if (++g_changeCount >= SAVE_INTERVAL || forceSave) {
+    // Always save now
+    if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
         console.log("Saving changed data...");
         g_changeCount = 0;
         if (g_markitChanged) {
@@ -2254,8 +2261,11 @@ function hexToRgb(hex) {
  *                   - Hex string (#ABCDEF) - Must be full 6 values
  *                   - "transparent"
  * @param duration - How long the transition should last
+ * @param deleteAfterTransition - Whether or not to remove the styling after we transition.
+ *        This can be used if we're transitioning back to a default color and want a class/tag
+ *        style to apply afterwards
  */
-function animateBackground(element, newColor, duration) {
+function animateBackground(element, newColor, duration, deleteAfterTransition) {
     var steps = Math.round(duration / (50/3));
     var oldColorTemp = getComputedStyle(element).backgroundColor;
     var oldColor = {};
@@ -2277,13 +2287,16 @@ function animateBackground(element, newColor, duration) {
         }
     }
     for (var i = 1; i <= steps; i++) {
-        setTimeout(function(element, oldColor, newColor, i, steps) {
+        setTimeout(function(element, oldColor, newColor, i, steps, deleteAfterTransition) {
             element.style.backgroundColor = "rgba(" +
                 Math.round(oldColor.r + (((newColor.r - oldColor.r) / steps) * i)) + "," +
                 Math.round(oldColor.g + (((newColor.g - oldColor.g) / steps) * i)) + "," +
                 Math.round(oldColor.b + (((newColor.b - oldColor.b) / steps) * i)) + "," +
                 (oldColor.a + (((newColor.a - oldColor.a) / steps) * i)) + ")";
-        }, (50/3) * i, element, oldColor, newColor, i, steps)
+            if (i === steps && deleteAfterTransition) {
+                element.style.backgroundColor = null;
+            }
+        }, (50/3) * i, element, oldColor, newColor, i, steps, deleteAfterTransition)
     }
 }
 
@@ -2355,13 +2368,14 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 } else {
                     defCol = "transparent";
                 }
-                animateBackground(rows[num - 1], defCol, 500);
+                animateBackground(rows[num - 1], defCol, 500, true /*deleteAfterComplete*/);
+                rows[num - 1].style.backgroundColor = null;
             } else {
                 // Fade to the corresponding color
                 g_markit[galaxy + ':' + sys + ':' + num] = markitTypeChecked.val();
                 var c = hexToRgb('#' + config.Markit.color[type]);
                 c.a = .5;
-                animateBackground(rows[num - 1], c, 500);
+                animateBackground(rows[num - 1], c, 500, false /*deleteAfterComplete*/);
             }
             f.$('#markit_choose').fadeOut(500);
             changeHandler(false /*forceSave*/);
@@ -2505,7 +2519,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             var c = hexToRgb('#' + config.Markit.color[g_markit[position]]);
             c.a = 0.5;
             if (name !== undefined && planet !== g_targetPlanet)
-                animateBackground(row, c, 750);
+                animateBackground(row, c, 750, false /*deleteAfterComplete*/);
             else if (name === undefined) delete g_markit[position];
         }
 
@@ -2536,9 +2550,10 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
+                console.log(replaceDiv.id);
 
-                (function (newName, storedName, position, lune, name, saveDiv, savedDiv) {
-                    saveDiv.addEventListener("click", function () {
+                (function (newName, storedName, position, lune, name, replaceDiv, savedDiv) {
+                    replaceDiv.addEventListener("click", function () {
                         if (confirm("It looks like " + storedName + " may have changed their name to " + newName + ". Do you want to update all planets?")) {
                             alert("Replacing " + storedName + " with " + newName);
                             replacePlayerInDatabase(newName, storedName, position);
@@ -2550,7 +2565,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        console.log("ThisID: " + this.id);
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
                     });
@@ -2564,21 +2580,23 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        console.log("saveDivId: " + this.id);
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
                     });
                 })(newName, position, lune, name, saveDiv, savedDiv);
 
-                (function (position, storedName, row, name, img, saveDiv) {
-                    img.addEventListener("click", function () {
+                (function (position, storedName, row, name, savedDiv, saveDiv) {
+                    savedDiv.addEventListener("click", function () {
                         delete g_galaxyData.universe[position];
                         deleteUnusedPosition(position, storedName);
                         f.$(this).fadeOut(500, function() {
                             f.$(saveDiv).fadeIn(500);
                         });
 
-                        var index = this.id.substring(this.id.indexOf("_") + 1) - 1;
+                        console.log("SavedDivId: " + this.id);
+                        var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(storedName, index);
                         createEasyTargetLocationDiv(name, storedName, position, index, rows, infos_scripts)
                     });
@@ -2692,7 +2710,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 var c = hexToRgb('#' + config.Markit.color[g_markit[ploc]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false /*deleteAfterComplete*/);
                                 }
                             }, 1000);
                         })(position, name);
@@ -2742,13 +2760,13 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 if (g_markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false /*deleteAfterComplete*/);
                                 } else {
-                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600)
+                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true /*deleteAfterComplete*/)
                                 }
                             }
                             g_targetPlanet = i + 1;
-                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600);
+                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false /*deleteAfterComplete*/);
                         });
                     })(i, rows);
                 }
@@ -2838,7 +2856,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
                 var c = hexToRgb('#' + g_config.Markit.color[markit[newCoords]]);
                 c.a = 0.5;
                 if (name !== undefined) {
-                    animateBackground(rows[newPlanet - 1], c, 600);
+                    animateBackground(rows[newPlanet - 1], c, 600, false);
                 }
             }, 1000);
         }
@@ -2847,16 +2865,16 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
             var c = hexToRgb('#' + g_config.Markit.color[markit[oldCoords]]);
             c.a = 0.5;
             if (name !== undefined) {
-                animateBackground(rows[oldPlanet - 1], c, 600);
+                animateBackground(rows[oldPlanet - 1], c, 600, false);
             }
         } else if (oldPlanet % 2 === 0) {
             // Otherwise fill it in with its default color
-            animateBackground(rows[oldPlanet - 1], "#111111", 200);
+            animateBackground(rows[oldPlanet - 1], "#111111", 200, true);
         } else if (parseInt(oldPlanet) !== -1) {
-            animateBackground(rows[oldPlanet - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200);
+            animateBackground(rows[oldPlanet - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200, true);
         }
         // Mark the next target green
-        animateBackground(rows[parseInt(newPlanet) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200);
+        animateBackground(rows[parseInt(newPlanet) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
 
         return newPlanet;
     } else {
@@ -2998,6 +3016,8 @@ function writeLocationsOnMarkitTarget(newName, i) {
 
 function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows, infos_scripts) {
     var oldInsert = f.document.getElementById("easyTargetList" + i);
+    console.log("OldInsert : " + !!oldInsert);
+    console.log(oldInsert);
 
     var insert = f.document.createElement("div");
     insert.id = "easyTargetList" + i;
