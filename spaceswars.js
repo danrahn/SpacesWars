@@ -832,7 +832,7 @@ function setInfosVersion() {
     tab.toUp = false;
     tab.lastCheck = date.getTime();
     GM_setValue("infos_version", JSON.stringify(tab));
-    return tab[0];
+    return tab;
 }
 
 /**
@@ -1921,22 +1921,18 @@ function changeHandler(forceSave) {
     g_changeCount++;
     // Always save now
     if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
-        console.log("Saving changed data...");
         g_changeCount = 0;
         if (g_markitChanged) {
-            console.log("Saving markit data");
             g_markitChanged = false;
             GM_setValue('markit_data_' + g_uni, JSON.stringify(g_markit));
         }
 
         if (g_galaxyDataChanged) {
-            console.log("Saving galaxy data");
             g_galaxyDataChanged = false;
             GM_setValue("galaxy_data_" + g_uni, JSON.stringify(g_galaxyData));
         }
 
         if (g_inactivesChanged) {
-            console.log("Saving inactive list");
             g_inactivesChanged = false;
             GM_setValue('InactiveList_' + g_uni, JSON.stringify(g_inactiveList));
         }
@@ -2550,7 +2546,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
-                console.log(replaceDiv.id);
 
                 (function (newName, storedName, position, lune, name, replaceDiv, savedDiv) {
                     replaceDiv.addEventListener("click", function () {
@@ -2565,7 +2560,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        console.log("ThisID: " + this.id);
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
@@ -2580,7 +2574,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(savedDiv).fadeTo(500, 0.5);
                         });
 
-                        console.log("saveDivId: " + this.id);
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
                         createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
@@ -2595,7 +2588,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             f.$(saveDiv).fadeIn(500);
                         });
 
-                        console.log("SavedDivId: " + this.id);
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(storedName, index);
                         createEasyTargetLocationDiv(name, storedName, position, index, rows, infos_scripts)
@@ -2742,7 +2734,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     (function(i, rows) {
                         f.$(row.childNodes[j]).click(function() {
                             // Don't do anything if we're clicking the save button
-                            console.log(this.id);
                             if (this.id.indexOf("save") === 0) {
                                 return;
                             }
@@ -3016,8 +3007,6 @@ function writeLocationsOnMarkitTarget(newName, i) {
 
 function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows, infos_scripts) {
     var oldInsert = f.document.getElementById("easyTargetList" + i);
-    console.log("OldInsert : " + !!oldInsert);
-    console.log(oldInsert);
 
     var insert = f.document.createElement("div");
     insert.id = "easyTargetList" + i;

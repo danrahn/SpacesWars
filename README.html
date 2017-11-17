@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SpacesWars Revamped</title>
+    <style>
+        div, span, img, video, h1, h2, h3, h4 {
+            text-align: center;
+            font-family: sans-serif;
+        }
+
+        li, ul {
+            text-align: left;
+            font-family: sans-serif;
+        }
+
+        code {
+            background-color: #888;
+            padding: 2px;
+        }
+
+        body {
+            background-color: #AAA;
+        }
+
+        img, video {
+            display: block;
+            margin: 10px auto;
+            border: 3px solid #666;
+            border-radius: 10px;
+        }
+
+        span {
+            display: block;
+            font-size: small;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            border-bottom: 2px solid #333;
+            border-top: 2px solid #333;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 10px;
+        }
+
+        h2 {
+            border-top: 2px solid #383838;
+            border-bottom: 2px solid #383838;
+            background-color: rgba(0, 0, 0, 0.35);
+            padding: 8px;
+        }
+
+        h3 {
+            border-top: 2px solid #444;
+            border-bottom: 2px solid #444;
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 5px;
+        }
+
+        h4 {
+            border-top: 2px solid #484848;
+            border-bottom: 2px solid #484848;
+            background-color: rgba(0, 0, 0, 0.25);
+            padding: 3px;
+        }
+
+        h1:hover, h2:hover, h3:hover, h4:hover {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+
+        div {
+            margin: 0 5px;
+        }
+
+        #main {
+            border: 3px solid #333;
+            background-color: #BBB;
+            border-radius: 20px;
+        }
+
+        .h2 {
+            border: 3px solid #444;
+            background-color: #999;
+            border-radius: 10px;
+            margin: 10px;
+        }
+
+        .h3 {
+            border: 3px solid #333;
+            background-color: #AAA;
+            border-radius: 10px;
+            margin: 10px;
+        }
+
+        .h4 {
+            border: 3px solid #444;
+            background-color: #999;
+            border-radius: 10px;
+            margin: 10px;
+        }
+
+        .h2:hover, .h3:hover, .h4:hover {
+            background-color: #BBB;
+        }
+
+    </style>
+</head>
+<body>
+<div id="main">
+    <h1>SpacesWars Scripts</h1>
+    <div>
+        These javascript files contain a collection of scripts that enhance the user experience of SpacesWars. Navigation is improved, handy shortcuts are provided, and helpful information is shown to the user.
+    </div>
+    <div class="h2">
+        <h2>Index</h2>
+        <div style="overflow: hidden">
+            <ul style="float: left">
+                <li><a href="#install">Installation</a></li>
+                <li><a href="#help">Help</a></li>
+                <li><span id="scriptsInnerExpand" style="cursor: pointer; font-family: monospace; display: inline" onclick = "(function() {
+                    if (document.getElementById('scriptsInner').style.display === 'none') {
+                        document.getElementById('scriptsInner').style.display = 'block';
+                        document.getElementById('scriptsInnerExpand').innerHTML = '[-]';
+                    } else {
+                        document.getElementById('scriptsInner').style.display = 'none';
+                        document.getElementById('scriptsInnerExpand').innerHTML = '[+]';
+                    }
+                })()">[+]</span><a href="#scripts">Scripts</a></li>
+                <li id="scriptsInner" style="list-style-type:none; display:none">
+                    <ul>
+                        <li><a href="#config">Configuration</a></li>
+                        <li><a href="#rconverter">RConverter</a></li>
+                        <li><a href="#easyfarm">EasyFarm</a></li>
+                        <li><a href="#allindeut">AllInDeut</a></li>
+                        <li><a href="#ifly">iFly</a></li>
+                        <li><a href="#tchatty">TChatty</a></li>
+                        <li><a href="#inactivestats">InactiveStats</a></li>
+                        <li><a href="#easytarget">EasyTarget</a></li>
+                        <li><a href="#noautocomplete">NoAutoComplete</a></li>
+                        <li><a href="#markit">Markit</a></li>
+                        <li><a href="#galaxyranks">GalaxyRanks</a></li>
+                        <li><a href="#betterempire">BetterEmpire</a></li>
+                        <li><span id="moreInnerExpand" style="cursor: pointer; font-family: monospace; display: inline" onclick = "(function() {
+                            if (document.getElementById('moreInner').style.display === 'none') {
+                                document.getElementById('moreInner').style.display = 'block';
+                                document.getElementById('moreInnerExpand').innerHTML = '[-]';
+                            } else {
+                                document.getElementById('moreInner').style.display = 'none';
+                                document.getElementById('moreInnerExpand').innerHTML = '[+]';
+                            }
+                        })()">[+]</span><a href="#more">More</a></li>
+                        <li id="moreInner" style="list-style-type:none; display:none">
+                            <ul>
+                                <li><a href="#moonslist">MoonsList</a></li>
+                                <li><a href="#convertdeut">ConvertDeut</a></li>
+                                <li><a href="#traductor">Traductor</a></li>
+                                <li><a href="#resources">Resources</a></li>
+                                <li><a href="#redirectfleet">RedirectFleet</a></li>
+                                <li><a href="#arrows">Arrows</a></li>
+                                <li><a href="#returns">Returns</a></li>
+                                <li><a href="#deutrow">DeutRow</a></li>
+                                <li><a href="#convertclick">ConvertClick</a></li>
+                                <li><a href="#mctransport">mcTransport</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><span id="navigationInnerExpand" style="cursor: pointer; font-family: monospace; display: inline" onclick = "(function() {
+                    if (document.getElementById('navigationInner').style.display === 'none') {
+                        document.getElementById('navigationInner').style.display = 'block';
+                        document.getElementById('navigationInnerExpand').innerHTML = '[-]';
+                    } else {
+                        document.getElementById('navigationInner').style.display = 'none';
+                        document.getElementById('navigationInnerExpand').innerHTML = '[+]';
+                    }
+                })()">[+]</span><a href="#keyboard">Kyeboard Shortcuts/Navigation</a></li>
+                <li id="navigationInner" style="list-style-type:none; display:none">
+                    <ul>
+                        <li><a href="#global">Global</a></li>
+                        <li><a href="#messages">Messages</a></li>
+                        <li><a href="#ship">Shipyard/Defenses</a></li>
+                        <li><a href="#fleet">Fleet Pages</a></li>
+                    </ul>
+                </li>
+            </ul>
+    </div>
+    <div class="h2">
+        <h2 id="install">Installation</h2>
+        <div>
+            These scripts WILL NOT work with Greasemonkey, they work with Tampermonkey ONLY:
+            <ul>
+                <li>Chrome: <a href="https://chrome.google.com/webstore/detail/tampermonkey/dhdgffkkebhmkfjojejmpbldmpobfkfo?hl=en">Chrome WebStore</a></li>
+                <li>Firefox: <a href="https://addons.mozilla.org/en-US/firefox/addon/tampermonkey/">FireFox Addons</a></li>
+            </ul>
+            There are two javascript files, SpacesWars_Outer.js and SpacesWars_Inner.js. Both need to be installed as separate scripts. The outer loop attaches to frames.php, and the inner loop lets "frames" know what page it's on. Because of this, if "frames" is not present, the script WILL NOT work (except for rconverter). If you navigate to "spaceswars.com/universXX/overview.php", "galaxy.php", or any other page directly instead of through the main window with the menu on the left, this will not work.
+        </div>
+    </div>
+    <div class="h2">
+        <h2 id="help">Help</h2>
+        <div>
+            If the script is not working for you, or you find a bug, let me know via message: DTR - uni17. I am unable to log into my forum account, so I cannot be reached there.
+        </div>
+    </div>
+
+    <div class="h2">
+        <h2 id="scripts">Scripts</h2>
+        <div class="h3">
+            <h3 id="config">Configuration</h3>
+            <div>
+                You can reach the configuration page by clicking the monkey icon in the bottom right corner of the sidebar:
+                <img src="https://i.imgur.com/CVeEAPD.png" alt="GM_Icon">
+                Once you're on the configuration page, you'll see various settings you can change for the below scripts. Pressing "Save" will save the current settings, and in the bottom left there is a button to delete all script data if you want to start fresh.
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="rconverter">RConverter</h3>
+            <div>
+                Parses combat reports and generates a nice report that can be pasted into a bb forum. You can set custom icons for different sections of the report in the configuration page. This script is largely unchanged from the original, and I have only tweaked it to ensure it continues to function
+                <img src="https://i.imgur.com/cuFOm8z.png" alt="RConv">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="easyfarm">EasyFarm</h3>
+            <div>
+                EasyFarm's main function is to highlight espionage reports if they meet the user-defined loot cutoffs. In the spy reports, those that match the criteria will be highlighted with the user-defined colors, and any reports that do not meet the standards will be checked, allowing for easy deletion.
+                <img src="https://i.imgur.com/ffORzEe.png" alt="EasyFarm1">
+                A tooltip is also displayed inline with the spy report, and hovering will give a rundown of the ships, defense, and possible loot, without having to expand the entire report.
+                <img src="https://i.imgur.com/HajdHnq.png" alt="EasyFarm2">
+                When the report is expanded, new text is displayed at the bottom indicating the number of Massive Cargos needed to capture the possible loot, and how many waves of attacks are needed before he looting level goes below the threshold.
+                <img src="https://i.imgur.com/SnL6g5W.png" alt="EasyFarm3">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="allindeut">AllInDeut</h3>
+            <div>
+                This script works on the buildings and research page, and shows the total cost of a building/research in deut only.
+                <img src="https://i.imgur.com/vd5jfEM.png" alt="AllInDeut">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="ifly">IFly</h3>
+            <div>
+                On the overview page, the tooltip that appears by hovering over the [i] next to the planet selector will have a new section that shows how many resources (in deut) are currently being flown.
+                <img src="https://i.imgur.com/Fz1q7Cu.png">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="tchatty">TChatty</h3>
+            <div>
+                "Better Chat". Allows one to easily change chat color, adjusts smileys, and prevents sending coordinates, which is against game rules.
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="inactivestats">InactiveStats</h3>
+            <div>
+                Show if a player is inactive/long inactive in the statistics page. Gets the data when the user is in galaxy view, so is only as up to date as the last time you came across a given user in the galaxy.
+                <img src="https://i.imgur.com/f3pz9eD.png">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="easytarget">EasyTarget</h3>
+            <div>
+                A replacement for Carto, which stored galaxy information on a separate server that is now dead. This keeps a local copy of galaxy data that you can update. Hovering over the new target icon in galaxy view will display a tooltip that indicates all the saved locations of a player. If the player is not saved, a little save icon will appear next to their name. Clicking the icon will save the player.
+                <a href="https://i.imgur.com/1N7P3wd.mp4" target="_blank"><video src="https://i.imgur.com/1N7P3wd.mp4"></video></a>
+                <span>(Click image if video does not play)</span>
+                If they are saved, a green check will appear. If you click that, you will remove that position from the database.
+
+                <a href="https://i.imgur.com/tgK47Vo.mp4" target="_blank"><video src="https://i.imgur.com/tgK47Vo.mp4"></video></a>
+                <span>(Click image if video does not play)</span>
+                If planets have shuffled and a location that you previously saved is no longer present, a red X will appear, which will delete the location when clicked.
+
+                <img src="https://i.imgur.com/KG7VNoT.png">
+                Clicking on the player's row will show another list of all the locations, and clicking a location will navigate to that spot. Once a player is selected (green outline), pressing N will take you to their next location, and P to the previous one.
+                <br>
+                You can also import/export galaxy data in the configuration page. If you have data on one machine that you want to transfer to another, you can export/import it to stay in sync.
+                <img src="https://i.imgur.com/1rVXpUj.png">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="noautocomplete">NoAutoComplete</h3>
+            <div>
+                It can often be annoying to start typing and have a huge dropdown of previous entries displayed:
+                <a href="https://i.imgur.com/9H861N1.mp4" target="_blank"><video src="https://i.imgur.com/9H861N1.mp4" width="300px"></video></a>
+                <span>(Click image if video does not play)</span>
+                NoAutoComplete prevents those dropdowns from appearing on a configurable page-by-page basis.
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="markit">Markit</h3>
+            <div>
+                Mark planets in the galaxy with a user-defined color. Clicking on the target in galaxy mode will bring up a dialog that lets the user select the color to display.
+                <a href="https://i.imgur.com/JdRPUXu.mp4" target="_blank"><video src="https://i.imgur.com/JdRPUXu.mp4"></video></a>
+                <span>(Click image if video does not play)</span>
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="galaxyranks">GalaxyRanks</h3>
+            <div>
+                Display and color a user's rank directly in galaxy view to quickly measure a player. Configure the color and rank thresholds in the configuration page.
+                <img src="https://i.imgur.com/dN4opMk.png">
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="betterempire">BetterEmpire</h3>
+            <div>
+                Change empire view such that moons are listed last, and the totals column is first.
+            </div>
+        </div>
+
+        <div class="h3">
+            <h3 id="more">More</h3>
+            <div>
+                These are smaller scripts that don't have configurations
+            </div>
+
+            <div class="h4">
+                <h4 id="moonslist">MoonsList</h4>
+                <div>
+                    Mark moons blue in the planet selector
+                    <img src="https://i.imgur.com/DDRERGW.png">
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="convertdeut">ConvertDeut</h4>
+                <div>
+                    Creates three links at the top of the merchant page that allows a user to quickly convert all resources to metal/crystal/deut.
+
+                    <a href="https://i.imgur.com/6iTKbZb.mp4" target="_blank"><video src="https://i.imgur.com/6iTKbZb.mp4"></video></a>
+                    <span>(Click image if video does not play)</span>
+                    This is a legacy script that has more or less been replaced by ConvertClick
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="traductor">Traductor</h4>
+                <div>
+                    Translator. I don't actually know if it works, as I've never tried it.
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="resources">Resources</h4>
+                <div>
+                    Quickly set all production percentages in the production page.
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="redirectfleet">RedirectFleet</h4>
+                <div>
+                    Quickly redirect back to the main fleet page after a fleet is sent
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="arrows">Arrows</h4>
+                <div>
+                    Change the planet selection arrows from "<"/">" to "<<<<<"/">>>>>" to make them easier to click
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="returns">Returns</h4>
+                <div>
+                    Add transparency to return fleets in the overview
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="deutrow">DeutRow</h4>
+                <div>
+                    Add a row in the header that indicates the total amount of resources in deut.
+                    <img src="https://i.imgur.com/IwA62r9.png">
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="convertclick">ConvertClick</h4>
+                <div>
+                    Clicking on the metal/crystal/deut values in the header will instantly convert all resources to that one.
+
+                    <a href="https://i.imgur.com/SAteb4A.mp4" target="_blank"><video src="https://i.imgur.com/SAteb4A.mp4" width="300px"></video></a>
+                    <span>(Click image if video does not play)</span>
+
+                    You can also click the image of any building/research/ship/defense, and convert your resources to the best ratio
+
+                    <a href=https://i.imgur.com/haDXFdM.mp4 target="_blank"><video src=https://i.imgur.com/haDXFdM.mp4></video></a>
+                    <span>(Click image if video does not play)</span>
+                </div>
+            </div>
+
+            <div class="h4">
+                <h4 id="mctransport">mcTransport</h4>
+                <div>
+                    More experimental, and highly tailored to U17 speed/uni multipliers. In the fleet menu, adds an option to select the number of massive cargos needed to transport all the resources currently on the planet.
+                    <a href="https://i.imgur.com/6RZ0cSj.mp4" target="_blank"><video src="https://i.imgur.com/6RZ0cSj.mp4"></video></a>
+                    <span>(Click image if the video does not play)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="h2">
+        <h2 id="keyboard">Keyboard Shortcuts/Navigation</h2>
+        <div>
+            I have also added many keyboard shortcuts to make navigation easier/more efficient. Unfortunately they are not configurable, and often only make sense in English.
+            <br />
+            On pages where you use 2+ character combinations, pressing <code>ESC</code> will clear the current queue, allowing you to start over if something gets messed up.
+        </div>
+
+        <div class="h3">
+        <h3 id="global">Global</h3>
+            <ul>
+                <li><code>SHIFT + O</code> : Overview</li>
+                <li><code>SHIFT + G</code> : Galaxy</li>
+                <li><code>SHIFT + F</code> : Fleet</li>
+                <li><code>SHIFT + E</code> : Empire</li>
+                <li><code>SHIFT + B</code> : Buildings</li>
+                <li><code>SHIFT + R</code> : Research</li>
+                <li><code>SHIFT + D</code> : Defense</li>
+                <li><code>SHIFT + M</code> : Messages</li>
+                <li><code>[</code> : Previous Planet/Moon</li>
+                <li><code>]</code> : Next Planet/Moon</li>
+            </ul>
+        </div>
+        <div class="h3">
+        <h3 id="messages">Messages</h3>
+            <ul>
+                <li>Categories</li>
+                <li><ul>
+                    <li><code>S</code> : eSpionage</li>
+                    <li><code>P</code> : Player</li>
+                    <li><code>A</code> : Alliance</li>
+                    <li><code>C</code> : Combat</li>
+                    <li><code>H</code> : Harvest</li>
+                    <li><code>T</code> : Transport</li>
+                    <li><code>E</code> : Expedition</li>
+                    <li><code>M</code> : Missiles</li>
+                    <li><code>L</code> : alL</li>
+                </ul></li>
+                <li>Message Navigation</li>
+                <li><ul>
+                    <li><code>Tab</code>/<code>Down Arrow</code> : Focus next message</li>
+                    <li><code>SHIFT + Tab</code>/<code>Up Arrow</code> : Focus previous message</li>
+                    <li><code>Right Arrow</code> : Expand Message</li>
+                    <li><code>Left Arrow</code> : Collapse Message</li>
+                </ul></li>
+                <li>Message Management</li>
+                <li><ul>
+                    <li><code>X</code> : Check/Uncheck Message</li>
+                    <li><code>DM</code> : Delete Marked</li>
+                    <li><code>DU</code> : Delete Unmarked</li>
+                    <li><code>DP</code> : Delete Page</li>
+                    <li><code>DA</code> : Delete All</li>
+                </ul></li>
+            </ul>
+        </div>
+
+        <div class="h3">
+            <h3 id="ship">Shipyard and Defenses</h3>
+            <div>
+                The following two-character combos will bring you to the specified item. If it can't find it, a message will appear saying as much.
+            </div>
+
+            <ul>
+                <li>Shipyard</li>
+                <li><ul>
+                    <li><code>SC</code> : Small Cargo</li>
+                    <li><code>LC</code> : Large Cargo</li>
+                    <li><code>LF</code> : Light Fighter</li>
+                    <li><code>HF</code> : Heavy Fighter</li>
+                    <li><code>CR</code> : CRuiser</li>
+                    <li><code>BS</code> : BattleShip</li>
+                    <li><code>CS</code> : Colony Ship</li>
+                    <li><code>RE</code> : REcycler</li>
+                    <li><code>EP</code> : Espionage Probe</li>
+                    <li><code>BM</code> : BoMber</li>
+                    <li><code>SS</code> : Solar Satellite</li>
+                    <li><code>DE</code> : DEstroyer</li>
+                    <li><code>DS</code> : DeathStar</li>
+                    <li><code>SN</code> : SuperNova</li>
+                    <li><code>MC</code> : Massive Cargo</li>
+                    <li><code>HR</code> : Heavy Recycler</li>
+                    <li><code>BL</code> : BLast</li>
+                    <li><code>EX</code> : EXtractor</li>
+                </ul></li>
+                <li>Defenses</li>
+                <li><ul>
+                    <li><code>RL</code> : Rocket Launcher</li>
+                    <li><code>LL</code> : Light Laser</li>
+                    <li><code>HL</code> : Heavy Laser</li>
+                    <li><code>GC</code> : Guass Cannon</li>
+                    <li><code>IC</code> : Ion Cannon</li>
+                    <li><code>PT</code> : Plasma Turret</li>
+                    <li><code>SD</code> : Small Shield Dome</li>
+                    <li><code>LD</code> : Large Shield Dome</li>
+                    <li><code>AB</code> : Anti-Ballastic Missiles</li>
+                    <li><code>IP</code> : InterPlanetary Missiles</li>
+                </ul></li>
+            </ul>
+        </div>
+
+        <div class="h3">
+            <h3 id="fleet">Fleet Pages</h3>
+
+            <ul>
+                <li>Fleet (fleet.php)</li>
+                <li><ul>
+                    <li><code>A</code> : Select all of the selected ship</li>
+                    <li><code>X</code> : Select none of the selected ship</li>
+                    <li><code>Up</code>/<code>Down Arrow</code> : Navigate to the next/previous ship</li>
+                    <li><code>T</code> : Select the mcTransport calculated number of Massive Cargos (if enabled)</li>
+                </ul></li>
+                <li>Fleet 1 (floten1.php)</li>
+                <li><ul>
+                    <li><code>N</code> : Select the last travelled location and continue sending the fleet</li>
+                </ul></li>
+                <li>Fleet 2 (floten2.php)</li>
+                <li><ul>
+                    <li><code>A</code> : Select all resosurces</li>
+                    <li><code>N</code> : Select all Deut</li>
+                    <li><code>S</code> : Submit/Send fleet</li>
+                </ul></li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>
