@@ -53,7 +53,7 @@ checkVersionInfo();
 
 // the variable name 'location' makes Opera bugging
 var g_lang = g_versionInfo.language;
-var f;
+f = null;
 var lm; // Left Menu
 var g_noFrames;
 
@@ -171,14 +171,18 @@ if (g_page === "frames") {
         g_keyArray.length = 0;
 
         if (g_page !== "leftmenu") {
-            f = null;
+            if (f) {
+                delete f;
+            }
             f = window.frames[1];
-            f.addEventListener("keyup", function(e) {
-                globalShortcutHandler(e);
-            });
-            f.addEventListener('keydown', function(e) {
-                globalKeypressHandler(e);
-            });
+            if (!autoAttack) {
+                f.addEventListener("keyup", function(e) {
+                    globalShortcutHandler(e);
+                });
+                f.addEventListener('keydown', function(e) {
+                    globalKeypressHandler(e);
+                });
+            }
         }
 
         // SpacesWars did away with userscripts, and along with it the
@@ -1396,6 +1400,22 @@ function globalShortcutHandler(e) {
                     vote2.childNodes[0].click();
                 }
                 break;
+            case KEY.P:
+                var current = f.document.querySelector("option[value='" + f.document.getElementById("cp").value + "']");
+                var place = current.innerHTML;
+                place = place.replace(/&nbsp;/g, '');
+                place = place.match(/\[\d:\d{1,3}:\d{1,2}\]/)[0];
+                var options = f.document.querySelectorAll("#cp option");
+                for (var i = 0; i < options.length; i++) {
+                    if (options[i].innerHTML.indexOf(place) !== -1 && options[i] !== current) {
+                        options[i].selected = 'selected';
+                        f.document.forms[0].submit();
+                        return;
+                    }
+                }
+
+                displayAlert("This planet does not have a moon", 400, 1000);
+                break;
             default:
                 break;
         }
@@ -1411,6 +1431,17 @@ function globalShortcutHandler(e) {
                 break;
             default:
                 break;
+        }
+
+        var active = f.document.activeElement;
+        if (active.tagName.toLowerCase() === "input") {
+            if (key === KEY.M) {
+                active.value = parseFloat(active.value) * 1E6;
+            } else if (key === KEY.B) {
+                active.value = parseFloat(active.value) * 1E9;
+            } else if (key === KEY.T) {
+                active.value = parseFloat(active.value) * 1E12;
+            }
         }
     }
 
@@ -1429,7 +1460,7 @@ function globalShortcutHandler(e) {
             lm.document.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
             break;
         case "fleet":
-            fleetKeyHandler(key);
+            fleetKeyHandler(e);
             break;
         case "floten1":
             if (!e.shiftKey) {
@@ -1478,6 +1509,31 @@ function globalShortcutHandler(e) {
     }
 }
 
+function displayAlert(text, fadeTime, timeout) {
+    if (f.document.getElementById("displayAlert")) {
+        console.log("removing");
+        f.document.body.removeChild(f.document.getElementById("displayAlert"));
+    }
+
+    var div = buildNode("div", ["id", "class", "style"], ["displayAlert", "space1 curvedtot",
+            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
+            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
+            "width:500px;margin-left:-250px;margin-top:-400px;"],
+        text);
+    f.document.body.appendChild(div);
+    f.$(div).fadeTo(fadeTime, 0.7);
+    setTimeout(function(fadeTime) {
+        var bod = f.document.body;
+        if (bod.children[bod.children.length - 1] === div) {
+            f.$(div).fadeOut(fadeTime, function() {
+                if (bod === f.document.body) {
+                    bod.removeChild(bod.children[bod.children.length - 1]);
+                }
+            });
+        }
+    }, timeout, fadeTime);
+}
+
 /**
  * Goes to the desired input given the input map. If the input field cannot
  * be found, attempt to scroll the div into view. If the div cannot be found,
@@ -1504,23 +1560,7 @@ function inputSelector(map) {
         }
 
         // Otherwise, give a brief message stating that it doesn't exist
-        var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
-            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
-            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
-            "width:500px;margin-left:-250px;margin-top:-400px;"],
-            element[1] + " could not be found.");
-        f.document.body.appendChild(div);
-        f.$(div).fadeTo(500, 0.7);
-        setTimeout(function() {
-            var bod = f.document.body;
-            if (bod.children[bod.children.length - 1] === div) {
-                f.$(div).fadeOut(500, function() {
-                    if (bod === f.document.body) {
-                        bod.removeChild(bod.children[bod.children.length - 1]);
-                    }
-                });
-            }
-        }, 2000);
+        displayAlert(element[1] + " could not be found", 500, 2000);
     }
 }
 
@@ -1754,17 +1794,18 @@ function deleteMessages(deleteType) {
  * UP - Select the previous ship
  * DN - Select the next ship
  *
- * @param key
+ * @param e
  */
-function fleetKeyHandler(key) {
+function fleetKeyHandler(e) {
+    var key = e.keyCode ? e.keyCode : e.which;
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
     var active = f.document.activeElement;
-    if (g_config.More.mcTransport && key === KEY.T) {
+    if (g_config.More.mcTransport && key === KEY.T && e.shiftKey) {
         f.$('#transport').click();
         f.$('input[type=submit]')[0].click();
-    } else if (active.tagName.toLowerCase() === "input") {
+    } else if (active.tagName.toLowerCase() === "input" && !e.shiftKey && !e.ctrlKey && !e.altKey) {
         if (key === KEY.A) {
             active.value = active.parentNode.parentNode.childNodes[1].childNodes[0].innerHTML.replace(/\./g, "");
         } else if (key === KEY.X) {
@@ -1808,14 +1849,18 @@ function setGlobalKeyboardShortcuts() {
 
 function globalKeypressHandler(e) {
     if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet") {
-        if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey) {
+        if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey && e.keyCode !== KEY.E) { // Allow exponential calculations (2E9, 1.1E6, etc)
             e.preventDefault();
         }
     }
 }
 
 function isTextInputActive() {
-    return f.document.activeElement !== null && g_textAreas.indexOf(f.document.activeElement.id) !== -1;
+    var active = f.document.activeElement;
+    return active !== null
+        && g_textAreas.indexOf(active.id) !== -1
+        && active.name !== "newname"
+        && active.name !== "pwpl";
 }
 
 /**
@@ -2833,23 +2878,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var ploc = gal + ":" + sys + ":" + g_targetPlanet;
                 var n = g_galaxyData.universe[ploc];
                 if (!n) {
-                    var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
-                            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
-                            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
-                            "width:500px;margin-left:-250px;margin-top:-400px;"],
-                        "You must save the planet before navigating!");
-                    f.document.body.appendChild(div);
-                    f.$(div).fadeTo(500, 0.7);
-                    setTimeout(function() {
-                        var bod = f.document.body;
-                        if (bod.children[bod.children.length - 1] === div) {
-                            f.$(div).fadeOut(500, function() {
-                                if (bod === f.document.body) {
-                                    bod.removeChild(bod.children[bod.children.length - 1]);
-                                }
-                            });
-                        }
-                    }, 2000);
+                    displayAlert("You must save the planet before navigating!", 500, 2000);
                     return;
                 }
                 var player = g_galaxyData.players[n][0];
