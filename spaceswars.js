@@ -182,6 +182,10 @@ if (g_page === "frames") {
                 f.addEventListener('keydown', function(e) {
                     globalKeypressHandler(e);
                 });
+
+                if (g_page !== "fleet" && g_page !== "floten1" && g_page !== "floten2" && g_page !== "floten3") {
+                    GM_deleteValue("attackData");
+                }
             }
         }
 
@@ -1702,6 +1706,13 @@ function messagePageKeyHandler(key) {
                 checkbox[0].checked = !checkbox[0].checked;
             }
             break;
+        case KEY.F:
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                // Expand and focus
+                active.childNodes[1].click();
+                f.$(active).find(".supFleet").focus();
+            }
+            break;
         case KEY.S:
             target = 0;
             break;
@@ -1991,6 +2002,9 @@ function loadEasyFarm() {
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
+    var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
+    var optionValues = [g_merchantMap.Blast, g_merchantMap.Supernova, g_merchantMap.Destroyer];
+
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
     for (var t = 0; t < tabs.length; t++) {
         tabs[t].tabIndex = t + 1;
@@ -2081,7 +2095,7 @@ function loadEasyFarm() {
 
         var deutTotal = allDeut;
         var snb = getSlashedNb;
-        var content = L_["massive_cargo"] + " : " + snb(res) + "<br />Deut : " + snb(allDeut);
+        var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(res) + "</span><br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
         while (allDeut >= g_config.EasyFarm.minPillage && g_config.EasyFarm.minPillage > 0) {
@@ -2122,6 +2136,36 @@ function loadEasyFarm() {
                 if (attackIndex === -1 || attackIndex === aaIndex)
                     attackIndex = i;
             }
+        } else {
+            var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
+            var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
+                if (e.keyCode === KEY.ENTER) {
+                    e.preventDefault();
+                    var id = this.id.substring(8);
+                    f.$("#attack" + id).click();
+                }
+            });
+            var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
+                var id = parseInt(this.id.substring(6));
+                var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
+                mc = Math.round((parseInt(mc) + 500000) / 1000000) * 1000000;
+                var data = {
+                    type: f.$("#shipSelect" + id)[0].value,
+                    val: f.$("#fleetNum" + id)[0].value,
+                    mc: mc
+                };
+                GM_setValue("attackData", JSON.stringify(data));
+                f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
+            });
+            var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
+            for (j = 0; j < optionTexts.length; j++) {
+                var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
+                sel.add(option);
+            }
+            selDiv.appendChild(num);
+            selDiv.appendChild(sel);
+            selDiv.appendChild(submit);
+            f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
         }
     }
 
@@ -3752,6 +3796,21 @@ function saveFleetPage() {
         } else {
             GM_deleteValue("AutoAttackMC");
             GM_deleteValue("AutoAttackWaves");
+        }
+    } else {
+        var attackData;
+        try {
+            attackData = JSON.parse(GM_getValue("attackData"));
+        } catch (ex) {}
+
+        if (attackData && attackData.val) {
+            var typeDiv = f.$("#ship" + attackData.type);
+            if (typeDiv.length) {
+                typeDiv.val(attackData.val);
+                mc[0].value = attackData.mc;
+                attackData.mc = Math.ceil((parseInt(attackData.mc) / 2) / 1000000) * 1000000;
+                GM_setValue("attackData", JSON.stringify(attackData));
+            }
         }
     }
 }
