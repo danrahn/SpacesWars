@@ -243,6 +243,8 @@ function populateConfig() {
     inputs[1].value = g_config.EasyFarm.colorPill;
     inputs[2].value = g_config.EasyFarm.minCDR;
     inputs[3].value = g_config.EasyFarm.colorCDR;
+    inputs[4].value = g_config.EasyFarm.defMultiplier ? g_config.EasyFarm.defMultiplier : 1;
+    inputs[5].value = g_config.EasyFarm.spyCutoff ? g_config.EasyFarm.spyCutoff : 0;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -673,6 +675,22 @@ function createEasyFarmOptions() {
         }
         result.push(document.createElement('br'));
     }
+
+    if (g_bottiness) {
+        var defMultiplier = createScriptOption(['input', 'label'],
+            [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
+        for (j = 0; j < defMultiplier.length; j++) {
+            result.push(defMultiplier[j]);
+        }
+
+        result.push(document.createElement('br'));
+        var spyCutoff = createScriptOption(['input', 'label'],
+            [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
+        for (j = 0; j < spyCutoff.length; j++) {
+            result.push(spyCutoff[j]);
+        }
+    }
+
     return result;
 }
 
@@ -799,6 +817,8 @@ function saveSettings() {
                 g_config.EasyFarm.colorPill = inputs[1].value;
                 g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
                 g_config.EasyFarm.colorCDR = inputs[3].value;
+                g_config.EasyFarm.defMultiplier = parseInt(inputs[4].value);
+                g_config.EasyFarm.spyCutoff = parseInt(inputs[5].value);
                 break;
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');

@@ -928,6 +928,8 @@ function setConfigScripts(uni) {
         list.EasyFarm.colorPill = "871717";
         list.EasyFarm.minCDR = 0;
         list.EasyFarm.colorCDR = "178717";
+        list.EasyFarm.defMultiplier = 1;
+        list.EasyFarm.spyCutoff = 0;
 
         list.Carto = ""; // No longer used
 
@@ -1306,6 +1308,11 @@ function setupSidebar() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
         autoAttack = this.checked && g_bottiness;
         advancedAutoAttack = autoAttack;
+        if (!autoAttack) {
+            GM_deleteValue("AutoAttackWaves");
+            GM_deleteValue("AutoAttackMC");
+            GM_setValue("AutoAttackIndex", -1);
+        }
     };
 
     if (g_bottiness) {
@@ -1440,11 +1447,23 @@ function globalShortcutHandler(e) {
         var active = f.document.activeElement;
         if (active.tagName.toLowerCase() === "input") {
             if (key === KEY.M) {
-                active.value = parseFloat(active.value) * 1E6;
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E6);
+                } else {
+                    active.value = parseFloat(active.value) * 1E6;
+                }
             } else if (key === KEY.B) {
-                active.value = parseFloat(active.value) * 1E9;
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E9);
+                } else {
+                    active.value = parseFloat(active.value) * 1E9;
+                }
             } else if (key === KEY.T) {
-                active.value = parseFloat(active.value) * 1E12;
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E12);
+                } else {
+                    active.value = parseFloat(active.value) * 1E12;
+                }
             }
         }
     }
@@ -1513,6 +1532,17 @@ function globalShortcutHandler(e) {
     }
 }
 
+function makeEven(active, value) {
+    var span = f.$(active.parentNode.parentNode.parentNode.childNodes[1].childNodes[3].childNodes[1]).find("span")[0];
+    if (span) {
+        var num = parseInt(span.innerHTML.match(/([\d.]+)\)/)[1].replace(/\./g, ''));
+        console.log(num);
+        if (num) {
+            active.value = value - (num % value);
+        }
+    }
+}
+
 function displayAlert(text, fadeTime, timeout) {
     if (f.document.getElementById("displayAlert")) {
         console.log("removing");
@@ -1524,18 +1554,28 @@ function displayAlert(text, fadeTime, timeout) {
             "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
             "width:500px;margin-left:-250px;margin-top:-400px;"],
         text);
+
     f.document.body.appendChild(div);
     f.$(div).fadeTo(fadeTime, 0.7);
-    setTimeout(function(fadeTime) {
-        var bod = f.document.body;
-        if (bod.children[bod.children.length - 1] === div) {
-            f.$(div).fadeOut(fadeTime, function() {
-                if (bod === f.document.body) {
-                    bod.removeChild(bod.children[bod.children.length - 1]);
-                }
+
+    if (timeout === -1) {
+        div.addEventListener("click", function() {
+            f.$(this).fadeOut(500, function() {
+                f.document.body.removeChild(f.document.getElementById("displayAlert"));
             });
-        }
-    }, timeout, fadeTime);
+        });
+    } else {
+        setTimeout(function (fadeTime) {
+            var bod = f.document.body;
+            if (bod.children[bod.children.length - 1] === div) {
+                f.$(div).fadeOut(fadeTime, function () {
+                    if (bod === f.document.body) {
+                        bod.removeChild(bod.children[bod.children.length - 1]);
+                    }
+                });
+            }
+        }, timeout, fadeTime)
+    }
 }
 
 /**
@@ -2082,7 +2122,7 @@ function loadEasyFarm() {
 
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
-        if (allDeut < 4 * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
+        if (allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
@@ -2175,6 +2215,8 @@ function loadEasyFarm() {
         GM_setValue("AutoAttackIndex", -1);
     }
 
+    console.log(messages.length + " - messages length");
+    console.log(attackIndex + " - attack Index");
     if (messages.length > 0 && aaIndex !== -1 && autoAttack && advancedAutoAttack) {
         GM_setValue("AutoAttackIndex", -1);
         messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -2186,7 +2228,11 @@ function loadEasyFarm() {
         setTimeout(function() {
             f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
         }, Math.random() * 400 + 1200);
+    } else if (autoAttack && attackIndex === -1 && messages.length > 0) {
+        displayAlert("No More Valid Fleets On Page", 500, -1);
     }
+
+
     if (g_dnsChanged) {
         console.log("DNS data changed");
         changeHandler(false /*forceSave*/);
@@ -3096,7 +3142,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
 
                 // Autobots, roll out!
-                if (rank < 800 && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
+                if ((!g_config.EasyFarm.spyCutoff || rank < g_config.EasyFarm.spyCutoff) && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
                     spyNeeded.push(row);
                 }
             }
