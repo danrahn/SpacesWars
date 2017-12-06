@@ -929,7 +929,11 @@ function setConfigScripts(uni) {
         list.EasyFarm.minCDR = 0;
         list.EasyFarm.colorCDR = "178717";
         list.EasyFarm.defMultiplier = 1;
-        list.EasyFarm.spyCutoff = 0;
+        list.EasyFarm.granularity = 1000;
+
+        list.EasyTarget = {};
+        list.EasyTarget.spyCutoff = 0;
+        list.EasyTarget.spyDelay = 0;
 
         list.Carto = ""; // No longer used
 
@@ -1536,7 +1540,6 @@ function makeEven(active, value) {
     var span = f.$(active.parentNode.parentNode.parentNode.childNodes[1].childNodes[3].childNodes[1]).find("span")[0];
     if (span) {
         var num = parseInt(span.innerHTML.match(/([\d.]+)\)/)[1].replace(/\./g, ''));
-        console.log(num);
         if (num) {
             active.value = value - (num % value);
         }
@@ -1545,7 +1548,6 @@ function makeEven(active, value) {
 
 function displayAlert(text, fadeTime, timeout) {
     if (f.document.getElementById("displayAlert")) {
-        console.log("removing");
         f.document.body.removeChild(f.document.getElementById("displayAlert"));
     }
 
@@ -1777,7 +1779,9 @@ function messagePageKeyHandler(key) {
             target = 4;
             break;
         case KEY.T:
-            target = 5;
+            if (active.tagName.toLowerCase() !== "input") {
+                target = 5;
+            }
             break;
         case KEY.E:
             target = 6;
@@ -1785,7 +1789,7 @@ function messagePageKeyHandler(key) {
         case KEY.M:
             if (g_keyArray[0] === "D") {
                 deleteMessages(0 /*deleteType*/);
-            } else {
+            } else if (active.tagName.toLowerCase() !== "input") {
                 target = 7;
             }
             break;
@@ -2104,6 +2108,9 @@ function loadEasyFarm() {
             }
         }
         shouldAttack = shouldAttack && totDef < 500000;
+        if (parseInt(g_uni) !== 17 && totDef > 0) {
+            shouldAttack = false;
+        }
 
         html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
         if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
@@ -2166,7 +2173,7 @@ function loadEasyFarm() {
             (function(count, res, href) {
                 f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
                     GM_setValue("AutoAttackWaves", count);
-                    res = Math.round((res + 500000) / 1000000) * 1000000;
+                    res = Math.round((res + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
                     GM_setValue("AutoAttackMC", res);
                     f.location = href;
                 });
@@ -2188,7 +2195,7 @@ function loadEasyFarm() {
             var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
                 var id = parseInt(this.id.substring(6));
                 var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
-                mc = Math.round((parseInt(mc) + 500000) / 1000000) * 1000000;
+                mc = Math.round((parseInt(mc) + 500000) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
                 var data = {
                     type: f.$("#shipSelect" + id)[0].value,
                     val: f.$("#fleetNum" + id)[0].value,
@@ -2215,8 +2222,6 @@ function loadEasyFarm() {
         GM_setValue("AutoAttackIndex", -1);
     }
 
-    console.log(messages.length + " - messages length");
-    console.log(attackIndex + " - attack Index");
     if (messages.length > 0 && aaIndex !== -1 && autoAttack && advancedAutoAttack) {
         GM_setValue("AutoAttackIndex", -1);
         messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -3142,7 +3147,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
 
                 // Autobots, roll out!
-                if ((!g_config.EasyFarm.spyCutoff || rank < g_config.EasyFarm.spyCutoff) && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
+                if ((!g_config.EasyTarget.spyCutoff || rank < g_config.EasyTarget.spyCutoff) && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
                     spyNeeded.push(row);
                 }
             }
@@ -3281,7 +3286,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (sfmLen > 0)
                 setTimeout(function() {
                     f.document.getElementsByName('systemRight')[0].click();
-                }, Math.random() * 300 + 500); // Admin's back. Make these more reasonable
+                }, Math.random() * 300 + g_config.EasyTarget.spyDelay);
         }
 
         for (i = 0; i < spyNeeded.length; i++) {
@@ -3301,9 +3306,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         if (sfmLen > 0)
                             setTimeout(function() {
                                 f.document.getElementsByName('systemRight')[0].click();
-                            }, Math.random() * 400 + 400);
+                            }, Math.random() * 400 + g_config.EasyTarget.spyDelay);
                     }
-                }, i * (spyForMe ? 300 : 300) + 500);
+                }, i * (g_config.EasyTarget.spyDelay) + g_config.EasyTarget.spyDelay);
             }(row, last, i));
         }
     }
@@ -3834,7 +3839,7 @@ function saveFleetPage() {
             } else {
                 mc.val(ships);
                 GM_setValue("AutoAttackWaves", waves - 1);
-                GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / 1000000) * 1000000);
+                GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
                 setTimeout(function() {
                     f.$('input[type=submit]')[0].click()
                 }, Math.random() * 400 + 1200); // It takes awhile to enter ships, take a bit longer here
@@ -3849,12 +3854,14 @@ function saveFleetPage() {
             attackData = JSON.parse(GM_getValue("attackData"));
         } catch (ex) {}
 
-        if (attackData && attackData.val) {
+        if (attackData) {
             var typeDiv = f.$("#ship" + attackData.type);
             if (typeDiv.length) {
                 typeDiv.val(attackData.val);
+            }
+            if (mc.length) {
                 mc[0].value = attackData.mc;
-                attackData.mc = Math.ceil((parseInt(attackData.mc) / 2) / 1000000) * 1000000;
+                attackData.mc = Math.ceil((parseInt(attackData.mc) / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
                 GM_setValue("attackData", JSON.stringify(attackData));
             }
         }

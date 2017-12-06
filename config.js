@@ -30,6 +30,10 @@ function createAndLoadConfigurationPage() {
         g_config.BetterEmpire.byMainSort = 1;
         g_config.BetterEmpire.moonsLast = 1;
     }
+
+    if (!g_config.EasyTarget) {
+        g_config.EasyTarget = {};
+    }
     // Needed to get new tooltips to work
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -244,7 +248,7 @@ function populateConfig() {
     inputs[2].value = g_config.EasyFarm.minCDR;
     inputs[3].value = g_config.EasyFarm.colorCDR;
     inputs[4].value = g_config.EasyFarm.defMultiplier ? g_config.EasyFarm.defMultiplier : 1;
-    inputs[5].value = g_config.EasyFarm.spyCutoff ? g_config.EasyFarm.spyCutoff : 0;
+    inputs[5].value = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -274,6 +278,8 @@ function populateConfig() {
         easyTargetText.focus();
         easyTargetText.select();
     });
+    inputs[2].value = g_config.EasyTarget.spyCutoff ? g_config.EasyTarget.spyCutoff : 0;
+    inputs[3].value = g_config.EasyTarget.spyDelay ? g_config.EasyTarget.spyDelay : 0;
 
     // NoAutoComplete
     inputs = options[3].getElementsByTagName('input');
@@ -410,6 +416,18 @@ function createEasyTargetScript() {
     targetContainer.appendChild(imprt);
     targetContainer.appendChild(exprt);
     targetContainer.appendChild(easyTargetTextArea);
+    targetContainer.appendChild(document.createElement('br'));
+    var spyCutoff = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
+    for (var j = 0; j < spyCutoff.length; j++) {
+        targetContainer.appendChild(spyCutoff[j]);
+    }
+    targetContainer.appendChild(document.createElement("br"));
+    var spyDelay = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'Autospy Delay']);
+    for (j = 0; j < spyDelay.length; j++) {
+        targetContainer.appendChild(spyDelay[j]);
+    }
     return packScript(easyTarget, targetContainer, "EasyTarget");
 }
 
@@ -682,12 +700,11 @@ function createEasyFarmOptions() {
         for (j = 0; j < defMultiplier.length; j++) {
             result.push(defMultiplier[j]);
         }
-
         result.push(document.createElement('br'));
-        var spyCutoff = createScriptOption(['input', 'label'],
-            [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
-        for (j = 0; j < spyCutoff.length; j++) {
-            result.push(spyCutoff[j]);
+        var granularity = createScriptOption(['input', 'label'],
+            [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
+        for (j = 0; j < granularity.length; j++) {
+            result.push(granularity[j]);
         }
     }
 
@@ -818,8 +835,12 @@ function saveSettings() {
                 g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
                 g_config.EasyFarm.colorCDR = inputs[3].value;
                 g_config.EasyFarm.defMultiplier = parseInt(inputs[4].value);
-                g_config.EasyFarm.spyCutoff = parseInt(inputs[5].value);
+                g_config.EasyFarm.granularity = parseInt(inputs[5].value);
                 break;
+            case "EasyTarget":
+                inputs = options[2].getElementsByTagName("input");
+                g_config.EasyTarget.spyCutoff = parseInt(inputs[2].value);
+                g_config.EasyTarget.spyDelay = parseInt(inputs[3].value);
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');
                 g_config.NoAutoComplete.galaxy = inputs[0].checked;
