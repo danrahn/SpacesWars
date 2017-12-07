@@ -2437,9 +2437,9 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                 var msg = (g_lang === 'en') ? en : fr;
                 if (confirm(msg)) {
                     for (var i = 0; i < arr.length; i++) {
-                        if (g_fleetPoints[who][arr[i][0]][1][1] !== dte.getTime()) {
+                        if (g_fleetPoints[who][arr[i][0]] && g_fleetPoints[who][arr[i][0]][1][1] !== dte.getTime()) {
                             delete g_fleetPoints[who][arr[i][0]];
-                            var locations = g_galaxyData.players[arr[i][0]][0];
+                            var locations = g_galaxyData.players[arr[i][0]] ? g_galaxyData.players[arr[i][0]][0] : [];
                             for (var j = 0; j < locations.length; j++) {
                                 delete g_galaxyData.universe[locations[j]];
                             }
@@ -2448,7 +2448,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                     }
                     GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
                     GM_setValue('fp_redirect', 1);
-                    window.location = 'stat.php';
+                    f.window.location = 'stat.php';
                 }
             });
         }
