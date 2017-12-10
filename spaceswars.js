@@ -30,6 +30,14 @@ var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
 
+if (g_page === "simulator") {
+    if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
+        processSim();
+    }
+    // noinspection JSAnnotator
+    return;
+}
+
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
 // reports show they have nothing of use
@@ -134,7 +142,7 @@ var advancedAutoAttack = autoAttack; // No longer used?
 
 setGlobalKeyboardShortcuts();
 
-if (g_page !== "forum" && !g_saveEveryTime) {
+if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
     window.addEventListener("beforeunload", function (e) {
         changeHandler(true /*forcecSave*/);
         var confirmationMessage = "/";
@@ -1806,6 +1814,20 @@ function messagePageKeyHandler(key) {
             g_keyArray.length = 1;
             g_keyArray[0] = "D";
             break;
+        case KEY.Q:
+            // Simulate with Q, since keys that make sense are taken,
+            // and it's easy to press with the left hand
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
+            }
+            break;
+        case KEY.Z:
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                GM_setValue("autoSim", 1);
+                GM_setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
+                f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
+            }
+            break;
         default:
             break;
 
@@ -2049,6 +2071,15 @@ function loadEasyFarm() {
     var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
     var optionValues = [g_merchantMap.Blast, g_merchantMap.Supernova, g_merchantMap.Destroyer];
 
+    var simBlasts;
+    var simIndex;
+    if (!autoAttack) {
+        simBlasts = GM_getValue("simBlasts");
+        if (simBlasts) {
+            simIndex = GM_getValue("autoSimIndex");
+        }
+
+    }
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
     for (var t = 0; t < tabs.length; t++) {
         tabs[t].tabIndex = t + 1;
@@ -2173,7 +2204,8 @@ function loadEasyFarm() {
             (function(count, res, href) {
                 f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
                     GM_setValue("AutoAttackWaves", count);
-                    res = Math.round((res + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+                    var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
+                        res = Math.round((res + (granularity / 2)) / granularity) * granularity;
                     GM_setValue("AutoAttackMC", res);
                     f.location = href;
                 });
@@ -2204,6 +2236,11 @@ function loadEasyFarm() {
                 GM_setValue("attackData", JSON.stringify(data));
                 f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
             });
+            var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
+                GM_setValue("autoSim", 1);
+                GM_setValue("autoSimIndex", this.id.substring(3));
+                f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
+            });
             var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
             for (j = 0; j < optionTexts.length; j++) {
                 var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
@@ -2212,7 +2249,17 @@ function loadEasyFarm() {
             selDiv.appendChild(num);
             selDiv.appendChild(sel);
             selDiv.appendChild(submit);
+            selDiv.appendChild(simulate);
             f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
+
+            if (parseInt(simIndex) === i && simBlasts) {
+                GM_deleteValue("simBlasts");
+                GM_deleteValue("autoSimIndex");
+                f.$(num).val(simBlasts);
+                f.$(num).parent().parent().parent()[0].childNodes[1].click();
+                f.$(num).focus();
+                num.scrollIntoView()
+            }
         }
     }
 
@@ -2227,16 +2274,15 @@ function loadEasyFarm() {
         messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
         setTimeout(function() {
             f.document.getElementsByTagName("input")[5].click();
-        }, Math.random() * 300 + 400);
+        }, Math.random() * 300 + 200);
     } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
         GM_setValue("AutoAttackIndex", attackIndex);
         setTimeout(function() {
             f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
-        }, Math.random() * 400 + 1200);
+        }, Math.random() * 400 + 200);
     } else if (autoAttack && attackIndex === -1 && messages.length > 0) {
         displayAlert("No More Valid Fleets On Page", 500, -1);
     }
-
 
     if (g_dnsChanged) {
         console.log("DNS data changed");
@@ -2293,25 +2339,134 @@ function changeHandler(forceSave) {
  * Replaces any question marks in the simulator with whatever
  * value is above/below
  */
-function setSimDefaults() {
-    if (f.$('.simu_120').length === 22) {
-        // Who needs loops?
-        var a109 = f.$('#a109');
-        var d109 = f.$('#d109');
-        var a110 = f.$('#a110');
-        var d110 = f.$('#d110');
-        var a111 = f.$('#a111');
-        var d111 = f.$('#d111');
-        var aoff = f.$('#aoff');
-        var doff = f.$('#doff');
-        if (a109.val() === '?') a109.val(d109.val());
-        if (d109.val() === '?') d109.val(a109.val());
-        if (a110.val() === '?') a110.val(d110.val());
-        if (d110.val() === '?') d110.val(a110.val());
-        if (a111.val() === '?') a111.val(d111.val());
-        if (d111.val() === '?') d111.val(a111.val());
-        if (aoff.val() === '?') aoff.val(doff.val());
-        if (doff.val() === '?') doff.val(aoff.val());
+async function setSimDefaults() {
+    var autoSim = (GM_getValue("autoSim") === 1);
+    if (f.$(".simu_120").length !== 22) {
+        return;
+    }
+
+    // Who needs loops?
+    var a109 = f.$('#a109');
+    var d109 = f.$('#d109');
+    var a110 = f.$('#a110');
+    var d110 = f.$('#d110');
+    var a111 = f.$('#a111');
+    var d111 = f.$('#d111');
+    var aoff = f.$('#aoff');
+    var doff = f.$('#doff');
+    if (a109.val() === '?') a109.val(d109.val());
+    if (d109.val() === '?') d109.val(a109.val());
+    if (a110.val() === '?') a110.val(d110.val());
+    if (d110.val() === '?') d110.val(a110.val());
+    if (a111.val() === '?') a111.val(d111.val());
+    if (d111.val() === '?') d111.val(a111.val());
+    if (aoff.val() === '?' && !autoSim){
+        aoff.val(doff.val());
+    }
+    else {
+        aoff.val(0);
+    }
+
+    if (doff.val() === '?' && !autoSim) {
+        doff.val(aoff.val());
+    }
+    else {
+        doff.val(40);
+    }
+
+    if (!autoSim) {
+        return;
+    }
+
+    noShip("att");
+    var totalBlast = Math.floor(parseInt(f.$(".simu_135")[69].innerHTML.replace(/\./g, "")) / 1E9) * 1E9;
+    var maxBlast = totalBlast;
+    var minBlast = 0;
+    var curBlast = maxBlast;
+    var blastSelector = f.$("#att219");
+    blastSelector.val(maxBlast);
+    GM_setValue("simVictory", -1);
+    var totalVictory = false;
+
+    console.log("Beginning loop");
+    while (!totalVictory) {
+        console.log("Attempting with " + curBlast + " blasts");
+        f.$("input[value='Simulate']").click();
+        await waitForSimComplete();
+        // await waitFor(1000); // Don't do things super quickly
+        totalVictory = GM_getValue("simVictory") === 1;
+        GM_setValue("simVictory", -1);
+        if (!totalVictory && curBlast === totalBlast) {
+            // Not enough blat for total victory
+            console.log("Not enough blasts for total victory");
+            curBlast = -1;
+            break;
+        } else if (totalVictory) {
+            console.log("Total victory with " + curBlast + " blasts");
+            // Won. Try fewer blasts now
+            maxBlast = curBlast;
+            if (minBlast >= maxBlast - 1E9) {
+                curBlast = maxBlast;
+                console.log("Min total victory: " + curBlast + " blasts");
+                break;
+            }
+
+            curBlast = Math.ceil((curBlast + minBlast) / 2E9) * 1E9;
+
+            totalVictory = false;
+        } else {
+            console.log("No total victory with " + curBlast + " blasts");
+            minBlast = curBlast;
+            if (minBlast >= maxBlast - 1E9) {
+                curBlast = maxBlast;
+                break;
+            }
+
+            curBlast = Math.floor((curBlast + maxBlast) / 2E9) * 1E9;
+        }
+
+        blastSelector.val(curBlast);
+    }
+
+    console.log("Ended loop");
+    GM_deleteValue("autoSim");
+    GM_setValue("simBlasts", curBlast);
+    GM_setValue("redirToSpy", "1");
+    f.window.location = "messages.php";
+
+
+}
+
+function waitForSimComplete() {
+    return new Promise(function(resolve, reject) {
+        (function waitForSim() {
+            if (GM_getValue("simVictory") === -1) {
+                setTimeout(waitForSim, 30);
+            } else {
+                return resolve();
+            }
+        })();
+    })
+}
+
+/***
+ * Copied from spaceswars' simulator.js
+ * @param pref
+ */
+function noShip(pref) {
+    var id;
+    var i;
+    for (i = 200; i < 236; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
+    }
+    for (i = 400; i < 410; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
+    }
+    for (i = 500; i < 505; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
     }
 }
 
@@ -3842,7 +3997,7 @@ function saveFleetPage() {
                 GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
                 setTimeout(function() {
                     f.$('input[type=submit]')[0].click()
-                }, Math.random() * 400 + 1200); // It takes awhile to enter ships, take a bit longer here
+                }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
             }
         } else {
             GM_deleteValue("AutoAttackMC");
@@ -3857,11 +4012,16 @@ function saveFleetPage() {
         if (attackData) {
             var typeDiv = f.$("#ship" + attackData.type);
             if (typeDiv.length) {
+                // Attacker loses 70% of defenses, so send 70% of fleet
                 typeDiv.val(attackData.val);
+                attackData.val = Math.ceil((parseInt(attackData.val) * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
             }
             if (mc.length) {
                 mc[0].value = attackData.mc;
                 attackData.mc = Math.ceil((parseInt(attackData.mc) / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+            }
+
+            if (mc.length || typeDiv.length) {
                 GM_setValue("attackData", JSON.stringify(attackData));
             }
         }
@@ -4112,6 +4272,20 @@ function loadRedirectFleet() {
     }
     else {
         f.location.href = "fleet.php";
+    }
+}
+
+/***
+ * Determines if a simulation resulted in total victory (no attacker losses)
+ */
+function processSim() {
+    var winString = "The attacker has won the battle!";
+    var nextRoundForm = $("#formulaireID");
+    var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
+    var lostUnits = parseInt($(".space0").find("div:contains('Attacker has lost')")[1].childNodes[1].innerHTML.replace(/\./g, ''));
+    GM_setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
+    if (GM_getValue("autoSim")) {
+        close();
     }
 }
 

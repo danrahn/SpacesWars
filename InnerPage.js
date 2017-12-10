@@ -11,6 +11,8 @@
 // @include     http://spaceswars.fr/forum*
 // @include     http://www.spaceswars.fr/forum*
 //
+// @grant GM_getValue
+//
 // ==/UserScript==
 //
 // userscript created by NiArK
@@ -18,6 +20,7 @@
 // userscript updated and expanded by DTR
 
 /* global GM_getValue*/
+/* global $*/
 
 
 var g_info = getInfoFromPage();
@@ -58,7 +61,6 @@ if (window.top.notifyNewPage)
 if (g_page === "rw") {
     loadRConverter();
 }
-
 
 /**
  * Creates nicely formatted battle reports. Not written by me, but has
