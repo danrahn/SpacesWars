@@ -41,7 +41,9 @@ if (g_page === "simulator") {
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
 // reports show they have nothing of use
-var spyForMe = !!parseInt(GM_getValue("SpyForMe"));
+var spyForMe = false;
+
+var autoAttackWithSim = !!parseInt(GM_getValue("SpyForMe"));
 
 var g_nbScripts = 13;
 var thisVersion = "4.1";
@@ -1300,8 +1302,8 @@ function setupSidebar() {
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
 
-    var sfmCheck = buildNode("input", ["type"], ["checkbox"]);
-    var aaCheck = buildNode("input", ["type"], ["checkbox"]);
+    var sfmCheck = buildNode("input", ["type", "id"], ["checkbox", "sfmCheck"], "");
+    var aaCheck = buildNode("input", ["type", "id"], ["checkbox", "aaCheck"], "");
 
     if (!g_saveEveryTime) {
         var saveData = buildNode("input", ["type", "style", "value"],
@@ -1313,7 +1315,10 @@ function setupSidebar() {
 
     sfmCheck.onchange = function() {
         GM_setValue("SpyForMe", this.checked ? 1 : 0);
-        spyForMe = this.checked;
+        autoAttackWithSim = this.checked;
+        GM_deleteValue("simBlasts");
+        GM_deleteValue("autoSimIndex");
+        GM_deleteValue("AutoAttackBlasts");
     };
 
     aaCheck.onchange = function() {
@@ -1321,10 +1326,17 @@ function setupSidebar() {
         autoAttack = this.checked && g_bottiness;
         advancedAutoAttack = autoAttack;
         if (!autoAttack) {
+            GM_deleteValue("AutoAttackStartIndex");
             GM_deleteValue("AutoAttackWaves");
             GM_deleteValue("AutoAttackMC");
             GM_setValue("AutoAttackIndex", -1);
         }
+
+        GM_deleteValue("simBlasts");
+        GM_deleteValue("autoSimIndex");
+        GM_deleteValue("AutoAttackBlasts");
+        GM_deleteValue("autoSpyLength");
+        GM_deleteValue("fullGalaxySpy");
     };
 
     if (g_bottiness) {
@@ -1337,7 +1349,7 @@ function setupSidebar() {
     if (!g_saveEveryTime)
         langBox.append(saveData);
 
-    sfmCheck.checked = spyForMe ? "checked" : "";
+    sfmCheck.checked = autoAttackWithSim ? "checked" : "";
     aaCheck.checked = autoAttack ? "checked" : "";
 }
 
@@ -2071,15 +2083,31 @@ function loadEasyFarm() {
     var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
     var optionValues = [g_merchantMap.Blast, g_merchantMap.Supernova, g_merchantMap.Destroyer];
 
+    var needsSim = [];
     var simBlasts;
     var simIndex;
-    if (!autoAttack) {
-        simBlasts = GM_getValue("simBlasts");
-        if (simBlasts) {
-            simIndex = GM_getValue("autoSimIndex");
+    simBlasts = GM_getValue("simBlasts");
+    var startIndex = 0;
+    if (autoAttack && autoAttackWithSim) {
+        var storedIndex = GM_getValue("AutoAttackStartIndex");
+        if (!storedIndex) {
+            startIndex = 0;
+        } else {
+            startIndex = parseInt(storedIndex);
         }
-
     }
+    if (simBlasts) {
+        simIndex = GM_getValue("autoSimIndex");
+        if (autoAttack && autoAttackWithSim) {
+            if (simBlasts === -1) {
+                startIndex++;
+                GM_setValue("AutoAttackStartIndex", startIndex);
+                GM_deleteValue("simBlasts");
+                GM_deleteValue("autoSimIndex");
+            }
+        }
+    }
+
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
     for (var t = 0; t < tabs.length; t++) {
         tabs[t].tabIndex = t + 1;
@@ -2088,10 +2116,10 @@ function loadEasyFarm() {
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
     var attackIndex = -1;
-    var aaIndex = parseInt(GM_getValue("AutoAttackIndex"));
+    var aaDeleteIndex = parseInt(GM_getValue("AutoAttackIndex"));
 
-    if (isNaN(aaIndex))
-        aaIndex = -1;
+    if (isNaN(aaDeleteIndex))
+        aaDeleteIndex = -1;
 
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -2138,7 +2166,9 @@ function loadEasyFarm() {
                     shouldAttack = shouldAttack && n <= 200;
             }
         }
+
         shouldAttack = shouldAttack && totDef < 500000;
+        needsSim[i] = autoAttackWithSim && candidate && !shouldAttack && parseInt(g_uni) === 17;
         if (parseInt(g_uni) !== 17 && totDef > 0) {
             shouldAttack = false;
         }
@@ -2207,13 +2237,19 @@ function loadEasyFarm() {
                     var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
                         res = Math.round((res + (granularity / 2)) / granularity) * granularity;
                     GM_setValue("AutoAttackMC", res);
+                    if (simBlasts) {
+                        GM_deleteValue("simBlasts");
+                        GM_deleteValue("autoSimIndex");
+                        GM_setValue("AutoAttackBlasts", simBlasts);
+                    }
                     f.location = href;
                 });
             })(count, res, href);
 
-            if (shouldAttack && advancedAutoAttack) {
-                if (attackIndex === -1 || attackIndex === aaIndex)
+            if ((shouldAttack || needsSim[i]) && advancedAutoAttack && i >= startIndex) {
+                if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
+                }
             }
         } else {
             var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
@@ -2269,18 +2305,31 @@ function loadEasyFarm() {
         GM_setValue("AutoAttackIndex", -1);
     }
 
-    if (messages.length > 0 && aaIndex !== -1 && autoAttack && advancedAutoAttack) {
+    if (messages.length > 0 && aaDeleteIndex !== -1 && autoAttack && advancedAutoAttack) {
+        // Delete already-attacked message
         GM_setValue("AutoAttackIndex", -1);
-        messages[aaIndex].getElementsByClassName("checkbox")[0].checked = "checked";
+        GM_deleteValue("AutoAttackBlasts");
+        messages[aaDeleteIndex].getElementsByClassName("checkbox")[0].checked = "checked";
         setTimeout(function() {
             f.document.getElementsByTagName("input")[5].click();
         }, Math.random() * 300 + 200);
     } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
-        GM_setValue("AutoAttackIndex", attackIndex);
-        setTimeout(function() {
-            f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
-        }, Math.random() * 400 + 200);
+        // Standard attack
+
+        if (needsSim[attackIndex] && !simBlasts) {
+            GM_setValue("autoSim", 1);
+            GM_setValue("autoSimIndex", attackIndex);
+            f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
+        } else if (needsSim[attackIndex] && simBlasts && simIndex !== attackIndex) {
+            displayAlert("AutoSim mismatch!", 500, -1);
+        } else {
+            GM_setValue("AutoAttackIndex", attackIndex);
+            setTimeout(function() {
+                f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
+            }, Math.random() * 400 + 200);
+        }
     } else if (autoAttack && attackIndex === -1 && messages.length > 0) {
+        // no more qualifying autoattacks
         displayAlert("No More Valid Fleets On Page", 500, -1);
     }
 
@@ -2382,32 +2431,23 @@ async function setSimDefaults() {
     var totalBlast = Math.floor(parseInt(f.$(".simu_135")[69].innerHTML.replace(/\./g, "")) / 1E9) * 1E9;
     var maxBlast = totalBlast;
     var minBlast = 0;
-    var curBlast = maxBlast;
+    var curBlast = 1E9; // Start low
     var blastSelector = f.$("#att219");
-    blastSelector.val(maxBlast);
+    blastSelector.val(curBlast);
     GM_setValue("simVictory", -1);
     var totalVictory = false;
 
-    console.log("Beginning loop");
     while (!totalVictory) {
-        console.log("Attempting with " + curBlast + " blasts");
         f.$("input[value='Simulate']").click();
         await waitForSimComplete();
         // await waitFor(1000); // Don't do things super quickly
         totalVictory = GM_getValue("simVictory") === 1;
         GM_setValue("simVictory", -1);
-        if (!totalVictory && curBlast === totalBlast) {
-            // Not enough blat for total victory
-            console.log("Not enough blasts for total victory");
-            curBlast = -1;
-            break;
-        } else if (totalVictory) {
-            console.log("Total victory with " + curBlast + " blasts");
+        if (totalVictory) {
             // Won. Try fewer blasts now
             maxBlast = curBlast;
             if (minBlast >= maxBlast - 1E9) {
                 curBlast = maxBlast;
-                console.log("Min total victory: " + curBlast + " blasts");
                 break;
             }
 
@@ -2415,9 +2455,14 @@ async function setSimDefaults() {
 
             totalVictory = false;
         } else {
-            console.log("No total victory with " + curBlast + " blasts");
             minBlast = curBlast;
             if (minBlast >= maxBlast - 1E9) {
+                if (maxBlast === totalBlast) {
+                    // Not enough blast for total victory
+                    curBlast = -1;
+                    break;
+                }
+
                 curBlast = maxBlast;
                 break;
             }
@@ -2428,11 +2473,10 @@ async function setSimDefaults() {
         blastSelector.val(curBlast);
     }
 
-    console.log("Ended loop");
     GM_deleteValue("autoSim");
     GM_setValue("simBlasts", curBlast);
     GM_setValue("redirToSpy", "1");
-    f.window.location = "messages.php";
+    f.location = "messages.php";
 
 
 }
@@ -2603,7 +2647,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                     }
                     GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
                     GM_setValue('fp_redirect', 1);
-                    f.window.location = 'stat.php';
+                    f.location = 'stat.php';
                 }
             });
         }
@@ -3436,12 +3480,24 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
     if (!isNaN(sfmLen) && sfmLen >= 0)
     {
+        var fullGalaxySpy = GM_getValue("fullGalaxySpy");
         if (spyNeeded.length === 0) {
             GM_setValue("autoSpyLength", sfmLen - 1);
-            if (sfmLen > 0)
+            if (sfmLen > 0) {
                 setTimeout(function() {
                     f.document.getElementsByName('systemRight')[0].click();
                 }, Math.random() * 300 + g_config.EasyTarget.spyDelay);
+            } else if (fullGalaxySpy) {
+                if (!autoAttack) {
+                    setTimeout(function() {
+                        GM_setValue("redirToSpy", "1");
+                        GM_setValue("CompleteBot", true);
+                        f.$("#sfmCheck").prop("checked", true);
+                        f.$("#aaCheck").prop("checked", true);
+                        f.location = "messages.php";
+                    }, 5 * 60 * 1000); // After 5 minutes (waiting for fleet to arrive), turn on autoattack and go to messages
+                }
+            }
         }
 
         for (i = 0; i < spyNeeded.length; i++) {
@@ -3473,7 +3529,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
             var num = f.$("#autoSpyLength").val();
             GM_setValue("autoSpyLength", num);
-
+            GM_setValue("fullGalaxySpy", parseInt(num) === 498);
         });
         var inputDiv = f.$(".galaxy_float100")[0];
         inputDiv.append(len);
@@ -3691,9 +3747,11 @@ function updatePlayerInfo(newName, position, lune) {
 function deleteUnusedPosition(position, storedName) {
     g_galaxyDataChanged = true;
     console.log("Attempting to remove " + storedName + " at " + position);
-    g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-    if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
-        g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    if (storedName) {
+        g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+        if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
+            g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    }
     delete g_galaxyData.universe[position];
 }
 
@@ -3995,6 +4053,20 @@ function saveFleetPage() {
                 mc.val(ships);
                 GM_setValue("AutoAttackWaves", waves - 1);
                 GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                var blasts = parseInt(GM_getValue("AutoAttackBlasts"));
+                if (blasts) {
+                    var bl = f.$("#ship219");
+                    var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
+                    if (blasts > maxBlasts) {
+                        alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
+                        GM_deleteValue("AutoAttackMC");
+                        GM_deleteValue("AutoAttackWaves");
+                        GM_deleteValue("AutoAttackBlasts");
+                    }
+
+                    bl.val(blasts);
+                    GM_setValue("AutoAttackBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                }
                 setTimeout(function() {
                     f.$('input[type=submit]')[0].click()
                 }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
