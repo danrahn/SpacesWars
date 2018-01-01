@@ -3235,8 +3235,16 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 // This will be tripped up if for some reason a player's moon ends in " (*)",
                 // but that's pretty unlikely...
                 if (f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4) === " (*)") {
-                    moon[1].style.border = "1px solid #900";
-                    moon[1].style.padding = "-1px";
+                    moon[1].style.border = "1px solid rgb(150, 0, 0)";
+                    moon[1].style.margin = "-1px";
+                } else {
+                    var min = f.$("#" + divId)[0].childNodes[0].innerHTML.match(/\((\d+)min\)/);
+                    if (min && min.length) {
+                        // fade out red until it's black/disappears
+                        var color = Math.ceil(min[1] * 10);
+                        moon[1].style.border = "1px solid rgb(150, " + color + ", 0)";
+                        moon[1].style.margin = "-1px";
+                    }
                 }
             }
 
