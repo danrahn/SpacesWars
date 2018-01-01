@@ -38,11 +38,6 @@ if (g_page === "simulator") {
     return;
 }
 
-// A bit of a misnomer, as it's function changed. Determines
-// whether to selectively ignore planets when spying because old
-// reports show they have nothing of use
-var spyForMe = false;
-
 var autoAttackWithSim = !!parseInt(GM_getValue("SpyForMe"));
 
 var g_nbScripts = 13;
@@ -88,6 +83,12 @@ var g_bottiness = true;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 var g_saveEveryTime = false;
+
+
+// A bit of a misnomer, as it's function changed. Determines
+// whether to selectively ignore planets when spying because old
+// reports show they have nothing of use
+var spyForMe = g_config.EasyTarget.useDoNotSpy;
 
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
@@ -944,6 +945,7 @@ function setConfigScripts(uni) {
         list.EasyTarget = {};
         list.EasyTarget.spyCutoff = 0;
         list.EasyTarget.spyDelay = 0;
+        list.EasyTarget.useDoNotSpy = false;
 
         list.Carto = ""; // No longer used
 
@@ -2195,8 +2197,8 @@ function loadEasyFarm() {
         }
 
         var oldValue = g_doNotSpy[galaxy][system][position];
-        var newValue = allDeut < g_config.EasyFarm.minPillage / 2;
-        if (oldValue !== newValue) {
+        var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
+        if (g_config.EasyTarget.useDoNotSpy && oldValue !== newValue) {
             g_dnsChanged = true;
             g_doNotSpy[galaxy][system][position] = newValue;
         }
@@ -3223,6 +3225,21 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             rank = parseInt(rank.substring(rank.indexOf(":") + 2));
             span.innerHTML = '(' + rank + ')';
 
+            // If a moon is present, check to see if it's active. This will also
+            // potentially pick up ruin fields, but that's okay, since they'll be
+            // seen as inactive anyway.
+            var moon = f.$(row).find(".img_20");
+            if (moon.length >= 2) {
+                var divId = moon[1].onclick.toString();
+                divId = divId.substring(divId.indexOf("'") + 1, divId.lastIndexOf("'"));
+                // This will be tripped up if for some reason a player's moon ends in " (*)",
+                // but that's pretty unlikely...
+                if (f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4) === " (*)") {
+                    moon[1].style.border = "1px solid red";
+                    moon[1].style.padding = "-1px";
+                }
+            }
+
             // Bot workaround, as they're displayed differently
             var newName = name.childNodes[0].nodeValue;
             if (!newName)
@@ -3346,7 +3363,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 }
 
                 // Autobots, roll out!
-                if ((!g_config.EasyTarget.spyCutoff || rank < g_config.EasyTarget.spyCutoff) && (!spyForMe || !g_doNotSpy[gal][sys][planet])) {
+                if ((!g_config.EasyTarget.spyCutoff || rank < g_config.EasyTarget.spyCutoff) && (!g_config.EasyTarget.useDoNotSpy || !g_doNotSpy[gal][sys][planet])) {
                     spyNeeded.push(row);
                 }
             }

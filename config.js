@@ -34,6 +34,11 @@ function createAndLoadConfigurationPage() {
     if (!g_config.EasyTarget) {
         g_config.EasyTarget = {};
     }
+
+    if (!g_config.EasyTarget.useDoNotSpy) {
+        g_config.EasyTarget.useDoNotSpy = false;
+    }
+
     // Needed to get new tooltips to work
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -280,6 +285,7 @@ function populateConfig() {
     });
     inputs[2].value = g_config.EasyTarget.spyCutoff ? g_config.EasyTarget.spyCutoff : 0;
     inputs[3].value = g_config.EasyTarget.spyDelay ? g_config.EasyTarget.spyDelay : 0;
+    if (g_config.EasyTarget.useDoNotSpy) inputs[4].checked = true;
 
     // NoAutoComplete
     inputs = options[3].getElementsByTagName('input');
@@ -428,6 +434,11 @@ function createEasyTargetScript() {
     for (j = 0; j < spyDelay.length; j++) {
         targetContainer.appendChild(spyDelay[j]);
     }
+
+    var useDoNotSpy = createCheckBoxItems(["Use DoNotSpy"], 150)[0];
+    useDoNotSpy.style.clear = 'both';
+    targetContainer.appendChild(useDoNotSpy);
+
     return packScript(easyTarget, targetContainer, "EasyTarget");
 }
 
@@ -841,6 +852,7 @@ function saveSettings() {
                 inputs = options[2].getElementsByTagName("input");
                 g_config.EasyTarget.spyCutoff = parseInt(inputs[2].value);
                 g_config.EasyTarget.spyDelay = parseInt(inputs[3].value);
+                g_config.EasyTarget.useDoNotSpy = inputs[4].checked;
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');
                 g_config.NoAutoComplete.galaxy = inputs[0].checked;
