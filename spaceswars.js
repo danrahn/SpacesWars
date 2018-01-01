@@ -79,7 +79,7 @@ var SAVE_INTERVAL = 20;
 var g_changeCount = 0;
 var g_markitChanged = false;
 var g_dnsChanged = false;
-var g_bottiness = true;
+var g_bottiness = false;
 var g_galaxyDataChanged = false;
 var g_inactivesChanged = false;
 var g_saveEveryTime = false;
@@ -3069,6 +3069,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 } else {
                     defCol = "transparent";
                 }
+
                 animateBackground(rows[num - 1], defCol, 500, true);
             } else {
                 // Fade to the corresponding color
@@ -3396,7 +3397,6 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
                     (function(position, storedName, img) {
                         img.addEventListener("click", function() {
-                            console.log("deleting unused position");
                             deleteUnusedPosition(position, storedName);
                             f.$(this).fadeOut();
                         });
@@ -3469,10 +3469,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (infos_scripts.EasyTarget) {
                 for (j = 1; j < 14; j += 2) {
                     (function(i, rows) {
-                        f.$(row.childNodes[j]).click(function() {
-                            // Don't do anything if we're clicking the save button
-                            console.log(this.id);
-                            if (this.id.indexOf("save") === 0) {
+                        f.$(row.childNodes[j]).click(function(e) {
+                            // Don't do anything if we're clicking any of the children
+                            if (e.target.className.indexOf("galaxy_float") === -1) {
                                 return;
                             }
 
@@ -3483,8 +3482,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 kid.style.display = 'block';
                             }
                             // When clicked, make it the active planet, allowing us
-                            // to then navigate with P/N
-                            if (g_targetPlanet !== -1) {
+                            // to then navigate with P/N. Don't do anything if we're
+                            // clicking on the same planet
+                            if (g_targetPlanet !== -1 && g_targetPlanet !== i + 1) {
                                 var oldPos = gal + ":" + sys + ":" + g_targetPlanet;
                                 if (g_markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
@@ -3494,8 +3494,11 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                     animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true)
                                 }
                             }
-                            g_targetPlanet = i + 1;
-                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false);
+
+                            if (g_targetPlanet !== i + 1) {
+                                g_targetPlanet = i + 1;
+                                animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false);
+                            }
                         });
                     })(i, rows);
                 }
