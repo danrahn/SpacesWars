@@ -3235,7 +3235,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 // This will be tripped up if for some reason a player's moon ends in " (*)",
                 // but that's pretty unlikely...
                 if (f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4) === " (*)") {
-                    moon[1].style.border = "1px solid red";
+                    moon[1].style.border = "1px solid #900";
                     moon[1].style.padding = "-1px";
                 }
             }
@@ -3382,7 +3382,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             // Nothing here. If it was stored in the database, delete it.
             if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
                 if (g_bottiness) {
-                    deleteUnusedPosition(position);
+                    deleteUnusedPosition(position, storedName);
                 } else {
                     var redX = "https://i.imgur.com/gUAQ51d.png";
                     saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
@@ -3768,7 +3768,31 @@ function deleteUnusedPosition(position, storedName) {
         g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
         if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
             g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    } else {
+        // Gotta do things the hard way: search through every player and delete the position
+        // once we find it. Optimistically return if it's found.
+        for (var player in g_galaxyData.players) {
+            if (!g_galaxyData.players.hasOwnProperty(player)) {
+                continue;
+            }
+
+            var pos = player[0].indexOf(position);
+            if (pos !== -1) {
+                player[0].splice(pos, 1);
+            }
+
+            var lunePos = player[1].indexOf(position);
+            if (lunePos !== -1) {
+                player[1].splice(lunePos, 1);
+                break;
+            }
+
+            if (pos !== -1) {
+                break;
+            }
+        }
     }
+
     delete g_galaxyData.universe[position];
 }
 
