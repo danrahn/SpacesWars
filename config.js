@@ -426,17 +426,28 @@ function createEasyTargetScript() {
     var spyCutoff = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
     for (var j = 0; j < spyCutoff.length; j++) {
+        if (!g_bottiness) {
+            spyCutoff[j].style.display = "none";
+        }
         targetContainer.appendChild(spyCutoff[j]);
     }
-    targetContainer.appendChild(document.createElement("br"));
+    if (g_bottiness) targetContainer.appendChild(document.createElement("br"));
     var spyDelay = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'Autospy Delay']);
     for (j = 0; j < spyDelay.length; j++) {
+        if (!g_bottiness) {
+            spyDelay[j].style.display = "none";
+        }
         targetContainer.appendChild(spyDelay[j]);
     }
 
+    if (g_bottiness) targetContainer.appendChild(document.createElement("br"));
+
     var useDoNotSpy = createCheckBoxItems(["Use DoNotSpy"], 150)[0];
-    useDoNotSpy.style.clear = 'both';
+    if (!g_bottiness) {
+        useDoNotSpy.style.display = "none";
+    }
+    targetContainer.style.overflow = "auto";
     targetContainer.appendChild(useDoNotSpy);
 
     return packScript(easyTarget, targetContainer, "EasyTarget");
@@ -705,18 +716,22 @@ function createEasyFarmOptions() {
         result.push(document.createElement('br'));
     }
 
+    var defMultiplier = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
+    for (j = 0; j < defMultiplier.length; j++) {
+        if (!g_bottiness) {
+            defMultiplier[j].style.display = "none";
+        }
+        result.push(defMultiplier[j]);
+    }
     if (g_bottiness) {
-        var defMultiplier = createScriptOption(['input', 'label'],
-            [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
-        for (j = 0; j < defMultiplier.length; j++) {
-            result.push(defMultiplier[j]);
-        }
         result.push(document.createElement('br'));
-        var granularity = createScriptOption(['input', 'label'],
-            [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
-        for (j = 0; j < granularity.length; j++) {
-            result.push(granularity[j]);
-        }
+    }
+
+    var granularity = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
+    for (j = 0; j < granularity.length; j++) {
+        result.push(granularity[j]);
     }
 
     return result;
@@ -845,7 +860,7 @@ function saveSettings() {
                 g_config.EasyFarm.colorPill = inputs[1].value;
                 g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
                 g_config.EasyFarm.colorCDR = inputs[3].value;
-                g_config.EasyFarm.defMultiplier = parseInt(inputs[4].value);
+                g_config.EasyFarm.defMultiplier = g_bottiness ? parseInt(inputs[4].value) : 1;
                 g_config.EasyFarm.granularity = parseInt(inputs[5].value);
                 break;
             case "EasyTarget":
