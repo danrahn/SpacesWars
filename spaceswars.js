@@ -97,6 +97,7 @@ var g_targetPlanet = -1;
 
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
+var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo", "change_admin_rank", "changerank", "change_rank", "change_member_rank"];
 
 var KEY = {
     TAB : 9,
@@ -1832,11 +1833,12 @@ function messagePageKeyHandler(key) {
             // Simulate with Q, since keys that make sense are taken,
             // and it's easy to press with the left hand
             if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                GM_deleteValue("autoSim");
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
             }
             break;
         case KEY.Z:
-            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+            if (g_bottiness && active.className.toLowerCase() === "message_space0 curvedtot") {
                 GM_setValue("autoSim", 1);
                 GM_setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
@@ -1948,10 +1950,11 @@ function globalKeypressHandler(e) {
 
 function isTextInputActive() {
     var active = f.document.activeElement;
+    // if the element is not null and the element has a
+    // restricted id or name, return true
     return active !== null
-        && g_textAreas.indexOf(active.id) !== -1
-        && active.name !== "newname"
-        && active.name !== "pwpl";
+        && (g_textAreas.indexOf(active.id) !== -1
+        || g_invalidNameFields.indexOf(active.name) !== -1);
 }
 
 /**
@@ -2287,7 +2290,9 @@ function loadEasyFarm() {
             selDiv.appendChild(num);
             selDiv.appendChild(sel);
             selDiv.appendChild(submit);
-            selDiv.appendChild(simulate);
+            if (g_bottiness) {
+                selDiv.appendChild(simulate);
+            }
             f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
 
             if (parseInt(simIndex) === i && simBlasts) {
