@@ -30,6 +30,8 @@ var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
 
+// We allow the main script to run on simulator pages so we can
+// process simulations and communicate with other outer loop processes
 if (g_page === "simulator") {
     if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
         processSim();
@@ -46,8 +48,8 @@ var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
 
-var g_versionInfo;
 var g_scriptInfo = getScriptInfo();
+var g_versionInfo;
 try {
     g_versionInfo = JSON.parse(GM_getValue("infos_version"));
 } catch (ex) {
@@ -60,29 +62,28 @@ checkVersionInfo();
 var g_lang = g_versionInfo.language;
 f = null;
 var lm; // Left Menu
-var g_noFrames;
 
 // Language dictionary. FR and EN
 var L_ = setDictionary();
 
-var g_merchantMap = setMerchantMap();
+var g_merchantMap = setMerchantMap();       // Maps buildings/research/fleet/def to merchant ids
 var nbUnis = g_versionInfo.nbUnis;
 
-var g_canLoadMap = getLoadMap();
-var g_config = getConfig();
-var g_galaxyData = getGalaxyData();
-var g_doNotSpy = getDoNotSpyData();
-var g_fleetPoints = getFleetPointsData();
-var g_inactiveList = getInactiveList();
-var g_markit = getMarkitData();
-var SAVE_INTERVAL = 20;
-var g_changeCount = 0;
-var g_markitChanged = false;
-var g_dnsChanged = false;
-var g_bottiness = false;
-var g_galaxyDataChanged = false;
-var g_inactivesChanged = false;
-var g_saveEveryTime = false;
+var g_canLoadMap = getLoadMap();            // Map determining whether a given script can run on the page
+var g_config = getConfig();                 // Current config for the universe
+var g_galaxyData = getGalaxyData();         // Map of saved players in the galaxy
+var g_doNotSpy = getDoNotSpyData();         // Map of doNotSpy positions
+var g_fleetPoints = getFleetPointsData();   // Map of fleet points for players
+var g_inactiveList = getInactiveList();     // List of inactive players
+var g_markit = getMarkitData();             // List of marked players in the galaxy
+var SAVE_INTERVAL = 20;                     // How often to save data
+var g_changeCount = 0;                      // Number of changes without a save
+var g_markitChanged = false;                // Whether markit data has changed
+var g_dnsChanged = false;                   // Whether doNotSpy data has changed
+var g_bottiness = false;                    // Toggles the bottiness of the scripts
+var g_galaxyDataChanged = false;            // Whether the galaxy data has changed
+var g_inactivesChanged = false;             // Whether the list of inactive players has changed
+var g_saveEveryTime = false;                // Whether to save data whenever something changes
 
 
 // A bit of a misnomer, as it's function changed. Determines
@@ -93,14 +94,18 @@ var spyForMe = g_config.EasyTarget.useDoNotSpy;
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
 
-var g_targetPlanet = -1;
+var g_targetPlanet = -1;  // Determines the current target planet in galaxy view
 
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
 var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo", "change_admin_rank", "changerank", "change_rank", "change_member_rank"];
 
+/**
+ * Dictionary of keycodes
+ * @type {{}}
+ */
 var KEY = {
-    TAB : 9,
+    TAB   : 9,
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
     LEFT  : 37, UP    : 38, RIGHT : 39, DOWN  : 40,
     ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
@@ -111,6 +116,10 @@ var KEY = {
     Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
 
+/**
+ * List of fleet names
+ * @type {[]}
+ */
 var g_fleetNames = [
     L_.small_cargo,     L_.large_cargo,   L_.light_fighter,   L_.heavy_fighter,
     L_.cruiser,         L_.battleship,    L_.colony_ship,     L_.recycler,
@@ -119,16 +128,23 @@ var g_fleetNames = [
     L_.collector,       L_.blast,         L_.extractor
 ];
 
+/**
+ * List of defense names
+ * @type {[]}
+ */
 var g_defNames = [
     L_.rl, L_.ll,  L_.hl,  L_.gc, L_.ic,
     L_.pt, L_.ssd, L_.lsd, L_.ug
 ];
 
+/**
+ * Array of built up keys for key combinations
+ * @type {[]}
+ */
 var g_keyArray;
 if (window.top === window) {
     g_keyArray = [];
-}
-else {
+} else {
     if (!window.top.g_keyArray) {
         window.top.g_keyArray = [];
     }
@@ -144,8 +160,11 @@ else {
 var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && g_bottiness;
 var advancedAutoAttack = autoAttack; // No longer used?
 
+// Every page gets the shortcut handler
 setGlobalKeyboardShortcuts();
 
+// Prompt the user if they really want to exit, as data might not be saved
+// yet. Unnecessary?
 if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
     window.addEventListener("beforeunload", function (e) {
         changeHandler(true /*forcecSave*/);
@@ -156,6 +175,7 @@ if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
     });
 }
 
+// We're in the top level frame that holds the leftmenu and the actual content
 if (g_page === "frames") {
     console.log("Top level frame!");
     // We have to insert the js directly into the page, otherwise the inner frame
@@ -170,6 +190,7 @@ if (g_page === "frames") {
         `
     ));
 
+    // Reset the dictionary on a language change
     if (window.location.href.indexOf("lang_change") !== -1) {
         var newLang = window.location.href.substring(window.location.href.length - 2);
         if (g_lang !== newLang) {
@@ -178,6 +199,8 @@ if (g_page === "frames") {
         }
     }
 
+    // Trickiness needed to let the inner loop communicate with
+    // the outer loop.
     handleNewPage = function(page) {
         g_page = page;
         g_keyArray.length = 0;
@@ -296,7 +319,6 @@ if (g_page === "frames") {
     }
 
 } else {
-    console.log("How did we get here?");
     if (window.top.notifyNewPage)
         window.top.notifyNewPage(g_page);
     else
@@ -452,6 +474,11 @@ function getLoadMap() {
     return canLoad;
 }
 
+/**
+ * Determine if a given script can run on the current page
+ * @param script
+ * @returns {boolean}
+ */
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
@@ -995,8 +1022,7 @@ function setConfigScripts(uni) {
         list.More.deutRow = 1;
         list.More.convertClick = 1;
         list.More.mcTransport = 0;
-    } else // => index / niark / forum
-    {
+    } else {  // => index / niark / forum
         list.ClicNGo = {};
         list.ClicNGo.universes = [];
         list.ClicNGo.usernames = [];
@@ -1005,6 +1031,7 @@ function setConfigScripts(uni) {
         list.More = {};
         list.More.traductor = 1;
     }
+
     GM_setValue("config_scripts_uni_" + uni, JSON.stringify(list));
     return list;
 }
@@ -1158,15 +1185,13 @@ function getConfig() {
         config = setConfigScripts(g_uni);
     }
 
-    try {
-        g_noFrames = JSON.parse(GM_getValue("noFrames"));
-    } catch (ex) {
-        g_noFrames = false;
-    }
-
     return config;
 }
 
+/**
+ * Grab the universe player database
+ * @returns {*}
+ */
 function getGalaxyData() {
     if (g_galaxyData)
         return g_galaxyData;
@@ -1190,6 +1215,10 @@ function getGalaxyData() {
     return storage;
 }
 
+/**
+ * Grab the doNotSpy data for the universe
+ * @returns {*}
+ */
 function getDoNotSpyData() {
 
     // Build up a list of planets we should avoid spying next time because
@@ -1199,6 +1228,8 @@ function getDoNotSpyData() {
         console.log("Grabbing DoNotSpy_uni" + g_uni + " from storage");
         doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
     } catch (ex) {
+        // Create a new Array[8][500][16]
+        // TODO: What if there are more than 8 galaxies? Also, why +1?
         doNotSpy = new Array(8);
         for (var i = 0; i < 8; i++) {
             doNotSpy[i] = new Array(500);
@@ -1211,6 +1242,10 @@ function getDoNotSpyData() {
     return doNotSpy;
 }
 
+/**
+ * Grab the fleetPoints list
+ * @returns {*}
+ */
 function getFleetPointsData() {
     var fp;
     try {
@@ -1232,6 +1267,10 @@ function getFleetPointsData() {
     return fp;
 }
 
+/**
+ * Grab the list of inactive players
+ * @returns {*}
+ */
 function getInactiveList() {
     var lst;
     try {
@@ -1246,6 +1285,10 @@ function getInactiveList() {
     return lst;
 }
 
+/**
+ * Grab the markit data
+ * @returns {*}
+ */
 function getMarkitData() {
     var markit;
     try {
@@ -1280,7 +1323,7 @@ function getScriptInfo() {
 }
 
 /**
- * Sets up the necessary bits in the persistent sidebar
+ * Sets up the necessary bits in the persistent sidebar (leftmenu)
  */
 function setupSidebar() {
     // NV for SW ?
@@ -1324,6 +1367,8 @@ function setupSidebar() {
         GM_deleteValue("AutoAttackBlasts");
     };
 
+    // Reset values when toggling AutoAttack to
+    // prevent unwanted redirections/actions
     aaCheck.onchange = function() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
         autoAttack = this.checked && g_bottiness;
@@ -1373,6 +1418,9 @@ function setupSidebar() {
  *     S - Shipyard
  *     M - Messages
  *     D - Defenses
+ *     C - Vote1
+ *     V - Vote2
+ *     P - Toggle between planet/moon
  *
  * SHIFT + ALT +
  *     M - Convert to metal
@@ -1472,6 +1520,9 @@ function globalShortcutHandler(e) {
         }
 
         var active = f.document.activeElement;
+
+        // If we're in an input field, use m/b/t for quick number expansion
+        // TODO: e/e+ handling? Maybe if [Space] is entered start processing?
         if (active.tagName.toLowerCase() === "input") {
             if (key === KEY.M) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
@@ -1495,6 +1546,8 @@ function globalShortcutHandler(e) {
         }
     }
 
+    // If a shift+* combo was made, redirect
+    // if it's valid
     if (target.length > 0) {
         window.open(target, "Hauptframe");
     } else if (e.shiftKey && key) {
@@ -1502,6 +1555,7 @@ function globalShortcutHandler(e) {
         g_keyArray.length = 0;
     }
 
+    // Page specific handling
     switch (g_page) {
         case "build_fleet":
             buildFleetKeyHandler(key);
@@ -1513,6 +1567,7 @@ function globalShortcutHandler(e) {
             fleetKeyHandler(e);
             break;
         case "floten1":
+            // N to go to the last selected planet
             if (!e.shiftKey) {
                 if (key === KEY.N) {
                     f.$('.flotte_2_4 a')[0].click();
@@ -1523,6 +1578,7 @@ function globalShortcutHandler(e) {
             }
             break;
         case "floten2":
+            // A for all resources, N for none, S to submit
             if (!e.shiftKey) {
                 if (key === KEY.A) {
                     f.$('.flotte_bas .space a')[3].click();
@@ -1547,6 +1603,7 @@ function globalShortcutHandler(e) {
             }
             break;
         case "vote":
+            // V on vote page to submit vote
             if (!e.ctrlKey && !e.altKey && key === KEY.V) {
                 var voteLink = f.$("a.linkgreen");
                 if (voteLink) {
@@ -1559,6 +1616,16 @@ function globalShortcutHandler(e) {
     }
 }
 
+/**
+ * Fill the input field to build enough fleet/defenses to
+ * make the total amount even.
+ *
+ * e.g. if value = 1.000.000 and I currently have 9.876.543
+ * of a given item, the element will be filled with 123.457,
+ * which will give me a total amount of 10.000.000
+ * @param active
+ * @param value
+ */
 function makeEven(active, value) {
     var span = f.$(active.parentNode.parentNode.parentNode.childNodes[1].childNodes[3].childNodes[1]).find("span")[0];
     if (span) {
@@ -1569,6 +1636,15 @@ function makeEven(active, value) {
     }
 }
 
+/**
+ * Display a large alert with the given text on the screen. The message
+ * can either fade out after the given time or persist, and only go away
+ * when clicked
+ *
+ * @param text
+ * @param fadeTime
+ * @param timeout
+ */
 function displayAlert(text, fadeTime, timeout) {
     if (f.document.getElementById("displayAlert")) {
         f.document.body.removeChild(f.document.getElementById("displayAlert"));
@@ -1710,6 +1786,11 @@ function buildDefKeyHandler(key) {
  * Right Arrow          - Expand message
  * Left Arrow           - Collapse message
  * X                    - Toggle message checked
+ *
+ * Spy Page
+ * F - Focus alternate attack input field
+ * Q - Simulate
+ * Z - AutoSim
  * @param key
  */
 function messagePageKeyHandler(key) {
@@ -1772,6 +1853,7 @@ function messagePageKeyHandler(key) {
             }
             break;
         case KEY.F:
+            // TODO: breaks if not on spy page. Silently fails, but should still fix
             if (active.className.toLowerCase() === "message_space0 curvedtot") {
                 // Expand and focus
                 active.childNodes[1].click();
@@ -1881,11 +1963,11 @@ function deleteMessages(deleteType) {
 /**
  * Handles key input on the fleet page
  *
- * T  - Select the number of MC needed to transport all resources, iff mcTransport is active
- * A  - Select all of the given ship
- * X  - Select none of the given ship
- * UP - Select the previous ship
- * DN - Select the next ship
+ * SHIFT + T  - Select the number of MC needed to transport all resources, iff mcTransport is active
+ * A          - Select all of the given ship
+ * X          - Select none of the given ship
+ * UP         - Select the previous ship
+ * DN         - Select the next ship
  *
  * @param e
  */
@@ -1921,6 +2003,11 @@ function fleetKeyHandler(e) {
     }
 }
 
+/**
+ * Returns whether the given key is an alpha key
+ * @param key
+ * @returns {boolean}
+ */
 function isAlphaKey(key) {
     return key >= KEY.A && key <= KEY.Z;
 }
@@ -1940,6 +2027,11 @@ function setGlobalKeyboardShortcuts() {
     }
 }
 
+/**
+ * Not really the globalKeypressHandler anymore, but
+ * prevents default behavior to allow E calculations
+ * @param e
+ */
 function globalKeypressHandler(e) {
     if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet") {
         if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey && e.keyCode !== KEY.E) { // Allow exponential calculations (2E9, 1.1E6, etc)
@@ -1948,6 +2040,11 @@ function globalKeypressHandler(e) {
     }
 }
 
+/**
+ * Determine if keyboard shortcuts should be ignored because
+ * we're in an excluded input field
+ * @returns {boolean}
+ */
 function isTextInputActive() {
     var active = f.document.activeElement;
     // if the element is not null and the element has a
@@ -1960,7 +2057,8 @@ function isTextInputActive() {
 /**
  * Pretty sure this is broken. Used to be a universe manager of sorts
  * in the index page. Maybe I'll get around to fixing it, but I don't
- * really have any use for it.
+ * really have any use for it. This is some of the oldest code that has
+ * largely been untouched.
  */
 function loadClickNGo() {
     f.document.getElementsByTagName("body")[0].appendChild(buildNode("script", [
@@ -2094,6 +2192,9 @@ function loadEasyFarm() {
     simBlasts = GM_getValue("simBlasts");
     var startIndex = 0;
     if (autoAttack && autoAttackWithSim) {
+        // Start the autoattack search from a different index
+        // if we've autosimed the first n and we don't have
+        // enough ships for a total victory
         var storedIndex = GM_getValue("AutoAttackStartIndex");
         if (!storedIndex) {
             startIndex = 0;
@@ -2101,18 +2202,20 @@ function loadEasyFarm() {
             startIndex = parseInt(storedIndex);
         }
     }
+
+    // Increment the start index if we determined
+    // we can't win the current fight
     if (simBlasts) {
         simIndex = GM_getValue("autoSimIndex");
-        if (autoAttack && autoAttackWithSim) {
-            if (simBlasts === -1) {
-                startIndex++;
-                GM_setValue("AutoAttackStartIndex", startIndex);
-                GM_deleteValue("simBlasts");
-                GM_deleteValue("autoSimIndex");
-            }
+        if (autoAttack && autoAttackWithSim && simBlasts === -1) {
+            startIndex++;
+            GM_setValue("AutoAttackStartIndex", startIndex);
+            GM_deleteValue("simBlasts");
+            GM_deleteValue("autoSimIndex");
         }
     }
 
+    // Setup the tab indexes
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
     for (var t = 0; t < tabs.length; t++) {
         tabs[t].tabIndex = t + 1;
@@ -2130,6 +2233,7 @@ function loadEasyFarm() {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
         var regNb = /\s([0-9,.]+)/;
+
         // get metal crystal and deut
         var metal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
         var crystal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
@@ -2139,12 +2243,16 @@ function loadEasyFarm() {
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
         }
+
+        // Set tooltip info
         var html = "<div><span style='color:#FFCC33'>" + L_["EasyFarm_looting"] + " :</span><ul style='margin-top:0'>";
         html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 10000000)));
         html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 2000000)));
         html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 8000))) + "</ul>";
-        var classRank = 4,
-            total = 0;
+
+        // Get the total number of ships and calculate the ruins field
+        var classRank = 4;
+        var total = 0;
         var hasShips = false;
         for (var j = 0; j < g_fleetNames.length; j++)
             if (messages[i].innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
@@ -2161,6 +2269,8 @@ function loadEasyFarm() {
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
+
+        // Determine the number of defenses present
         // TODO: could be much more efficient with a map instead of array
         for (j = 0; j < g_defNames.length; j++) {
             if (messages[i].innerHTML.indexOf(g_defNames[j] + " : ") !== -1) {
@@ -2175,9 +2285,10 @@ function loadEasyFarm() {
         shouldAttack = shouldAttack && totDef < 500000;
         needsSim[i] = autoAttackWithSim && candidate && !shouldAttack && parseInt(g_uni) === 17;
         if (parseInt(g_uni) !== 17 && totDef > 0) {
-            shouldAttack = false;
+            shouldAttack = false; // No guesswork if we're not on uni17. And even on uni17 this isn't perfect
         }
 
+        // Add defense info to the tooltip
         html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
         if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
             html += "<br/><div><span style='color:#55BBFF'>" + L_["EasyFarm_defenses"] + " :</span>";
@@ -2186,6 +2297,7 @@ function loadEasyFarm() {
             html += "</div>";
         }
 
+        // Determine planet position (for doNotSpy info)
         var text = messages[i].childNodes[1].childNodes[7].innerHTML;
         text = text.substr(5, text.indexOf("(") - 6);
         var galaxy = parseInt(text.substr(0, 1));
@@ -2193,12 +2305,15 @@ function loadEasyFarm() {
         var system = parseInt(text.substr(0, text.indexOf(":")));
         var position = text.substr(text.indexOf(":") + 1);
 
+        // Delete a message if we're autoattacking, the planet has defenses, and
+        // the total resources isn't greater than the defMultiplier
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
         if (g_bottiness && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
+        // Update doNotSpy if necessary
         var oldValue = g_doNotSpy[galaxy][system][position];
         var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
         if (g_config.EasyTarget.useDoNotSpy && oldValue !== newValue) {
@@ -2206,6 +2321,7 @@ function loadEasyFarm() {
             g_doNotSpy[galaxy][system][position] = newValue;
         }
 
+        // Determine the number of mc/waves necessary
         var deutTotal = allDeut;
         var snb = getSlashedNb;
         var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(res) + "</span><br />Deut : " + snb(allDeut);
@@ -2216,16 +2332,18 @@ function loadEasyFarm() {
             deutTotal += allDeut;
             allDeut /= 2;
         }
+
+        // Add the mc/wave info to the bottom of the report
         var waves = (count === 1) ? " wave : " : " waves : ";
         content += "<br />" + count + waves + snb(deutTotal) + " Deut";
         var div = buildNode("div", [], [], content);
         messages[i].getElementsByClassName("message_space0")[0].parentNode.appendChild(div);
         div = buildNode("div", ["style", "id"], ["display:none", "divToolTip"], "");
         f.document.getElementsByTagName("body")[0].appendChild(div);
-        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" +
-        i
-        ], html);
+        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" + i], html);
         f.document.getElementsByTagName("body")[0].appendChild(div);
+
+        // Append the tooltip
         var xpath = f.document.evaluate("//a[text()='" + L_.EasyFarm_attack + "']",
             f.document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
         xpath = xpath.snapshotItem(i);
@@ -2238,6 +2356,8 @@ function loadEasyFarm() {
             var href = messages[i].getElementsByTagName("a")[2].href;
             (function(count, res, href) {
                 f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
+                    // If an attack is made, set all the necessary info so it can be
+                    // filled in on the fleet page
                     GM_setValue("AutoAttackWaves", count);
                     var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
                         res = Math.round((res + (granularity / 2)) / granularity) * granularity;
@@ -2251,20 +2371,29 @@ function loadEasyFarm() {
                 });
             })(count, res, href);
 
+            // Set the attack index if it's not already set, we either should attack or simulate,
+            // autoattack is enabled, and the message is greater than the startIndex
             if ((shouldAttack || needsSim[i]) && advancedAutoAttack && i >= startIndex) {
                 if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
                 }
             }
         } else {
+            // If we're not AutoAttacking, create the alternate attack config, allowing
+            // auto simulation, and attacking with a preset number of blast/destroyer/sn
             var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
+
+            // Text input field
             var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
                 if (e.keyCode === KEY.ENTER) {
+                    // Attack on [ENTER]
                     e.preventDefault();
                     var id = this.id.substring(8);
                     f.$("#attack" + id).click();
                 }
             });
+
+            // Attack button
             var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
                 var id = parseInt(this.id.substring(6));
                 var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
@@ -2277,16 +2406,21 @@ function loadEasyFarm() {
                 GM_setValue("attackData", JSON.stringify(data));
                 f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
             });
+
+            // Simulate button
             var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
                 GM_setValue("autoSim", 1);
                 GM_setValue("autoSimIndex", this.id.substring(3));
                 f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
             });
+
+            // Fleet type selector
             var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
             for (j = 0; j < optionTexts.length; j++) {
                 var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
                 sel.add(option);
             }
+
             selDiv.appendChild(num);
             selDiv.appendChild(sel);
             selDiv.appendChild(submit);
@@ -2296,6 +2430,9 @@ function loadEasyFarm() {
             f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
 
             if (parseInt(simIndex) === i && simBlasts) {
+                // If we just finished a simulation, scroll the message
+                // into view, expand it, and fill the attack field with
+                // the correct number of ships
                 GM_deleteValue("simBlasts");
                 GM_deleteValue("autoSimIndex");
                 f.$(num).val(simBlasts);
@@ -2306,6 +2443,7 @@ function loadEasyFarm() {
         }
     }
 
+    // For sanity, delete aa data if it's not enabled
     if (!autoAttack) {
         GM_deleteValue("AutoAttackWaves");
         GM_deleteValue("AutoAttackMC");
@@ -2322,7 +2460,6 @@ function loadEasyFarm() {
         }, Math.random() * 300 + 200);
     } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
         // Standard attack
-
         if (needsSim[attackIndex] && !simBlasts) {
             GM_setValue("autoSim", 1);
             GM_setValue("autoSimIndex", attackIndex);
@@ -2393,7 +2530,7 @@ function changeHandler(forceSave) {
 
 /**
  * Replaces any question marks in the simulator with whatever
- * value is above/below
+ * value is above/below. Also starts autosim if required
  */
 async function setSimDefaults() {
     var autoSim = (GM_getValue("autoSim") === 1);
@@ -2434,11 +2571,13 @@ async function setSimDefaults() {
         return;
     }
 
+    // Start of autoSim
     noShip("att");
     var totalBlast = Math.floor(parseInt(f.$(".simu_135")[69].innerHTML.replace(/\./g, "")) / 1E9) * 1E9;
     var maxBlast = totalBlast;
     var minBlast = 0;
     var curBlast = 1E9; // Start low
+    var threshold = 2E9; // Amount we can be off and consider it "good enough"
     var blastSelector = f.$("#att219");
     blastSelector.val(curBlast);
     GM_setValue("simVictory", -1);
@@ -2451,9 +2590,9 @@ async function setSimDefaults() {
         totalVictory = GM_getValue("simVictory") === 1;
         GM_setValue("simVictory", -1);
         if (totalVictory) {
-            // Won. Try fewer blasts now
+            // Won. Try fewer blasts if we're not within tolerance
             maxBlast = curBlast;
-            if (minBlast >= maxBlast - 1E9) {
+            if (minBlast >= maxBlast - threshold) {
                 curBlast = maxBlast;
                 break;
             }
@@ -2463,8 +2602,8 @@ async function setSimDefaults() {
             totalVictory = false;
         } else {
             minBlast = curBlast;
-            if (minBlast >= maxBlast - 1E9) {
-                if (maxBlast === totalBlast) {
+            if (minBlast >= maxBlast - threshold) {
+                if (maxBlast >= totalBlast - threshold) {
                     // Not enough blast for total victory
                     curBlast = -1;
                     break;
@@ -2474,6 +2613,7 @@ async function setSimDefaults() {
                 break;
             }
 
+            // Round to 1E9
             curBlast = Math.floor((curBlast + maxBlast) / 2E9) * 1E9;
         }
 
@@ -2488,6 +2628,10 @@ async function setSimDefaults() {
 
 }
 
+/**
+ * Wait for the simulation to be processed
+ * @returns {Promise}
+ */
 function waitForSimComplete() {
     return new Promise(function(resolve, reject) {
         (function waitForSim() {
@@ -2502,6 +2646,9 @@ function waitForSimComplete() {
 
 /***
  * Copied from spaceswars' simulator.js
+ *
+ * Sets the value of all ships in the simulator page to 0
+ *
  * @param pref
  */
 function noShip(pref) {
@@ -2537,7 +2684,6 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var changed = false;
     var types, i, space;
     if (scriptsInfo.FleetPoints && g_bottiness) {
-
         fpRedirect = !!(GM_getValue("fp_redirect"));
         GM_setValue('fp_redirect', 0);
         if (!g_fleetPoints['1']) g_fleetPoints['1'] = {};
@@ -2548,6 +2694,9 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
 
     if (scriptsInfo.FleetPoints && g_bottiness) {
+        // God-awful time parsing. Pretty much all of fleetPoints is a disaster
+        // TODO: General Cleanup
+        // TODO:: What's with the mix of string and ints? Does it actually work?
         var timeSelector = f.$('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
         var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -2568,12 +2717,14 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         var minutes = time.substring(0, time.indexOf(':'));
         var seconds = time.substring(time.indexOf(':') + 1); // seconds
         var dte = new Date(year, month, day, hour, minutes, seconds, 0);
-        var who = parseInt(f.$('select[name=who] :selected').val());
+        var who = parseInt(f.$('select[name=who] :selected').val());  // Player/Bot/Alliance (I think)
         if (who === 2) dte = new Date(g_fleetPoints[1][Object.keys(g_fleetPoints[1])[0]][1][1]);
 
         if (!fpRedirect) {
+            // If we're not redirecting to fleetPoints, update the
+            // point values for the given page
             var type = f.$('select[name=type] :selected').val();
-            var ind = ((who === 2) ? 9 : 11);
+            var ind = ((who === 2) ? 9 : 11); // Bots have different indexes for stats
             if (type !== '2') {
                 for (i = 1; i < players.length - 1; i++) {
                     var player;
@@ -2581,6 +2732,8 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                     else player = players[i].childNodes[5].childNodes[0];
                     player = player.innerHTML;
                     var score = parseInt(players[i].childNodes[ind].innerHTML.replace(/\./g, ''));
+
+                    // Setup a new person if they don't have an entry
                     if (g_fleetPoints[who][player] === undefined) g_fleetPoints[who][player] = {
                         '1': [0, 0],
                         '3': [0, 0],
@@ -2595,6 +2748,8 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                 if (changed) GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
             }
         } else {
+            // We are redirecting to the fleetPoints page. Delete the current
+            // content and replace it with our custom list.
             space = f.$('.space0')[1];
             space.removeChild(space.childNodes[5]);
             space.removeChild(space.childNodes[4]);
@@ -2613,9 +2768,12 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                     arr.push([k, g_fleetPoints[who][k]['1'][0] - g_fleetPoints[who][k]['3'][0] - g_fleetPoints[who][k]['4'][0] - g_fleetPoints[who][k]['5'][0]]);
                 }
             }
+
+            // Sort by fleetPoints
             arr.sort(function(a, b) {
                 return b[1] - a[1]
             });
+
             for (i = 0; i < arr.length; i++) {
                 var container = buildNode('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
                 var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
@@ -2661,6 +2819,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     }
 
     if (scriptsInfo.InactiveStats) {
+        // Show inactive players in the stats page
         for (i = 1; i < players.length - 1; i++) {
             var div;
             // Top 5 have avatar, have to assign div differently
@@ -2678,6 +2837,8 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     }
 
     if (scriptsInfo.FleetPoints && g_bottiness) {
+        // Add the fleetPoints selection in the stats dropdown, and
+        // assign event handlers
         space = f.$('.space0')[1];
         var del = space.removeChild(space.childNodes[3]);
 
@@ -2842,9 +3003,12 @@ function loadMcTransport() {
  * @param config
  */
 function loadBetterEmpire(config) {
+    // TODO: Fix when single planet is selected
     var space, i, j, row, planets;
     var spaceSelector = f.$('.space0');
     if (!config.BetterEmpire.byMainSort) {
+        // If no extra options are chosen, just put the total
+        // row at the front
         space = spaceSelector[1];
         for (i = 0; i < space.childNodes.length; i++) {
             row = space.childNodes[i];
@@ -2859,6 +3023,7 @@ function loadBetterEmpire(config) {
         space = spaceSelector[1];
         var array = [];
         for (i = 0; i < space.childNodes.length; i++) {
+            // Remove all rows and put them in an array
             row = space.childNodes[i];
             if (row.childNodes.length) {
                 //var del = row.removeChild(row.childNodes[row.childNodes.length - 1]);
@@ -2870,10 +3035,10 @@ function loadBetterEmpire(config) {
                 }
             }
         }
+
         //Don't know why this is needed, but apparently it is...
         var tot = array[array.length - 1];
         tot.splice(5, 0, tot[4].cloneNode(true));
-
 
         var order = ['NameCoordinates', 'Total'];
         if (g_lang === 'fr') order = ['NomCoordonnées', 'Total'];

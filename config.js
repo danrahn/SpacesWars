@@ -59,7 +59,7 @@ function createAndLoadConfigurationPage() {
 
     var col1 = buildNode('div', ['class', 'id'], ['col', 'col1'], '');
     var col2 = buildNode('div', ['class', 'id'], ['col', 'col2'], '');
-    var col1Cutoff = 8;
+    var col1Cutoff = 8; // Show the first n scripts in the first column, the rest go in the second
     main.appendChild(save);
     main.appendChild(col1);
     main.appendChild(col2);
@@ -76,6 +76,7 @@ function createAndLoadConfigurationPage() {
 
     f.document.body.appendChild(main);
 
+    // Add click events to betterEmpire
     f.$('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
         if (!this.checked) {
             var betterEmpId = f.$("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
@@ -86,6 +87,7 @@ function createAndLoadConfigurationPage() {
         }
     });
 
+    // fill in the config with the stored values
     populateConfig();
 }
 
@@ -107,118 +109,118 @@ function setStyle() {
             z-index: 99999;
         }
 
-		.mainSettings {
-			background-color: rgba(0,0,0,.5);
-			border: 1px solid #444;
-			padding: 5% auto;
-			margin-top: 40px;
-			margin-left: 10%;
-			margin-right: 10%;
-			width: auto;
-			min-width: 1000px;
-			overflow: auto;
-		}
-		.hidden {
-			display : none;
-		}
+        .mainSettings {
+            background-color: rgba(0,0,0,.5);
+            border: 1px solid #444;
+            padding: 5% auto;
+            margin-top: 40px;
+            margin-left: 10%;
+            margin-right: 10%;
+            width: auto;
+            min-width: 1000px;
+            overflow: auto;
+        }
+        .hidden {
+            display : none;
+        }
 
-		.col {
-		    width: 50%;
-		    display: inline-block;
-		    min-width: 500px;
-		    vertical-align: top;
-		    position: relative;
-		    margin: 0 auto;
-		}
+        .col {
+            width: 50%;
+            display: inline-block;
+            min-width: 500px;
+            vertical-align: top;
+            position: relative;
+            margin: 0 auto;
+        }
 
-		.script_container {
-		    border: 2px solid #666;
-		    border-radius: 3px;
-		    margin: 10px;
-		    min-width: 300px;
-		}
+        .script_container {
+            border: 2px solid #666;
+            border-radius: 3px;
+            margin: 10px;
+            min-width: 300px;
+        }
 
-		.script {
-			border-bottom: 2px solid #666;
-			padding: 5px;
-			background-color: rgba(50, 50, 50, .5);
-			margin: 0;
-			width: auto;
-			overflow: hidden;
-		}
+        .script {
+            border-bottom: 2px solid #666;
+            padding: 5px;
+            background-color: rgba(50, 50, 50, .5);
+            margin: 0;
+            width: auto;
+            overflow: hidden;
+        }
 
-		.script:hover {
-			background-color: rgba(50, 50, 50, .4);
-		}
-		.script_title {
-			display: inline;
-			min-width: 100px;
-		}
-		.script_active {
-			display: inline;
-			position: relative;
-			float: right;
-		}
-		.tooltip {
-			display: inline;
-		}
-		.script_options {
-			width: auto;
-			background-color: rgba(100,100,100,.5);
-			border: 2px solid rgba(100,100,100,.5);
-			padding: 5px;
-		}
+        .script:hover {
+            background-color: rgba(50, 50, 50, .4);
+        }
+        .script_title {
+            display: inline;
+            min-width: 100px;
+        }
+        .script_active {
+            display: inline;
+            position: relative;
+            float: right;
+        }
+        .tooltip {
+            display: inline;
+        }
+        .script_options {
+            width: auto;
+            background-color: rgba(100,100,100,.5);
+            border: 2px solid rgba(100,100,100,.5);
+            padding: 5px;
+        }
 
-		.script_options:hover {
-		    background-color: rgba(100, 100, 100, .4);
-		}
+        .script_options:hover {
+            background-color: rgba(100, 100, 100, .4);
+        }
 
-		#save, #delAll {
-		    display: block;
-		    padding: 2px;
-		    margin: 10px;
-		    padding: 4px;
-		}
+        #save, #delAll {
+            display: block;
+            padding: 2px;
+            margin: 10px;
+            padding: 4px;
+        }
 
-		#save {
-		    font-size: 12pt;
-		    color: green;
-		}
+        #save {
+            font-size: 12pt;
+            color: green;
+        }
 
-		#delAll {
-		    color: red;
-		    float: right;
-		}
+        #delAll {
+            color: red;
+            float: right;
+        }
 
-		#save:hover {
-		    color: black;
-		    background-color: green;
-		    box-shadow: 0 0 6px green;
-		}
+        #save:hover {
+            color: black;
+            background-color: green;
+            box-shadow: 0 0 6px green;
+        }
 
-		#delAll:hover {
-		    color: black;
-		    background-color: red;
-		    box-shadow: 0, 0, 4px red;
-		}
+        #delAll:hover {
+            color: black;
+            background-color: red;
+            box-shadow: 0, 0, 4px red;
+        }
 
-		.scriptDesc {
-		    color: lime;
-		}
+        .scriptDesc {
+            color: lime;
+        }
 
-		#EasyTarget_text {
-		    border: 1px solid #545454;
-		    padding: 1px;
-		    vertical-align: middle;
-		    border-radius: 5px;
-		    color: #CDD7F8;
-		    font: 8pt "Times New Roman" normal;
-		    margin: 1%;
-		    background-color: rgba(0,0,0,0.8);
-		    width: 96%;
-		    max-width: 96%
-		}
-		`));
+        #EasyTarget_text {
+            border: 1px solid #545454;
+            padding: 1px;
+            vertical-align: middle;
+            border-radius: 5px;
+            color: #CDD7F8;
+            font: 8pt "Times New Roman" normal;
+            margin: 1%;
+            background-color: rgba(0,0,0,0.8);
+            width: 96%;
+            max-width: 96%
+        }
+        `));
         f.document.head.appendChild(style);
     })();
 }
@@ -423,6 +425,9 @@ function createEasyTargetScript() {
     targetContainer.appendChild(exprt);
     targetContainer.appendChild(easyTargetTextArea);
     targetContainer.appendChild(document.createElement('br'));
+
+    // Hacky stuff for g_bottiness. Don't remove them, just hide them. This
+    // allows no change in logic when filling/retrieving setting information
     var spyCutoff = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
     for (var j = 0; j < spyCutoff.length; j++) {
@@ -546,7 +551,7 @@ function createMoreScript() {
 }
 
 /**
- * Attach the script options to the top leve script
+ * Attach the script options to the top level script
  *
  * @param header - The main option - "ScriptName      [x] Activate [] Deactivate"
  * @param options - The container that hold the script options
@@ -568,14 +573,14 @@ function packScript(header, options, id) {
  *
  * @param name - The name of the script
  * @param n - The script index
- * @param tooltiptext - The tooltip text to display
+ * @param tooltipText - The tooltip text to display
  * @returns {Element}
  */
-function createScriptActivity(name, n, tooltiptext) {
+function createScriptActivity(name, n, tooltipText) {
     var scr = buildNode("div", ["class"], ["script"], "");
     var scrTitle = buildNode("div", ["class"], ["script_title"], "");
     var tooltip = buildNode("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
-    var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
+    var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltipText);
     var activate = buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
     var activateLabel = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
     var deactivate = buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
@@ -834,7 +839,10 @@ function createMoreDesc() {
 }
 
 
-// When "Save" is clicked...
+/**
+ * Save currently stored settings
+ * TODO: fix similarly to populateSettings - no need to switch, we know the order
+ */
 function saveSettings() {
     var saveButton = f.$("#save")[0];
     saveButton.value = "Saving";
@@ -868,6 +876,7 @@ function saveSettings() {
                 g_config.EasyTarget.spyCutoff = parseInt(inputs[2].value);
                 g_config.EasyTarget.spyDelay = parseInt(inputs[3].value);
                 g_config.EasyTarget.useDoNotSpy = inputs[4].checked;
+                break;
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');
                 g_config.NoAutoComplete.galaxy = inputs[0].checked;
@@ -934,6 +943,7 @@ function saveSettings() {
  * Delete all spaceswars related storage
  */
 function deleteAllData() {
+    // Keys stored per universe
     var uniKeys = ["fleet_points_uni_", "config_scripts_uni_", "galaxy_data_", "markit_data_", "DoNotSpy_uni", "InactiveList_"];
     for (var i = 0; i < 19; i++) {
         for (var j = 0; j < uniKeys.length; j++) {
