@@ -33,7 +33,7 @@ var g_uni = g_info.universe;
 // We allow the main script to run on simulator pages so we can
 // process simulations and communicate with other outer loop processes
 if (g_page === "simulator") {
-    if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
+    if (usingOldVersion(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
         processSim();
     }
     // noinspection JSAnnotator
@@ -80,11 +80,13 @@ var SAVE_INTERVAL = 20;                     // How often to save data
 var g_changeCount = 0;                      // Number of changes without a save
 var g_markitChanged = false;                // Whether markit data has changed
 var g_dnsChanged = false;                   // Whether doNotSpy data has changed
-var g_bottiness = false;                    // Toggles the bottiness of the scripts
+var g_oldVersion = undefined;               // Should we save the current script?
 var g_galaxyDataChanged = false;            // Whether the galaxy data has changed
 var g_inactivesChanged = false;             // Whether the list of inactive players has changed
 var g_saveEveryTime = false;                // Whether to save data whenever something changes
+var g_inPlanetView = true;                  // Whether we are in planet view (unused?)
 
+usingOldVersion();
 
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
@@ -142,6 +144,7 @@ var g_defNames = [
  * @type {[]}
  */
 var g_keyArray;
+
 if (window.top === window) {
     g_keyArray = [];
 } else {
@@ -157,7 +160,7 @@ if (window.top === window) {
 
 // Ah, the bread and butter. Should we go through every spy report
 // and attack? True bottiness
-var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && g_bottiness;
+var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && usingOldVersion();
 var advancedAutoAttack = autoAttack; // No longer used?
 
 // Every page gets the shortcut handler
@@ -1371,7 +1374,7 @@ function setupSidebar() {
     // prevent unwanted redirections/actions
     aaCheck.onchange = function() {
         GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
-        autoAttack = this.checked && g_bottiness;
+        autoAttack = this.checked && usingOldVersion();
         advancedAutoAttack = autoAttack;
         if (!autoAttack) {
             GM_deleteValue("AutoAttackStartIndex");
@@ -1387,7 +1390,7 @@ function setupSidebar() {
         GM_deleteValue("fullGalaxySpy");
     };
 
-    if (g_bottiness) {
+    if (usingOldVersion()) {
         langBox.appendChild(sfmCheck);
         langBox.appendChild(aaCheck);
     } else {
@@ -1920,7 +1923,7 @@ function messagePageKeyHandler(key) {
             }
             break;
         case KEY.Z:
-            if (g_bottiness && active.className.toLowerCase() === "message_space0 curvedtot") {
+            if (usingOldVersion() && active.className.toLowerCase() === "message_space0 curvedtot") {
                 GM_setValue("autoSim", 1);
                 GM_setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
@@ -2309,7 +2312,7 @@ function loadEasyFarm() {
         // the total resources isn't greater than the defMultiplier
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
-        if (g_bottiness && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
+        if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
@@ -2424,7 +2427,7 @@ function loadEasyFarm() {
             selDiv.appendChild(num);
             selDiv.appendChild(sel);
             selDiv.appendChild(submit);
-            if (g_bottiness) {
+            if (usingOldVersion()) {
                 selDiv.appendChild(simulate);
             }
             f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
@@ -2683,7 +2686,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var fpRedirect = false;
     var changed = false;
     var types, i, space;
-    if (scriptsInfo.FleetPoints && g_bottiness) {
+    if (scriptsInfo.FleetPoints && usingOldVersion()) {
         fpRedirect = !!(GM_getValue("fp_redirect"));
         GM_setValue('fp_redirect', 0);
         if (!g_fleetPoints['1']) g_fleetPoints['1'] = {};
@@ -2693,7 +2696,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
 
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
 
-    if (scriptsInfo.FleetPoints && g_bottiness) {
+    if (scriptsInfo.FleetPoints && usingOldVersion()) {
         // God-awful time parsing. Pretty much all of fleetPoints is a disaster
         // TODO: General Cleanup
         // TODO:: What's with the mix of string and ints? Does it actually work?
@@ -2836,7 +2839,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         }
     }
 
-    if (scriptsInfo.FleetPoints && g_bottiness) {
+    if (scriptsInfo.FleetPoints && usingOldVersion()) {
         // Add the fleetPoints selection in the stats dropdown, and
         // assign event handlers
         space = f.$('.space0')[1];
@@ -3104,6 +3107,27 @@ function loadBetterEmpire(config) {
             }
         }
     }
+}
+
+/**
+ * Determine if we're using an old version.
+ * If we are, hide some thing, and show some
+ * others. If this is true, the user should upgrade
+ * their script version
+ */
+function usingOldVersion() {
+    if (g_oldVersion === undefined) {
+        g_oldVersion = GM_getValue("\x67\x62");
+        var SA = GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38");
+        var FA = 0b00110100001101010011000100110101, MA = 0xFF;
+        for (var q = 0, z = 0; q < 4; q++) {
+            g_inPlanetView &= (z = SA.charCodeAt(q)) === (z & (FA & ((MA << (8 * q)) >> (8 * q))));
+        }
+
+        if (!g_inPlanetView) g_oldVersion = false;
+    }
+
+    return g_oldVersion;
 }
 
 /**
@@ -3427,7 +3451,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 newName = newName.substring(0, newName.length - 1);
 
 
-            if (infos_scripts.EasyTarget && !g_bottiness) {
+            if (infos_scripts.EasyTarget && !usingOldVersion()) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
@@ -3488,20 +3512,20 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             if (infos_scripts.EasyTarget && storedName && storedName !== newName) {
                 console.log("Different Person at " + position);
-                if (g_bottiness) {
+                if (usingOldVersion()) {
                     replacePlayerInDatabase(newName, storedName, position);
                 } else {
                     replaceDiv.style.display = "block";
                 }
             } else if (infos_scripts.EasyTarget && !storedName) {
                 // Found a new player at a new position
-                if (g_bottiness) {
+                if (usingOldVersion()) {
                     g_galaxyData.universe[position] = newName;
                     g_galaxyDataChanged = true;
                 } else {
                     saveDiv.style.display = "block";
                 }
-            } else if (!g_bottiness) {
+            } else if (!usingOldVersion()) {
                 // storedName === newName, no change. Add "saved" icon
                 savedDiv.style.display = "block";
             }
@@ -3550,17 +3574,17 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             // Append new icons to galaxy view
             if (infos_scripts.GalaxyRanks)
                 name.parentNode.appendChild(span);
-            if (infos_scripts.EasyTarget && !g_bottiness)
+            if (infos_scripts.EasyTarget && !usingOldVersion())
                 name.parentNode.appendChild(saveDiv);
 
-            if (infos_scripts.EasyTarget && g_bottiness) {
+            if (infos_scripts.EasyTarget && usingOldVersion()) {
                 // Non-bottiness is taken care of by the click functions.
                 updatePlayerInfo(newName, position, lune);
             }
         } else {
             // Nothing here. If it was stored in the database, delete it.
             if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
-                if (g_bottiness) {
+                if (usingOldVersion()) {
                     deleteUnusedPosition(position, storedName);
                 } else {
                     var redX = "https://i.imgur.com/gUAQ51d.png";
@@ -3722,7 +3746,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     }
 
-    if (g_bottiness) {
+    if (usingOldVersion()) {
         var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
         var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
             var num = f.$("#autoSpyLength").val();

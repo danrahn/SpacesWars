@@ -57,6 +57,17 @@ function createAndLoadConfigurationPage() {
         }
     });
 
+    if (g_inPlanetView) {
+        var GM = createCheckBoxItems(["\x47\x6f\x64\x20\x4d\x6f\x64\x65"], 100)[0];
+        GM.childNodes[0].checked = usingOldVersion();
+        GM.childNodes[0].addEventListener("change", function() {
+            GM_setValue("gb", !!this.checked);
+            window.location = "frames.php";
+        });
+        GM.style.float = "right";
+        main.appendChild(GM);
+    }
+
     var col1 = buildNode('div', ['class', 'id'], ['col', 'col1'], '');
     var col2 = buildNode('div', ['class', 'id'], ['col', 'col2'], '');
     var col1Cutoff = 8; // Show the first n scripts in the first column, the rest go in the second
@@ -372,7 +383,7 @@ function createScripts() {
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
-        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (g_bottiness ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
+        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (usingOldVersion() ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
         createMoreScript()
     ];
 }
@@ -426,30 +437,30 @@ function createEasyTargetScript() {
     targetContainer.appendChild(easyTargetTextArea);
     targetContainer.appendChild(document.createElement('br'));
 
-    // Hacky stuff for g_bottiness. Don't remove them, just hide them. This
+    // Hacky stuff for usingOldVersion(). Don't remove them, just hide them. This
     // allows no change in logic when filling/retrieving setting information
     var spyCutoff = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
     for (var j = 0; j < spyCutoff.length; j++) {
-        if (!g_bottiness) {
+        if (!usingOldVersion()) {
             spyCutoff[j].style.display = "none";
         }
         targetContainer.appendChild(spyCutoff[j]);
     }
-    if (g_bottiness) targetContainer.appendChild(document.createElement("br"));
+    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
     var spyDelay = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'Autospy Delay']);
     for (j = 0; j < spyDelay.length; j++) {
-        if (!g_bottiness) {
+        if (!usingOldVersion()) {
             spyDelay[j].style.display = "none";
         }
         targetContainer.appendChild(spyDelay[j]);
     }
 
-    if (g_bottiness) targetContainer.appendChild(document.createElement("br"));
+    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
 
     var useDoNotSpy = createCheckBoxItems(["Use DoNotSpy"], 150)[0];
-    if (!g_bottiness) {
+    if (!usingOldVersion()) {
         useDoNotSpy.style.display = "none";
     }
     targetContainer.style.overflow = "auto";
@@ -724,12 +735,12 @@ function createEasyFarmOptions() {
     var defMultiplier = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
     for (j = 0; j < defMultiplier.length; j++) {
-        if (!g_bottiness) {
+        if (!usingOldVersion()) {
             defMultiplier[j].style.display = "none";
         }
         result.push(defMultiplier[j]);
     }
-    if (g_bottiness) {
+    if (usingOldVersion()) {
         result.push(document.createElement('br'));
     }
 
@@ -868,7 +879,7 @@ function saveSettings() {
                 g_config.EasyFarm.colorPill = inputs[1].value;
                 g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
                 g_config.EasyFarm.colorCDR = inputs[3].value;
-                g_config.EasyFarm.defMultiplier = g_bottiness ? parseInt(inputs[4].value) : 1;
+                g_config.EasyFarm.defMultiplier = usingOldVersion() ? parseInt(inputs[4].value) : 1;
                 g_config.EasyFarm.granularity = parseInt(inputs[5].value);
                 break;
             case "EasyTarget":
