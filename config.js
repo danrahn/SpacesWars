@@ -84,6 +84,11 @@ function createAndLoadConfigurationPage() {
             col2.append(scripts[i]);
     }
 
+    if (!usingOldVersion()) {
+        g_scriptInfo.FleetPoints = 0;
+        scripts[scripts.length - 2].style.display = "none";
+    }
+
     f.document.body.appendChild(main);
 
     // Add click events to betterEmpire
