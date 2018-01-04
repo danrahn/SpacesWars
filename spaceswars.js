@@ -33,7 +33,7 @@ var g_uni = g_info.universe;
 // We allow the main script to run on simulator pages so we can
 // process simulations and communicate with other outer loop processes
 if (g_page === "simulator") {
-    if (usingOldVersion(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
+    if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
         processSim();
     }
     // noinspection JSAnnotator
@@ -662,6 +662,52 @@ function setDictionary() {
             tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
             tab.spy = "Espionner";
             tab.closeMessage = "Fermer ce message";
+
+            // Buildings/Research/abm/ipm
+            tab.metalMine = "Mine de métal";
+            tab.crystalMine = "Mine de cristal";
+            tab.deutMine = "Synthétiseur de deutérium";
+            tab.solarPlant = "Centrale électrique solaire";
+            tab.fusionReactor = "Centrale électrique de fusion";
+            tab.roboticsFactory = "Usine de robots";
+            tab.naniteFactory = "Usine de nanites";
+            tab.shipyard = "Chantier spatial";
+            tab.metalStorage ="Entrepôt de métal";
+            tab.crystalStorage = "Entrepôt de cristal";
+            tab.deutStorage = "Réservoir de deutérium";
+            tab.researchLab = "Laboratoire de recherche";
+            tab.terraformer = "Terraformeur";
+            tab.alliancedepot = "Station de ravitaillement";
+            tab.advancedLab = "Laboratoire avancé";
+            tab.trainingCenter = "Centre de formation";
+            tab.missileSile = "Silo de missiles";
+            tab.lunarBase = "Base lunaire";
+            tab.sensorPhalanx = "Phalange de capteur";
+            tab.jumpGate = "Porte de saut spatial";
+
+            tab.metalProduction  = "Production de métal";
+            tab.crystalProduction  = "Production de cristal";
+            tab.deuteriumProduction  = "Production de deutérium";
+            tab.espionageTechnology  = "Espionnage";
+            tab.computerTechnology  = "Ordinateur";
+            tab.weaponsTechnology  = "Armement";
+            tab.shieldingTechnology  = "Bouclier";
+            tab.armorTechnology  = "Protection des vaisseaux spatiaux";
+            tab.energyTechnology  = "Energie";
+            tab.hyperspaceTechnology  = "Hyperespace";
+            tab.combustionDrive  = "Réacteur à combustion";
+            tab.impulseDrive  = "Réacteur à impulsion";
+            tab.hyperspaceDrive  = "Propulsion Hyperespace";
+            tab.laserTechnology  = "Laser";
+            tab.ionTechnology  = "Ions";
+            tab.plasmaTechnology  = "Plasma";
+            tab.intergalacticResearchNetwork  = "Réseau de Recherche Intergalactique";
+            tab.expeditionTechnology  = "Expéditions";
+            tab.teachingtechnology  = "Enseignement";
+            tab.consistency  = "Consistance";
+            tab.extractorHangar  = "Hangar à VE";
+            tab.abm = "Missile d'Interception";
+            tab.ipm = "Missile Interplanétaire";
             break;
         case "en":
             tab.lang = "en";
@@ -706,7 +752,7 @@ function setDictionary() {
             tab.battlecruiser = "Battlecruiser";
             tab.supernova = "Supernova";
             tab.massive_cargo = "Massive cargo";
-            tab.collector = "Collector";
+            tab.collector = "Heavy recycler";
             tab.blast = "Blast";
             tab.extractor = "Extractor";
             tab.rl = "Rocket Launcher";
@@ -798,6 +844,53 @@ function setDictionary() {
             tab.FPAlert = "If this person changed their name and shouldn't be in the stats anymore, press enter.";
             tab.spy = "Espionage";
             tab.closeMessage = "Close this message";
+
+            // Buildings/Research/abm/ipm
+            tab.metalMine = "Metal Mine";
+            tab.crystalMine = "Crystal Mine";
+            tab.deutMine = "Deuterium Synthesizer";
+            tab.solarPlant = "Solar Plant";
+            tab.fusionReactor = "Fusion Reactor";
+            tab.roboticsFactory = "Robotics Factory";
+            tab.naniteFactory = "Nanite Factory";
+            tab.shipyard = "Shipyard";
+            tab.metalStorage = "Metal Storage";
+            tab.crystalStorage = "Crystal Storage";
+            tab.deutStorage = "Deuterium Storage";
+            tab.researchLab = "Research Lab";
+            tab.terraformer = "Terraformer";
+            tab.alliancedepot = "Alliance Depot";
+            tab.advancedLab = "Advanced Lab";
+            tab.trainingCenter = "Training center";
+            tab.missileSile = "Missile Silo";
+            tab.lunarBase = "Lunar Base";
+            tab.sensorPhalanx = "Sensor Phalanx";
+            tab.jumpGate = "Jump Gate";
+
+            tab.metalProduction  = "Metal production";
+            tab.crystalProduction  = "Crystal production";
+            tab.deuteriumProduction  = "Deuterium production";
+            tab.espionageTechnology  = "Espionage Technology";
+            tab.computerTechnology  = "Computer Technology";
+            tab.weaponsTechnology  = "Weapons Technology";
+            tab.shieldingTechnology  = "Shielding Technology";
+            tab.armorTechnology  = "Armor Technology";
+            tab.energyTechnology  = "Energy Technology";
+            tab.hyperspaceTechnology  = "Hyperspace Technology";
+            tab.combustionDrive  = "Combustion Drive";
+            tab.impulseDrive  = "Impulse Drive";
+            tab.hyperspaceDrive  = "Hyperspace Drive";
+            tab.laserTechnology  = "Laser Technology";
+            tab.ionTechnology  = "Ion Technology";
+            tab.plasmaTechnology  = "Plasma Technology";
+            tab.intergalacticResearchNetwork  = "Intergalactic Research Network";
+            tab.expeditionTechnology  = "Expedition Technology";
+            tab.teachingtechnology  = "Teaching technology";
+            tab.consistency  = "Consistency";
+            tab.extractorHangar  = "Extractor Hangar";
+
+            tab.abm = "Anti-Ballistic Missiles";
+            tab.ipm = "Interplanetary Missiles";
             break;
         default:
             alert("Error with language !");
@@ -819,83 +912,83 @@ function setMerchantMap() {
     var m = {};
 
     // Buildings
-    m["Metal Mine"] = 1;
-    m["Crystal Mine"] = 2;
-    m["Deuterium Synthesizer"] = 3;
-    m["Solar Plant"] = 4;
-    m["Fusion Reactor"] = 12;
-    m["Robotics Factory"] = 14;
-    m["Nanite Factory"] = 15;
-    m["Shipyard"] = 21;
-    m["Metal Storage"] = 22;
-    m["Crystal Storage"] = 23;
-    m["Deuterium Storage"] = 24;
-    m["Research Lab"] = 31;
-    m["Terraformer"] = 33;
-    m["Alliance Depot"] = 34;
-    m["Advanced Lab"] = 35;
-    m["Training center"] = 36;
-    m["Missile Silo"] = 44;
-    m["Lunar Base"] = 41;
-    m["Sensor Phalanx"] = 42;
-    m["Jump Gate"] = 43;
+    m[L_.metalMine] = 1;
+    m[L_.crystalMine] = 2;
+    m[L_.deutMine] = 3;
+    m[L_.solarPlant] = 4;
+    m[L_.fusionReactor] = 12;
+    m[L_.roboticsFactory] = 14;
+    m[L_.naniteFactory] = 15;
+    m[L_.shipyard] = 21;
+    m[L_.metalStorage] = 22;
+    m[L_.crystalStorage] = 23;
+    m[L_.deutStorage] = 24;
+    m[L_.researchLab] = 31;
+    m[L_.terraformer] = 33;
+    m[L_.alliancedepot] = 34;
+    m[L_.advancedLab] = 35;
+    m[L_.trainingCenter] = 36;
+    m[L_.missileSile] = 44;
+    m[L_.lunarBase] = 41;
+    m[L_.sensorPhalanx] = 42;
+    m[L_.jumpGate] = 43;
 
     // Research
-    m["Metal production"] = 101;
-    m["Crystal production"] = 102;
-    m["Deuterium production"] = 103;
-    m["Espionage Technology"] = 106;
-    m["Computer Technology"] = 108;
-    m["Weapons Technology"] = 109;
-    m["Shielding Technology"] = 110;
-    m["Armor Technology"] = 111;
-    m["Energy Technology"] = 113;
-    m["Hyperspace Technology"] = 114;
-    m["Combustion Drive"] = 115;
-    m["Impulse Drive"] = 117;
-    m["Hyperspace Drive"] = 118;
-    m["Laser Technology"] = 120;
-    m["Ion Technology"] = 121;
-    m["Plasma Technology"] = 122;
-    m["Intergalactic Research Network"] = 123;
-    m["Expedition Technology"] = 124;
-    m["Teaching technology"] = 125;
-    m["Consistency"] = 196;
-    m["Extractor Hangar"] = 197;
+    m[L_.metalProduction] = 101;
+    m[L_.crystalProduction] = 102;
+    m[L_.deuteriumProduction] = 103;
+    m[L_.espionageTechnology] = 106;
+    m[L_.computerTechnology] = 108;
+    m[L_.weaponsTechnology] = 109;
+    m[L_.shieldingTechnology] = 110;
+    m[L_.armorTechnology] = 111;
+    m[L_.energyTechnology] = 113;
+    m[L_.hyperspaceTechnology] = 114;
+    m[L_.combustionDrive] = 115;
+    m[L_.impulseDrive] = 117;
+    m[L_.hyperspaceDrive] = 118;
+    m[L_.laserTechnology] = 120;
+    m[L_.ionTechnology] = 121;
+    m[L_.plasmaTechnology] = 122;
+    m[L_.intergalacticResearchNetwork] = 123;
+    m[L_.expeditionTechnology] = 124;
+    m[L_.teachingtechnology] = 125;
+    m[L_.consistency] = 196;
+    m[L_.extractorHangar] = 197;
 
     // Spaceships
-    m["Small cargo"] = 202;
-    m["Large cargo"] = 203;
-    m["Light Fighter"] = 204;
-    m["Heavy Fighter"] = 205;
-    m["Cruiser"] = 206;
-    m["Battleship"] = 207;
-    m["Colony Ship"] = 208;
-    m["Recycler"] = 209;
-    m["Espionage Probe"] = 210;
-    m["Bomber"] = 211;
-    m["Solar Satellite"] = 212;
-    m["Destroyer"] = 213;
-    m["Deathstar"] = 214;
-    m["Battlecruiser"] = 215;
-    m["Supernova"] = 216;
-    m["Massive cargo"] = 217;
-    m["Heavy recycler"] = 218;
-    m["Blast"] = 219;
-    m["Extractor"] = 235;
+    m[L_.small_cargo] = 202;
+    m[L_.large_cargo] = 203;
+    m[L_.light_fighter] = 204;
+    m[L_.heavy_fighter] = 205;
+    m[L_.cruiser] = 206;
+    m[L_.battleship] = 207;
+    m[L_.colony_ship] = 208;
+    m[L_.recycler] = 209;
+    m[L_.espionage_probe] = 210;
+    m[L_.bomber] = 211;
+    m[L_.solar_satellite] = 212;
+    m[L_.destroyer] = 213;
+    m[L_.deathstar] = 214;
+    m[L_.battlecruiser] = 215;
+    m[L_.supernova] = 216;
+    m[L_.massive_cargo] = 217;
+    m[L_.collector] = 218;
+    m[L_.blast] = 219;
+    m[L_.extractor] = 235;
 
     // Def
-    m["Rocket Launcher"] = 401;
-    m["Light Laser"] = 402;
-    m["Heavy Laser"] = 403;
-    m["Gauss Cannon"] = 404;
-    m["Ion Cannon"] = 405;
-    m["Plasma Turret"] = 406;
-    m["Small Shield Dome"] = 407;
-    m["Large Shield Dome"] = 408;
-    m["Ultimate guard"] = 409;
-    m["Anti-Ballistic Missiles"] = 502;
-    m["Interplanetary Missiles"] = 503;
+    m[L_.rg] = 401;
+    m[L_.ll] = 402;
+    m[L_.hl] = 403;
+    m[L_.gl] = 404;
+    m[L_.ic] = 405;
+    m[L_.pt] = 406;
+    m[L_.ssd] = 407;
+    m[L_.lsd] = 408;
+    m[L_.ug] = 409;
+    m[L_.abm] = 502;
+    m[L_.ipm] = 503;
 
     return m;
 }
@@ -2956,6 +3049,7 @@ function loadConvertClick() {
 
     f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
         var item = f.$(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
+        console.log("Clicked on " + item);
         setValue("merchantItem", item);
         setValue("resourceRedirect", f.location.href);
         f.location = "marchand.php";
@@ -4457,6 +4551,8 @@ function loadConvertDeut() {
             deleteValue("merchantItem");
             if (merchantItem) {
                 deleteValue("merchantItem");
+                console.log(g_merchantMap);
+                console.log("Looking for input[value='" + g_merchantMap[merchantItem] + "']");
                 f.$("input[value='" + g_merchantMap[merchantItem] + "']").prop("checked", true);
                 f.$(":submit")[1].click();
             } else {
