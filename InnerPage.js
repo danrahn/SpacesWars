@@ -74,7 +74,7 @@ function loadRConverter() {
     var config;
     try {
         console.log("uni: " + g_info.universe);
-        config = JSON.parse(GM_getValue("config_scripts_uni_" + g_info.universe));
+        config = JSON.parse(GM_getValue("configScripts" + g_info.universe));
         console.log(config);
     } catch (ex) {}
 

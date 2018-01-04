@@ -40,7 +40,7 @@ if (g_page === "simulator") {
     return;
 }
 
-var autoAttackWithSim = !!parseInt(GM_getValue("SpyForMe"));
+var autoAttackWithSim = !!parseInt(getValue("spyForMe"));
 
 var g_nbScripts = 13;
 var thisVersion = "4.1";
@@ -52,6 +52,9 @@ var g_scriptInfo = getScriptInfo();
 var g_versionInfo;
 try {
     g_versionInfo = JSON.parse(GM_getValue("infos_version"));
+    if (!g_versionInfo) {
+        g_versionInfo = setInfosVersion();
+    }
 } catch (ex) {
     g_versionInfo = undefined;
 }
@@ -160,7 +163,7 @@ if (window.top === window) {
 
 // Ah, the bread and butter. Should we go through every spy report
 // and attack? True bottiness
-var autoAttack = !!parseInt(GM_getValue("AutoAttackMasterSwitch")) && usingOldVersion();
+var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var advancedAutoAttack = autoAttack; // No longer used?
 
 // Every page gets the shortcut handler
@@ -222,7 +225,7 @@ if (g_page === "frames") {
                 });
 
                 if (g_page !== "fleet" && g_page !== "floten1" && g_page !== "floten2" && g_page !== "floten3") {
-                    GM_deleteValue("attackData");
+                    deleteValue("attackData");
                 }
             }
         }
@@ -913,7 +916,7 @@ function setInfosVersion() {
     tab.toUp = false;
     tab.lastCheck = date.getTime();
     GM_setValue("infos_version", JSON.stringify(tab));
-    return tab[0];
+    return tab;
 }
 
 /**
@@ -1035,7 +1038,7 @@ function setConfigScripts(uni) {
         list.More.traductor = 1;
     }
 
-    GM_setValue("config_scripts_uni_" + uni, JSON.stringify(list));
+    setValue("configScripts", JSON.stringify(list));
     return list;
 }
 
@@ -1098,13 +1101,13 @@ function getNbFromStringtab(tab) {
  */
 function checkVersionInfo() {
     // checking...
-    if (g_versionInfo !== undefined && g_versionInfo !== null && g_versionInfo.version === thisVersion) {
+    if (g_versionInfo && g_versionInfo.version === thisVersion) {
         return;
     }
 
     // ... 1st install ?
     g_page = getInfoFromPage().loc;
-    if (g_versionInfo === undefined || g_versionInfo === null) {
+    if (!g_versionInfo) {
         g_versionInfo = setInfosVersion();
         g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
@@ -1136,12 +1139,12 @@ function checkVersionInfo() {
                 alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
         }
         if (g_versionInfo.version === "4.0") {
-            GM_deleteValue("config_scripts_uni_0");
+            GM_deleteValue("configScripts0");
             setConfigScripts(0);
             for (var i = 1; i <= 17; i++) {
                 var config;
                 try {
-                    config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
+                    config = JSON.parse(GM_getValue("configScripts" + i));
                 } catch (ex) {
                     config = null;
                 }
@@ -1157,7 +1160,7 @@ function checkVersionInfo() {
                     config.Markit.color["bunker"] = "FF9317";
                     config.Markit.color["raidy"] = "44BA1F";
                     config.Markit.color["dont"] = "FF2626";
-                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
+                    GM_setValue("configScripts" + i, JSON.stringify(config));
                 }
             }
             g_versionInfo = setInfosVersion();
@@ -1181,7 +1184,7 @@ function getConfig() {
     console.log("Grabbing uni" + g_uni + " config");
     var config;
     try {
-        config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
+        config = JSON.parse(getValue("configScripts"));
         if (config === null || config === undefined)
             config = setConfigScripts(g_uni);
     } catch (ex) {
@@ -1201,8 +1204,8 @@ function getGalaxyData() {
 
     var storage;
     try {
-        console.log("Grabbing galaxy_data_" + g_uni + " from storage");
-        storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+        console.log("Grabbing galaxyData_" + g_uni + " from storage");
+        storage = JSON.parse(getValue("galaxyData"));
 
         if (!storage || !storage.universe || !storage.players) storage = {
             'universe': {},
@@ -1229,7 +1232,7 @@ function getDoNotSpyData() {
     var doNotSpy;
     try {
         console.log("Grabbing DoNotSpy_uni" + g_uni + " from storage");
-        doNotSpy = JSON.parse(GM_getValue("DoNotSpy_uni" + g_uni));
+        doNotSpy = JSON.parse(getValue("doNotSpy"));
     } catch (ex) {
         // Create a new Array[8][500][16]
         // TODO: What if there are more than 8 galaxies? Also, why +1?
@@ -1253,7 +1256,7 @@ function getFleetPointsData() {
     var fp;
     try {
         console.log("grabbing fp uni" + g_uni);
-        fp = JSON.parse(GM_getValue("fleet_points_uni_" + g_uni));
+        fp = JSON.parse(getValue("fleetPoints"));
         if (!fp) fp = {
             "1": {},
             "2": {},
@@ -1278,7 +1281,7 @@ function getInactiveList() {
     var lst;
     try {
         console.log("Grabbing InactiveList_" + g_uni);
-        lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
+        lst = JSON.parse(getValue("inactiveList"));
         if (!lst)
             lst = {};
     } catch (err) {
@@ -1295,8 +1298,8 @@ function getInactiveList() {
 function getMarkitData() {
     var markit;
     try {
-        console.log("grabbing markit_data_" + g_uni + " from storage");
-        markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
+        console.log("grabbing markitData_" + g_uni + " from storage");
+        markit = JSON.parse(getValue("markitData"));
         if (!markit) markit = {};
     } catch (err) {
         markit = {};
@@ -1314,7 +1317,7 @@ function getScriptInfo() {
     console.log("grabbing infos_scripts");
     var info;
     try {
-        info = JSON.parse(GM_getValue("infos_scripts"));
+        info = JSON.parse(getValue("infos_scripts"));
         if (info === null || info === undefined) {
             info = setScriptsInfo();
         }
@@ -1363,37 +1366,37 @@ function setupSidebar() {
     }
 
     sfmCheck.onchange = function() {
-        GM_setValue("SpyForMe", this.checked ? 1 : 0);
+        setValue("spyForMe", this.checked ? 1 : 0);
         autoAttackWithSim = this.checked;
-        GM_deleteValue("simBlasts");
-        GM_deleteValue("autoSimIndex");
-        GM_deleteValue("AutoAttackBlasts");
+        deleteValue("simBlasts");
+        deleteValue("autoSimIndex");
+        deleteValue("autoAttackBlasts");
     };
 
     // Reset values when toggling AutoAttack to
     // prevent unwanted redirections/actions
     aaCheck.onchange = function() {
-        GM_setValue("AutoAttackMasterSwitch", this.checked ? 1 : 0);
+        setValue("autoAttackMasterSwitch", this.checked ? 1 : 0);
         autoAttack = this.checked && usingOldVersion();
         advancedAutoAttack = autoAttack;
         if (!autoAttack) {
-            GM_deleteValue("AutoAttackStartIndex");
-            GM_deleteValue("AutoAttackWaves");
-            GM_deleteValue("AutoAttackMC");
-            GM_setValue("AutoAttackIndex", -1);
+            deleteValue("autoAttackStartIndex");
+            deleteValue("autoAttackWaves");
+            deleteValue("AutoAttackMC");
+            setValue("autoAttackIndex", -1);
         }
 
-        GM_deleteValue("simBlasts");
-        GM_deleteValue("autoSimIndex");
-        GM_deleteValue("AutoAttackBlasts");
-        GM_deleteValue("autoSpyLength");
-        GM_deleteValue("fullGalaxySpy");
+        deleteValue("simBlasts");
+        deleteValue("autoSimIndex");
+        deleteValue("autoAttackBlasts");
+        deleteValue("autoSpyLength");
+        deleteValue("fullGalaxySpy");
     };
 
     if (usingOldVersion()) {
         langBox.appendChild(sfmCheck);
         langBox.appendChild(aaCheck);
-    } else {
+    } else if (saveData) {
         saveData.value = "Save";
         saveData.style.width = "40px";
     }
@@ -1918,14 +1921,14 @@ function messagePageKeyHandler(key) {
             // Simulate with Q, since keys that make sense are taken,
             // and it's easy to press with the left hand
             if (active.className.toLowerCase() === "message_space0 curvedtot") {
-                GM_deleteValue("autoSim");
+                deleteValue("autoSim");
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
             }
             break;
         case KEY.Z:
             if (usingOldVersion() && active.className.toLowerCase() === "message_space0 curvedtot") {
-                GM_setValue("autoSim", 1);
-                GM_setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
+                setValue("autoSim", 1);
+                setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
             }
             break;
@@ -2142,7 +2145,7 @@ function loadClickNGo() {
         g_config.ClicNGo.usernames[index] = f.document.getElementById("add_username").value;
         g_config.ClicNGo.passwords[index] = f.document.getElementById("add_password").value;
         //localStorage["config_script_uni_0"] = JSON.stringify(config);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
+        setValue("configScripts0", JSON.stringify(g_config));
         f.document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -2154,8 +2157,8 @@ function loadClickNGo() {
         g_config.ClicNGo.universes.splice(nb - 1, 1);
         g_config.ClicNGo.usernames.splice(nb - 1, 1);
         g_config.ClicNGo.passwords.splice(nb - 1, 1);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
-        //localStorage["config_scripts+_uni_0"] = JSON.stringify(config);
+        GM_setValue("configScripts0", JSON.stringify(g_config));
+        //localStorage["configScripts+_uni_0"] = JSON.stringify(config);
         f.document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -2167,8 +2170,8 @@ function loadClickNGo() {
  * messages page, redirect to spy messages
  */
 function checkEasyFarmRedirect() {
-    if (parseInt(GM_getValue("redirToSpy")) === 1) {
-        GM_deleteValue("redirToSpy");
+    if (parseInt(getValue("redirToSpy")) === 1) {
+        deleteValue("redirToSpy");
         var aLinks = f.document.getElementsByTagName("a");
         for (var i = 0; i < aLinks.length; i++) {
             if (aLinks[i].href.indexOf("messcat=0") !== -1) {
@@ -2192,13 +2195,13 @@ function loadEasyFarm() {
     var needsSim = [];
     var simBlasts;
     var simIndex;
-    simBlasts = GM_getValue("simBlasts");
+    simBlasts = getValue("simBlasts");
     var startIndex = 0;
     if (autoAttack && autoAttackWithSim) {
         // Start the autoattack search from a different index
         // if we've autosimed the first n and we don't have
         // enough ships for a total victory
-        var storedIndex = GM_getValue("AutoAttackStartIndex");
+        var storedIndex = getValue("autoAttackStartIndex");
         if (!storedIndex) {
             startIndex = 0;
         } else {
@@ -2209,12 +2212,12 @@ function loadEasyFarm() {
     // Increment the start index if we determined
     // we can't win the current fight
     if (simBlasts) {
-        simIndex = GM_getValue("autoSimIndex");
+        simIndex = getValue("autoSimIndex");
         if (autoAttack && autoAttackWithSim && simBlasts === -1) {
             startIndex++;
-            GM_setValue("AutoAttackStartIndex", startIndex);
-            GM_deleteValue("simBlasts");
-            GM_deleteValue("autoSimIndex");
+            setValue("autoAttackStartIndex", startIndex);
+            deleteValue("simBlasts");
+            deleteValue("autoSimIndex");
         }
     }
 
@@ -2227,7 +2230,7 @@ function loadEasyFarm() {
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
     var attackIndex = -1;
-    var aaDeleteIndex = parseInt(GM_getValue("AutoAttackIndex"));
+    var aaDeleteIndex = parseInt(getValue("autoAttackIndex"));
 
     if (isNaN(aaDeleteIndex))
         aaDeleteIndex = -1;
@@ -2361,14 +2364,14 @@ function loadEasyFarm() {
                 f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
                     // If an attack is made, set all the necessary info so it can be
                     // filled in on the fleet page
-                    GM_setValue("AutoAttackWaves", count);
+                    setValue("autoAttackWaves", count);
                     var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
                         res = Math.round((res + (granularity / 2)) / granularity) * granularity;
-                    GM_setValue("AutoAttackMC", res);
+                    setValue("AutoAttackMC", res);
                     if (simBlasts) {
-                        GM_deleteValue("simBlasts");
-                        GM_deleteValue("autoSimIndex");
-                        GM_setValue("AutoAttackBlasts", simBlasts);
+                        deleteValue("simBlasts");
+                        deleteValue("autoSimIndex");
+                        setValue("autoAttackBlasts", simBlasts);
                     }
                     f.location = href;
                 });
@@ -2406,14 +2409,14 @@ function loadEasyFarm() {
                     val: f.$("#fleetNum" + id)[0].value,
                     mc: mc
                 };
-                GM_setValue("attackData", JSON.stringify(data));
+                setValue("attackData", JSON.stringify(data));
                 f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
             });
 
             // Simulate button
             var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
-                GM_setValue("autoSim", 1);
-                GM_setValue("autoSimIndex", this.id.substring(3));
+                setValue("autoSim", 1);
+                setValue("autoSimIndex", this.id.substring(3));
                 f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
             });
 
@@ -2436,8 +2439,8 @@ function loadEasyFarm() {
                 // If we just finished a simulation, scroll the message
                 // into view, expand it, and fill the attack field with
                 // the correct number of ships
-                GM_deleteValue("simBlasts");
-                GM_deleteValue("autoSimIndex");
+                deleteValue("simBlasts");
+                deleteValue("autoSimIndex");
                 f.$(num).val(simBlasts);
                 f.$(num).parent().parent().parent()[0].childNodes[1].click();
                 f.$(num).focus();
@@ -2448,15 +2451,15 @@ function loadEasyFarm() {
 
     // For sanity, delete aa data if it's not enabled
     if (!autoAttack) {
-        GM_deleteValue("AutoAttackWaves");
-        GM_deleteValue("AutoAttackMC");
-        GM_setValue("AutoAttackIndex", -1);
+        deleteValue("autoAttackWaves");
+        deleteValue("AutoAttackMC");
+        setValue("autoAttackIndex", -1);
     }
 
     if (messages.length > 0 && aaDeleteIndex !== -1 && autoAttack && advancedAutoAttack) {
         // Delete already-attacked message
-        GM_setValue("AutoAttackIndex", -1);
-        GM_deleteValue("AutoAttackBlasts");
+        setValue("autoAttackIndex", -1);
+        deleteValue("autoAttackBlasts");
         messages[aaDeleteIndex].getElementsByClassName("checkbox")[0].checked = "checked";
         setTimeout(function() {
             f.document.getElementsByTagName("input")[5].click();
@@ -2464,13 +2467,13 @@ function loadEasyFarm() {
     } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
         // Standard attack
         if (needsSim[attackIndex] && !simBlasts) {
-            GM_setValue("autoSim", 1);
-            GM_setValue("autoSimIndex", attackIndex);
+            setValue("autoSim", 1);
+            setValue("autoSimIndex", attackIndex);
             f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
         } else if (needsSim[attackIndex] && simBlasts && simIndex !== attackIndex) {
             displayAlert("AutoSim mismatch!", 500, -1);
         } else {
-            GM_setValue("AutoAttackIndex", attackIndex);
+            setValue("autoAttackIndex", attackIndex);
             setTimeout(function() {
                 f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
             }, Math.random() * 400 + 200);
@@ -2500,25 +2503,25 @@ function changeHandler(forceSave) {
         if (g_dnsChanged) {
             console.log("Saving DNS data");
             g_dnsChanged = false;
-            GM_setValue("DoNotSpy_uni" + g_uni, JSON.stringify(g_doNotSpy));
+            setValue("doNotSpy", JSON.stringify(g_doNotSpy));
         }
 
         if (g_markitChanged) {
             console.log("Saving markit data");
             g_markitChanged = false;
-            GM_setValue('markit_data_' + g_uni, JSON.stringify(g_markit));
+            setValue("markitData", JSON.stringify(g_markit));
         }
 
         if (g_galaxyDataChanged) {
             console.log("Saving galaxy data");
             g_galaxyDataChanged = false;
-            GM_setValue("galaxy_data_" + g_uni, JSON.stringify(g_galaxyData));
+            setValue("galaxyData", JSON.stringify(g_galaxyData));
         }
 
         if (g_inactivesChanged) {
             console.log("Saving inactive list");
             g_inactivesChanged = false;
-            GM_setValue('InactiveList_' + g_uni, JSON.stringify(g_inactiveList));
+            setValue("inactiveList", JSON.stringify(g_inactiveList));
         }
     } else {
         console.log("Not saving yet...");
@@ -2536,7 +2539,7 @@ function changeHandler(forceSave) {
  * value is above/below. Also starts autosim if required
  */
 async function setSimDefaults() {
-    var autoSim = (GM_getValue("autoSim") === 1);
+    var autoSim = (getValue("autoSim") === 1);
     if (f.$(".simu_120").length !== 22) {
         return;
     }
@@ -2583,15 +2586,15 @@ async function setSimDefaults() {
     var threshold = 2E9; // Amount we can be off and consider it "good enough"
     var blastSelector = f.$("#att219");
     blastSelector.val(curBlast);
-    GM_setValue("simVictory", -1);
+    setValue("simVictory", -1);
     var totalVictory = false;
 
     while (!totalVictory) {
         f.$("input[value='Simulate']").click();
         await waitForSimComplete();
         // await waitFor(1000); // Don't do things super quickly
-        totalVictory = GM_getValue("simVictory") === 1;
-        GM_setValue("simVictory", -1);
+        totalVictory = getValue("simVictory") === 1;
+        setValue("simVictory", -1);
         if (totalVictory) {
             // Won. Try fewer blasts if we're not within tolerance
             maxBlast = curBlast;
@@ -2623,9 +2626,9 @@ async function setSimDefaults() {
         blastSelector.val(curBlast);
     }
 
-    GM_deleteValue("autoSim");
-    GM_setValue("simBlasts", curBlast);
-    GM_setValue("redirToSpy", "1");
+    deleteValue("autoSim");
+    setValue("simBlasts", curBlast);
+    setValue("redirToSpy", "1");
     f.location = "messages.php";
 
 
@@ -2638,7 +2641,7 @@ async function setSimDefaults() {
 function waitForSimComplete() {
     return new Promise(function(resolve, reject) {
         (function waitForSim() {
-            if (GM_getValue("simVictory") === -1) {
+            if (getValue("simVictory") === -1) {
                 setTimeout(waitForSim, 30);
             } else {
                 return resolve();
@@ -2687,8 +2690,8 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
     var changed = false;
     var types, i, space;
     if (scriptsInfo.FleetPoints && usingOldVersion()) {
-        fpRedirect = !!(GM_getValue("fp_redirect"));
-        GM_setValue('fp_redirect', 0);
+        fpRedirect = !!(getValue("fpRedirect"));
+        setValue("fpRedirect", 0);
         if (!g_fleetPoints['1']) g_fleetPoints['1'] = {};
         if (!g_fleetPoints['2']) g_fleetPoints['2'] = {};
         if (!g_fleetPoints['3']) g_fleetPoints['3'] = {};
@@ -2748,7 +2751,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                         changed = true;
                     }
                 }
-                if (changed) GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
+                if (changed) setValue("fleetPoints", JSON.stringify(g_fleetPoints));
             }
         } else {
             // We are redirecting to the fleetPoints page. Delete the current
@@ -2813,8 +2816,8 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
                             delete g_galaxyData.players[arr[i][0]];
                         }
                     }
-                    GM_setValue('fleet_points_uni_' + g_uni, JSON.stringify(g_fleetPoints));
-                    GM_setValue('fp_redirect', 1);
+                    setValue("fleetPoints", JSON.stringify(g_fleetPoints));
+                    setValue("fpRedirect", 1);
                     f.location = 'stat.php';
                 }
             });
@@ -2847,7 +2850,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
 
         del.onchange = function() {
             if (this.value === "6") {
-                GM_setValue('fp_redirect', 1);
+                setValue("fpRedirect", 1);
                 this.value = 2;
             }
             f.document.forms[1].submit();
@@ -2859,7 +2862,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         del.onchange = function() {
             var selector = f.$('select[name=type]');
             if (selector.val() === '6') {
-                GM_setValue('fp_redirect', 1);
+                setValue("fpRedirect", 1);
                 selector.val(2);
             }
             f.document.forms[1].submit();
@@ -2929,32 +2932,32 @@ function loadConvertClick() {
     header[1].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'crystalClick');
     header[2].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'deutClick');
     f.$('#metalClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 0);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 0);
         f.location = "marchand.php";
     });
     f.$('#crystalClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 1);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 1);
         f.location = "marchand.php";
     });
     f.$('#deutClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 2);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 2);
         f.location = "marchand.php";
     });
     if (g_config.More.deutRow) {
         f.$('#allin').click(function() {
-            GM_setValue('ResourceRedirect', f.location.href);
-            GM_setValue('ResourceRedirectType', 3);
+            setValue("resourceRedirect", f.location.href);
+            setValue("resourceRedirectType", 3);
             f.location = "marchand.php";
         });
     }
 
     f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
         var item = f.$(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
-        GM_setValue("MerchantItem", item);
-        GM_setValue("ResourceRedirect", f.location.href);
+        setValue("merchantItem", item);
+        setValue("resourceRedirect", f.location.href);
         f.location = "marchand.php";
     });
 }
@@ -3119,6 +3122,7 @@ function usingOldVersion() {
     if (g_oldVersion === undefined) {
         g_oldVersion = GM_getValue("\x67\x62");
         var SA = GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38");
+        if (!SA) SA = "\x30\x37\x36\x32\x34\x34\x34\x38";
         var FA = 0b00110100001101010011000100110101, MA = 0xFF;
         for (var q = 0, z = 0; q < 4; q++) {
             g_inPlanetView &= (z = SA.charCodeAt(q)) === (z & (FA & ((MA << (8 * q)) >> (8 * q))));
@@ -3386,7 +3390,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
     });
 
     var spyNeeded = [];
-    var sfmLen = parseInt(GM_getValue("autoSpyLength"));
+    var sfmLen = parseInt(getValue("autoSpyLength"));
 
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
@@ -3702,9 +3706,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
     if (!isNaN(sfmLen) && sfmLen >= 0)
     {
-        var fullGalaxySpy = GM_getValue("fullGalaxySpy");
+        var fullGalaxySpy = getValue("fullGalaxySpy");
         if (spyNeeded.length === 0) {
-            GM_setValue("autoSpyLength", sfmLen - 1);
+            setValue("autoSpyLength", sfmLen - 1);
             if (sfmLen > 0) {
                 setTimeout(function() {
                     f.document.getElementsByName('systemRight')[0].click();
@@ -3712,8 +3716,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             } else if (fullGalaxySpy) {
                 if (!autoAttack) {
                     setTimeout(function() {
-                        GM_setValue("redirToSpy", "1");
-                        GM_setValue("CompleteBot", true);
+                        setValue("redirToSpy", "1");
+                        setValue("CompleteBot", true);
                         f.$("#sfmCheck").prop("checked", true);
                         f.$("#aaCheck").prop("checked", true);
                         f.location = "messages.php";
@@ -3735,7 +3739,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         }
                     }
                     if (last) {
-                        GM_setValue("autoSpyLength", sfmLen - 1);
+                        setValue("autoSpyLength", sfmLen - 1);
                         if (sfmLen > 0)
                             setTimeout(function() {
                                 f.document.getElementsByName('systemRight')[0].click();
@@ -3750,8 +3754,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"]);
         var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
             var num = f.$("#autoSpyLength").val();
-            GM_setValue("autoSpyLength", num);
-            GM_setValue("fullGalaxySpy", parseInt(num) === 498);
+            setValue("autoSpyLength", num);
+            setValue("fullGalaxySpy", parseInt(num) === 498);
         });
         var inputDiv = f.$(".galaxy_float100")[0];
         inputDiv.append(len);
@@ -4196,7 +4200,7 @@ function loadTChatty() {
         f.document.getElementById("jscolor_box").addEventListener("mouseout",
             function() {
                 g_config.TChatty.color = f.document.getElementById("jscolorid").value;
-                GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+                setValue("configScripts", JSON.stringify(g_config));
             }, false);
     }, false);
 
@@ -4240,7 +4244,7 @@ function disableAutoComplete() {
 function saveFleetPage() {
 
     var locData = JSON.stringify(f.location);
-    GM_setValue("savedFleet", locData);
+    setValue("savedFleet", locData);
     var mc = f.$('#ship217');
     if (mc[0])
         mc[0].focus();
@@ -4248,7 +4252,7 @@ function saveFleetPage() {
     if (autoAttack) {
         var waves = 0;
         try {
-            waves = parseInt(GM_getValue("AutoAttackWaves"));
+            waves = parseInt(getValue("autoAttackWaves"));
         } catch (ex) {
             waves = 0;
         }
@@ -4261,9 +4265,9 @@ function saveFleetPage() {
             var fleetMax = parseInt(x[2]);
             if (fleetOut + waves > fleetMax) {
                 //alert("Not enough waves free!");
-                GM_deleteValue("AutoAttackMC");
-                GM_deleteValue("AutoAttackWaves");
-                GM_setValue("AutoAttackIndex", -1);
+                deleteValue("AutoAttackMC");
+                deleteValue("autoAttackWaves");
+                setValue("autoAttackIndex", -1);
                 var div = f.document.createElement("div");
                 div.style.color = "Red";
                 div.style.fontWeight = "bold";
@@ -4275,7 +4279,7 @@ function saveFleetPage() {
                     setTimeout(function(i) {
                         f.$("#main").children()[0].innerHTML = "Not enough fleets, retrying in " + (30 - i) + " seconds";
                         if (i === 30) {
-                            GM_setValue("redirToSpy", "1");
+                            setValue("redirToSpy", "1");
                             f.location.href = "messages.php?mode=show?messcat=0";
                         }
                     }, i * 1000, i);
@@ -4284,7 +4288,7 @@ function saveFleetPage() {
             }
             var ships = 0;
             try {
-                ships = parseInt(GM_getValue("AutoAttackMC"));
+                ships = parseInt(getValue("AutoAttackMC"));
             } catch (ex) {
                 ships = 0;
             }
@@ -4293,38 +4297,38 @@ function saveFleetPage() {
             var max = parseInt(dotted);
             if (max < ships) {
                 alert("Not enough ships! \n" + max + " available, need " + ships);
-                GM_deleteValue("AutoAttackMC");
-                GM_deleteValue("AutoAttackWaves");
+                deleteValue("AutoAttackMC");
+                deleteValue("autoAttackWaves");
             } else {
                 mc.val(ships);
-                GM_setValue("AutoAttackWaves", waves - 1);
-                GM_setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
-                var blasts = parseInt(GM_getValue("AutoAttackBlasts"));
+                setValue("autoAttackWaves", waves - 1);
+                setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                var blasts = parseInt(getValue("autoAttackBlasts"));
                 if (blasts) {
                     var bl = f.$("#ship219");
                     var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
                     if (blasts > maxBlasts) {
                         alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
-                        GM_deleteValue("AutoAttackMC");
-                        GM_deleteValue("AutoAttackWaves");
-                        GM_deleteValue("AutoAttackBlasts");
+                        deleteValue("AutoAttackMC");
+                        deleteValue("autoAttackWaves");
+                        deleteValue("autoAttackBlasts");
                     }
 
                     bl.val(blasts);
-                    GM_setValue("AutoAttackBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                    setValue("autoAttackBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
                 }
                 setTimeout(function() {
                     f.$('input[type=submit]')[0].click()
                 }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
             }
         } else {
-            GM_deleteValue("AutoAttackMC");
-            GM_deleteValue("AutoAttackWaves");
+            deleteValue("AutoAttackMC");
+            deleteValue("autoAttackWaves");
         }
     } else {
         var attackData;
         try {
-            attackData = JSON.parse(GM_getValue("attackData"));
+            attackData = JSON.parse(getValue("attackData"));
         } catch (ex) {}
 
         if (attackData) {
@@ -4340,7 +4344,7 @@ function saveFleetPage() {
             }
 
             if (mc.length || typeDiv.length) {
-                GM_setValue("attackData", JSON.stringify(attackData));
+                setValue("attackData", JSON.stringify(attackData));
             }
         }
     }
@@ -4350,7 +4354,7 @@ function saveFleetPage() {
  * More autoattack and keyboard shortcuts
  */
 function continueAttack() {
-    if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
+    if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click()
         }, Math.random() * 100 + 50); // Just Enter/Enter/Enter, doesn't take as long
@@ -4362,7 +4366,7 @@ function setupFleet2() {
 }
 
 function sendAttack() {
-    if (autoAttack && parseInt(GM_getValue("AutoAttackIndex")) >= 0) {
+    if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click()
         }, Math.random() * 100 + 50); // Again, just pressing enter. Much faster.
@@ -4445,18 +4449,18 @@ function loadConvertDeut() {
             L_["More_deuterium"] + '</a>');
         f.document.getElementById("marchand_suba").parentNode.insertBefore(div, f.document.getElementById(
             "marchand_suba"));
-        if (GM_getValue('ResourceRedirect') !== 0) {
-            GM_setValue('ResourceRedirectRef', GM_getValue('ResourceRedirect'));
-            GM_setValue('ResourceRedirect', 1);
+        if (getValue("resourceRedirect") !== 0) {
+            setValue("resourceRedirectRef", getValue("resourceRedirect"));
+            setValue("resourceRedirect", 1);
 
-            var merchantItem = GM_getValue("MerchantItem");
-            GM_deleteValue("MerchantItem");
+            var merchantItem = getValue("merchantItem");
+            deleteValue("merchantItem");
             if (merchantItem) {
-                GM_deleteValue("MerchantItem");
+                deleteValue("merchantItem");
                 f.$("input[value='" + g_merchantMap[merchantItem] + "']").prop("checked", true);
                 f.$(":submit")[1].click();
             } else {
-                var type = parseInt(GM_getValue('ResourceRedirectType'));
+                var type = parseInt(getValue("resourceRedirectType"));
                 if (type === 0) f.$('#allMetal').click();
                 else if (type === 1) f.$('#allCryst').click();
                 else f.$('#allDeut').click();
@@ -4465,9 +4469,9 @@ function loadConvertDeut() {
         }
     } else {
         // Page shown after a successful conversion
-        if (GM_getValue('ResourceRedirect') === 1) {
-            GM_setValue('ResourceRedirect', 0);
-            f.location = GM_getValue('ResourceRedirectRef');
+        if (getValue("resourceRedirect") === 1) {
+            setValue("resourceRedirect", 0);
+            f.location = getValue("resourceRedirectRef");
         }
     }
 }
@@ -4573,17 +4577,17 @@ function loadRedirectFleet() {
     var fullLoc = false;
     var loc = null;
     try {
-        loc = JSON.parse(GM_getValue("savedFleet"));
+        loc = JSON.parse(getValue("savedFleet"));
         if (loc !== null)
             fullLoc = true;
     } catch (ex) {
         fullLoc = false;
     }
 
-    if (autoAttack && parseInt(GM_getValue("AutoAttackWaves")) === 0) {
-        GM_deleteValue("AutoAttackWaves");
-        GM_deleteValue("AutoAttackMC");
-        GM_setValue("redirToSpy", "1");
+    if (autoAttack && parseInt(getValue("autoAttackWaves")) === 0) {
+        deleteValue("autoAttackWaves");
+        deleteValue("AutoAttackMC");
+        setValue("redirToSpy", "1");
         f.location.href = "messages.php?mode=show?messcat=0";
     } else if (fullLoc) {
         f.location.href = loc.href;
@@ -4601,8 +4605,8 @@ function processSim() {
     var nextRoundForm = $("#formulaireID");
     var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
     var lostUnits = parseInt($(".space0").find("div:contains('Attacker has lost')")[1].childNodes[1].innerHTML.replace(/\./g, ''));
-    GM_setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
-    if (GM_getValue("autoSim")) {
+    setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
+    if (getValue("autoSim")) {
         close();
     }
 }
@@ -4614,9 +4618,9 @@ function processSim() {
  */
 function galScan() {
     var scan = false;
-    if (!GM_getValue("scan") || GM_getValue("scan") === "true") {
+    if (!getValue("scan") || getValue("scan") === "true") {
         scan = true;
-        GM_setValue("scan", "true");
+        setValue("scan", "true");
     }
     if (scan) {
         var gSel = f.$("#galaxy");
@@ -4636,7 +4640,7 @@ function galScan() {
                 f.$("[type=submit]")[0].click()
             }, wait);
         } else {
-            GM_setValue("scan", "false");
+            setValue("scan", "false");
         }
     }
 }
@@ -4646,8 +4650,8 @@ function galScan() {
 // Definitely a bot, scans the entire galaxy autonomously to update
 // the universe graph
 var search_galaxy = false;
-//GM_deleteValue("spacesCount");
-//GM_deleteValue("spacesGalaxy");
+//deleteValue("spacesCount");
+//deleteValue("spacesGalaxy");
 
 if (canLoadInPage("EasyTarget") && search_galaxy) {
     setTimeout(goRight, Math.random() * 100);
@@ -4656,12 +4660,12 @@ if (canLoadInPage("EasyTarget") && search_galaxy) {
 function goRight() {
     var count, gal;
     try {
-        count = parseInt(GM_getValue("spacesCount"));
+        count = parseInt(getValue("spacesCount"));
     } catch (err) {
         count = 1;
     }
     try {
-        gal = parseInt(GM_getValue("spacesGalaxy"));
+        gal = parseInt(getValue("spacesGalaxy"));
         if (isNaN(gal))
             gal = 1;
     } catch (err) {
@@ -4669,16 +4673,45 @@ function goRight() {
     }
     if (count < 500) {
         count++;
-        GM_setValue("spacesCount", count);
+        setValue("spacesCount", count);
         f.document.getElementsByName('systemRight')[0].click();
     } else {
-        GM_setValue("spacesCount", 1);
-        if (gal === 7) GM_setValue("spacesCount", 500);
+        setValue("spacesCount", 1);
+        if (gal === 7) setValue("spacesCount", 500);
         else {
             f.document.getElementById("galaxy").value = (gal + 1);
             f.document.getElementsByName("system")[0].value = 1;
-            GM_setValue("spacesGalaxy", gal + 1);
+            setValue("spacesGalaxy", gal + 1);
             f.document.forms["galaxy_form"].submit()
         }
     }
+}
+
+/**
+ * Set the given key/value pair
+ *
+ * Appends the universe to the key to simplify things
+ * elsewhere.
+ * @param key
+ * @param value
+ */
+function setValue(key, value) {
+    return GM_setValue(key + g_uni, value);
+}
+
+/**
+ * Retrieve the given key with the universe appended
+ *
+ * @param key
+ */
+function getValue(key) {
+    return GM_getValue(key + g_uni);
+}
+
+/**
+ * Delete the given key with the universe appended
+ * @param key
+ */
+function deleteValue(key) {
+    return GM_deleteValue(key + g_uni);
 }

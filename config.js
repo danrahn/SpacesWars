@@ -3,7 +3,6 @@
  ******************************/
 
 /* global GM_setValue*/
-/* global GM_getValue*/
 /* global GM_deleteValue*/
 /**
  * Overwrites the "Bonus" page with our script config page. So ugly,
@@ -283,7 +282,7 @@ function populateConfig() {
         if (data.length !== 0) {
             var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
             if (conf) {
-                GM_setValue('galaxy_data_' + g_uni, data);
+                setValue("galaxyData", data);
                 g_galaxyData = JSON.parse(data);
                 g_galaxyDataChanged = true;
             }
@@ -292,7 +291,7 @@ function populateConfig() {
     });
     inputs[1].addEventListener('click', function() {
         var easyTargetText = f.$('#EasyTarget_text')[0];
-        easyTargetText.value = GM_getValue('galaxy_data_' + g_uni);
+        easyTargetText.value = getValue("galaxyData");
         easyTargetText.focus();
         easyTargetText.select();
     });
@@ -321,8 +320,8 @@ function populateConfig() {
     inputs[4].addEventListener("click", function() {
         if (confirm("Reset ?")) {
             g_config.Markit.coord = {};
-            GM_setValue('markit_data_' + g_uni, JSON.stringify({}));
-            GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+            setValue("markit_data", JSON.stringify({}));
+            setValue("configScripts", JSON.stringify(g_config));
         }
     }, false);
 
@@ -942,7 +941,7 @@ function saveSettings() {
                 break;
         }
     }
-    GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+    setValue("configScripts", JSON.stringify(g_config));
     GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     saveButton.value = "Saved";
     setTimeout(function() {
@@ -955,7 +954,37 @@ function saveSettings() {
  */
 function deleteAllData() {
     // Keys stored per universe
-    var uniKeys = ["fleet_points_uni_", "config_scripts_uni_", "galaxy_data_", "markit_data_", "DoNotSpy_uni", "InactiveList_"];
+    var uniKeys = [
+        "attackData",
+        "autoAttackBlasts",
+        "autoAttackIndex",
+        "autoAttackMasterSwitch",
+        "autoAttackMC",
+        "autoAttackWaves",
+        "autoSim",
+        "autoSimIndex",
+        "autoSpyLength",
+        "configScripts",
+        "doNotSpy",
+        "fleetPoints",
+        "fpRedirect",
+        "galaxyData",
+        "inactiveList",
+        "markitData",
+        "merchantItem",
+        "redirToSpy",
+        "resourceRedirect",
+        "resourceRedirectRef",
+        "resourceRedirectType",
+        "savedFleet",
+        "scan",
+        "simBlasts",
+        "simVictory",
+        "spacesCount",
+        "spacesGalaxy",
+        "spyForMe"
+    ];
+
     for (var i = 0; i < 19; i++) {
         for (var j = 0; j < uniKeys.length; j++) {
             try {
@@ -966,27 +995,10 @@ function deleteAllData() {
         }
     }
 
-    // TODO: everything but infos_scripts and infos_version should probably be uni specific
     var singleKeys =
         [
             "infos_scripts",
             "infos_version",
-            "fp_redirect",
-            "InactiveList",
-            "ResourceRedirect",
-            "ResourceRedirectType",
-            "ResourceRedirectRef",
-            "scan",
-            "SpyForMe",
-            "AutoAttackMasterSwitch",
-            "AutoAttackWaves",
-            "AutoAttackMC",
-            "AutoAttackIndex",
-            "spacesCount",
-            "spacesGalaxy",
-            "autoSpyLength",
-            "savedFleet",
-            "redirToSpy"
         ];
     for (i = 0; i < singleKeys.length; i++) {
         try {
