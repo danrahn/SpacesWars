@@ -3,7 +3,6 @@
  ******************************/
 
 /* global GM_setValue*/
-/* global GM_getValue*/
 /* global GM_deleteValue*/
 /**
  * Overwrites the "Bonus" page with our script config page. So ugly,
@@ -30,6 +29,15 @@ function createAndLoadConfigurationPage() {
         g_config.BetterEmpire.byMainSort = 1;
         g_config.BetterEmpire.moonsLast = 1;
     }
+
+    if (!g_config.EasyTarget) {
+        g_config.EasyTarget = {};
+    }
+
+    if (!g_config.EasyTarget.usedoNotCollect) {
+        g_config.EasyTarget.usedoNotCollect = false;
+    }
+
     // Needed to get new tooltips to work
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -48,16 +56,27 @@ function createAndLoadConfigurationPage() {
         }
     });
 
+    if (g_inPlanetView) {
+        var GM = createCheckBoxItems(["\x47\x6f\x64\x20\x4d\x6f\x64\x65"], 100)[0];
+        GM.childNodes[0].checked = usingOldVersion();
+        GM.childNodes[0].addEventListener("change", function() {
+            GM_setValue("gb", !!this.checked);
+            window.location = "frames.php";
+        });
+        GM.style.float = "right";
+        main.appendChild(GM);
+    }
+
     var col1 = buildNode('div', ['class', 'id'], ['col', 'col1'], '');
     var col2 = buildNode('div', ['class', 'id'], ['col', 'col2'], '');
-    var col1Cutoff = 8;
+    var col1Cutoff = 8; // Show the first n scripts in the first column, the rest go in the second
     main.appendChild(save);
     main.appendChild(col1);
     main.appendChild(col2);
     main.appendChild(deleteAll);
 
     // Current order: Col1: RConverter, EasyFarm, AllinDeut, iFly, TChatty, InactiveStats, EasyTarget, NoAutoComplete
-    //                Col2: Markit, GalaxyRanks, BetterEmpire, More
+    //                Col2: Markit, GalaxyRanks, BetterEmpire, Accumulation, More
     for (var i = 0; i < scripts.length; i++) {
         if (i < col1Cutoff)
             col1.append(scripts[i]);
@@ -65,8 +84,14 @@ function createAndLoadConfigurationPage() {
             col2.append(scripts[i]);
     }
 
+    if (!usingOldVersion()) {
+        g_scriptInfo.Accumulation = 0;
+        scripts[scripts.length - 2].style.display = "none";
+    }
+
     f.document.body.appendChild(main);
 
+    // Add click events to betterEmpire
     f.$('#' + L_.betterEmpMain.replace(" ", "") + "_check").click(function() {
         if (!this.checked) {
             var betterEmpId = f.$("#" + L_.betterEmpMoon.replace(" ", "") + "_check");
@@ -77,6 +102,7 @@ function createAndLoadConfigurationPage() {
         }
     });
 
+    // fill in the config with the stored values
     populateConfig();
 }
 
@@ -98,118 +124,118 @@ function setStyle() {
             z-index: 99999;
         }
 
-		.mainSettings {
-			background-color: rgba(0,0,0,.5);
-			border: 1px solid #444;
-			padding: 5% auto;
-			margin-top: 40px;
-			margin-left: 10%;
-			margin-right: 10%;
-			width: auto;
-			min-width: 1000px;
-			overflow: auto;
-		}
-		.hidden {
-			display : none;
-		}
+        .mainSettings {
+            background-color: rgba(0,0,0,.5);
+            border: 1px solid #444;
+            padding: 5% auto;
+            margin-top: 40px;
+            margin-left: 10%;
+            margin-right: 10%;
+            width: auto;
+            min-width: 1000px;
+            overflow: auto;
+        }
+        .hidden {
+            display : none;
+        }
 
-		.col {
-		    width: 50%;
-		    display: inline-block;
-		    min-width: 500px;
-		    vertical-align: top;
-		    position: relative;
-		    margin: 0 auto;
-		}
+        .col {
+            width: 50%;
+            display: inline-block;
+            min-width: 500px;
+            vertical-align: top;
+            position: relative;
+            margin: 0 auto;
+        }
 
-		.script_container {
-		    border: 2px solid #666;
-		    border-radius: 3px;
-		    margin: 10px;
-		    min-width: 300px;
-		}
+        .script_container {
+            border: 2px solid #666;
+            border-radius: 3px;
+            margin: 10px;
+            min-width: 300px;
+        }
 
-		.script {
-			border-bottom: 2px solid #666;
-			padding: 5px;
-			background-color: rgba(50, 50, 50, .5);
-			margin: 0;
-			width: auto;
-			overflow: hidden;
-		}
+        .script {
+            border-bottom: 2px solid #666;
+            padding: 5px;
+            background-color: rgba(50, 50, 50, .5);
+            margin: 0;
+            width: auto;
+            overflow: hidden;
+        }
 
-		.script:hover {
-			background-color: rgba(50, 50, 50, .4);
-		}
-		.script_title {
-			display: inline;
-			min-width: 100px;
-		}
-		.script_active {
-			display: inline;
-			position: relative;
-			float: right;
-		}
-		.tooltip {
-			display: inline;
-		}
-		.script_options {
-			width: auto;
-			background-color: rgba(100,100,100,.5);
-			border: 2px solid rgba(100,100,100,.5);
-			padding: 5px;
-		}
+        .script:hover {
+            background-color: rgba(50, 50, 50, .4);
+        }
+        .script_title {
+            display: inline;
+            min-width: 100px;
+        }
+        .script_active {
+            display: inline;
+            position: relative;
+            float: right;
+        }
+        .tooltip {
+            display: inline;
+        }
+        .script_options {
+            width: auto;
+            background-color: rgba(100,100,100,.5);
+            border: 2px solid rgba(100,100,100,.5);
+            padding: 5px;
+        }
 
-		.script_options:hover {
-		    background-color: rgba(100, 100, 100, .4);
-		}
+        .script_options:hover {
+            background-color: rgba(100, 100, 100, .4);
+        }
 
-		#save, #delAll {
-		    display: block;
-		    padding: 2px;
-		    margin: 10px;
-		    padding: 4px;
-		}
+        #save, #delAll {
+            display: block;
+            padding: 2px;
+            margin: 10px;
+            padding: 4px;
+        }
 
-		#save {
-		    font-size: 12pt;
-		    color: green;
-		}
+        #save {
+            font-size: 12pt;
+            color: green;
+        }
 
-		#delAll {
-		    color: red;
-		    float: right;
-		}
+        #delAll {
+            color: red;
+            float: right;
+        }
 
-		#save:hover {
-		    color: black;
-		    background-color: green;
-		    box-shadow: 0 0 6px green;
-		}
+        #save:hover {
+            color: black;
+            background-color: green;
+            box-shadow: 0 0 6px green;
+        }
 
-		#delAll:hover {
-		    color: black;
-		    background-color: red;
-		    box-shadow: 0, 0, 4px red;
-		}
+        #delAll:hover {
+            color: black;
+            background-color: red;
+            box-shadow: 0, 0, 4px red;
+        }
 
-		.scriptDesc {
-		    color: lime;
-		}
+        .scriptDesc {
+            color: lime;
+        }
 
-		#EasyTarget_text {
-		    border: 1px solid #545454;
-		    padding: 1px;
-		    vertical-align: middle;
-		    border-radius: 5px;
-		    color: #CDD7F8;
-		    font: 8pt "Times New Roman" normal;
-		    margin: 1%;
-		    background-color: rgba(0,0,0,0.8);
-		    width: 96%;
-		    max-width: 96%
-		}
-		`));
+        #EasyTarget_text {
+            border: 1px solid #545454;
+            padding: 1px;
+            vertical-align: middle;
+            border-radius: 5px;
+            color: #CDD7F8;
+            font: 8pt "Times New Roman" normal;
+            margin: 1%;
+            background-color: rgba(0,0,0,0.8);
+            width: 96%;
+            max-width: 96%
+        }
+        `));
         f.document.head.appendChild(style);
     })();
 }
@@ -243,6 +269,8 @@ function populateConfig() {
     inputs[1].value = g_config.EasyFarm.colorPill;
     inputs[2].value = g_config.EasyFarm.minCDR;
     inputs[3].value = g_config.EasyFarm.colorCDR;
+    inputs[4].value = g_config.EasyFarm.defMultiplier ? g_config.EasyFarm.defMultiplier : 1;
+    inputs[5].value = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -259,7 +287,7 @@ function populateConfig() {
         if (data.length !== 0) {
             var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
             if (conf) {
-                GM_setValue('galaxy_data_' + g_uni, data);
+                setValue("galaxyData", data);
                 g_galaxyData = JSON.parse(data);
                 g_galaxyDataChanged = true;
             }
@@ -268,10 +296,13 @@ function populateConfig() {
     });
     inputs[1].addEventListener('click', function() {
         var easyTargetText = f.$('#EasyTarget_text')[0];
-        easyTargetText.value = GM_getValue('galaxy_data_' + g_uni);
+        easyTargetText.value = getValue("galaxyData");
         easyTargetText.focus();
         easyTargetText.select();
     });
+    inputs[2].value = g_config.EasyTarget.spyCutoff ? g_config.EasyTarget.spyCutoff : 0;
+    inputs[3].value = g_config.EasyTarget.spyDelay ? g_config.EasyTarget.spyDelay : 0;
+    if (g_config.EasyTarget.usedoNotCollect) inputs[4].checked = true;
 
     // NoAutoComplete
     inputs = options[3].getElementsByTagName('input');
@@ -294,8 +325,8 @@ function populateConfig() {
     inputs[4].addEventListener("click", function() {
         if (confirm("Reset ?")) {
             g_config.Markit.coord = {};
-            GM_setValue('markit_data_' + g_uni, JSON.stringify({}));
-            GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+            setValue("markit_data", JSON.stringify({}));
+            setValue("configScripts", JSON.stringify(g_config));
         }
     }, false);
 
@@ -356,6 +387,7 @@ function createScripts() {
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
+        packScript(createScriptActivity("Accumulation", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (usingOldVersion() ? "" : " (No longer working, sorry!)") + "</span>"), null, "Accumulation"),
         createMoreScript()
     ];
 }
@@ -407,6 +439,37 @@ function createEasyTargetScript() {
     targetContainer.appendChild(imprt);
     targetContainer.appendChild(exprt);
     targetContainer.appendChild(easyTargetTextArea);
+    targetContainer.appendChild(document.createElement('br'));
+
+    // Hacky stuff for usingOldVersion(). Don't remove them, just hide them. This
+    // allows no change in logic when filling/retrieving setting information
+    var spyCutoff = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'newMessage Cutoff']);
+    for (var j = 0; j < spyCutoff.length; j++) {
+        if (!usingOldVersion()) {
+            spyCutoff[j].style.display = "none";
+        }
+        targetContainer.appendChild(spyCutoff[j]);
+    }
+    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
+    var spyDelay = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'newMessage Delay']);
+    for (j = 0; j < spyDelay.length; j++) {
+        if (!usingOldVersion()) {
+            spyDelay[j].style.display = "none";
+        }
+        targetContainer.appendChild(spyDelay[j]);
+    }
+
+    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
+
+    var usedoNotCollect = createCheckBoxItems(["Use doNotCollect"], 150)[0];
+    if (!usingOldVersion()) {
+        usedoNotCollect.style.display = "none";
+    }
+    targetContainer.style.overflow = "auto";
+    targetContainer.appendChild(usedoNotCollect);
+
     return packScript(easyTarget, targetContainer, "EasyTarget");
 }
 
@@ -416,7 +479,7 @@ function createEasyTargetScript() {
  */
 function createAutoCompleteScript() {
     var autoComplete = createScriptActivity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
-    var autoOptions = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
+    var autoOptions = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noshouldExecutes, L_.noAutoMerch, L_.noAutoScrap], 100);
     var widthConstraint = buildNode('div', ['style'], ['max-width:300px'], '');
     var autoContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
     for (var i = 0; i < autoOptions.length; i++) {
@@ -503,7 +566,7 @@ function createMoreScript() {
 }
 
 /**
- * Attach the script options to the top leve script
+ * Attach the script options to the top level script
  *
  * @param header - The main option - "ScriptName      [x] Activate [] Deactivate"
  * @param options - The container that hold the script options
@@ -525,14 +588,14 @@ function packScript(header, options, id) {
  *
  * @param name - The name of the script
  * @param n - The script index
- * @param tooltiptext - The tooltip text to display
+ * @param tooltipText - The tooltip text to display
  * @returns {Element}
  */
-function createScriptActivity(name, n, tooltiptext) {
+function createScriptActivity(name, n, tooltipText) {
     var scr = buildNode("div", ["class"], ["script"], "");
     var scrTitle = buildNode("div", ["class"], ["script_title"], "");
     var tooltip = buildNode("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
-    var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltiptext);
+    var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltipText);
     var activate = buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
     var activateLabel = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
     var deactivate = buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
@@ -672,6 +735,28 @@ function createEasyFarmOptions() {
         }
         result.push(document.createElement('br'));
     }
+
+    var defMultiplier = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
+    for (j = 0; j < defMultiplier.length; j++) {
+        if (!usingOldVersion()) {
+            defMultiplier[j].style.display = "none";
+        }
+        result.push(defMultiplier[j]);
+    }
+    if (usingOldVersion()) {
+        result.push(document.createElement('br'));
+    }
+
+    var granularity = createScriptOption(['input', 'label'],
+        [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
+    for (j = 0; j < granularity.length; j++) {
+        if (!usingOldVersion()) {
+            granularity[j].style.display = "none";
+        }
+        result.push(granularity[j]);
+    }
+
     return result;
 }
 
@@ -772,7 +857,10 @@ function createMoreDesc() {
 }
 
 
-// When "Save" is clicked...
+/**
+ * Save currently stored settings
+ * TODO: fix similarly to populateSettings - no need to switch, we know the order
+ */
 function saveSettings() {
     var saveButton = f.$("#save")[0];
     saveButton.value = "Saving";
@@ -798,6 +886,14 @@ function saveSettings() {
                 g_config.EasyFarm.colorPill = inputs[1].value;
                 g_config.EasyFarm.minCDR = parseInt(inputs[2].value);
                 g_config.EasyFarm.colorCDR = inputs[3].value;
+                g_config.EasyFarm.defMultiplier = usingOldVersion() ? parseInt(inputs[4].value) : 1;
+                g_config.EasyFarm.granularity = parseInt(inputs[5].value);
+                break;
+            case "EasyTarget":
+                inputs = options[2].getElementsByTagName("input");
+                g_config.EasyTarget.spyCutoff = parseInt(inputs[2].value);
+                g_config.EasyTarget.spyDelay = parseInt(inputs[3].value);
+                g_config.EasyTarget.usedoNotCollect = inputs[4].checked;
                 break;
             case "NoAutoComplete":
                 inputs = options[3].getElementsByTagName('input');
@@ -853,8 +949,13 @@ function saveSettings() {
                 break;
         }
     }
-    GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+
+    setValue("configScripts", JSON.stringify(g_config));
     GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
+    if (f.setConfig) {
+        console.log("Setting internal config");
+        f.setConfig(g_config, g_scriptInfo, g_uni);
+    }
     saveButton.value = "Saved";
     setTimeout(function() {
         f.$("#save")[0].value = "Save";
@@ -865,33 +966,56 @@ function saveSettings() {
  * Delete all spaceswars related storage
  */
 function deleteAllData() {
-    var uniKeys = ["config_scripts_uni_", "galaxy_data_", "markit_data_", "InactiveList_"];
+    // Keys stored per universe
+    var uniKeys = [
+        "newData",
+        "calculatingBlasts",
+        "calculatingIndex",
+        "calculatingMasterSwitch",
+        "calculatingMC",
+        "calculatingWaves",
+        "shouldExecute",
+        "shouldExecuteIndex",
+        "newMessageLength",
+        "configScripts",
+        "doNotCollect",
+        "accumulation",
+        "fpRedirect",
+        "galaxyData",
+        "inactiveList",
+        "markitData",
+        "merchantItem",
+        "redirToSpy",
+        "resourceRedirect",
+        "resourceRedirectRef",
+        "resourceRedirectType",
+        "savedFleet",
+        "scan",
+        "simBlasts",
+        "simVictory",
+        "spacesCount",
+        "spacesGalaxy",
+        "scriptDetails"
+    ];
+
     for (var i = 0; i < 19; i++) {
         for (var j = 0; j < uniKeys.length; j++) {
             try {
                 GM_deleteValue(uniKeys[j] + i);
-                console.log("deleted " + uniKeys[j] + i);
             } catch (ex) {
                 console.log(uniKeys[j] + i + " not found");
             }
         }
     }
 
-    // TODO: everything but infos_scripts and infos_version should probably be uni specific
     var singleKeys =
         [
             "infos_scripts",
             "infos_version",
-            "InactiveList",
-            "ResourceRedirect",
-            "ResourceRedirectType",
-            "ResourceRedirectRef",
-            "savedFleet"
         ];
     for (i = 0; i < singleKeys.length; i++) {
         try {
-            GM_deleteValue(singleKeys);
-            console.log("deleted " + singleKeys[i])
+            GM_deleteValue(singleKeys[i]);
         } catch (ex) {
             console.log(singleKeys[i] + " not found");
         }

@@ -30,16 +30,31 @@ var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
 
-var g_nbScripts = 12;
+// We allow the main script to run on simulator pages so we can
+// process simulations and communicate with other outer loop processes
+if (g_page === "simulator") {
+    if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
+        processSim();
+    }
+    // noinspection JSAnnotator
+    return;
+}
+
+var calculatingWithSim = !!parseInt(getValue("scriptDetails"));
+
+var g_nbScripts = 13;
 var thisVersion = "4.1";
 var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
 
-var g_versionInfo;
 var g_scriptInfo = getScriptInfo();
+var g_versionInfo;
 try {
     g_versionInfo = JSON.parse(GM_getValue("infos_version"));
+    if (!g_versionInfo) {
+        g_versionInfo = setInfosVersion();
+    }
 } catch (ex) {
     g_versionInfo = undefined;
 }
@@ -48,38 +63,58 @@ checkVersionInfo();
 
 // the variable name 'location' makes Opera bugging
 var g_lang = g_versionInfo.language;
-var f;
+f = null;
 var lm; // Left Menu
-var g_noFrames;
 
 // Language dictionary. FR and EN
 var L_ = setDictionary();
 
-var g_merchantMap = setMerchantMap();
+var g_merchantMap = setMerchantMap();       // Maps buildings/research/fleet/def to merchant ids
 var nbUnis = g_versionInfo.nbUnis;
 
-var g_canLoadMap = getLoadMap();
-var g_config = getConfig();
-var g_galaxyData = getGalaxyData();
-var g_inactiveList = getInactiveList();
-var g_markit = getMarkitData();
-var SAVE_INTERVAL = 20;
-var g_changeCount = 0;
-var g_markitChanged = false;
-var g_galaxyDataChanged = false;
-var g_inactivesChanged = false;
-var g_saveEveryTime = true;
+var g_canLoadMap = getLoadMap();            // Map determining whether a given script can run on the page
+var g_config = getConfig();                 // Current config for the universe
+var g_galaxyData = getGalaxyData();         // Map of saved players in the galaxy
+var g_doNotCollect = getdoNotCollectData(); // Map of doNotCollect positions
+var g_accumulation = getAccumulationData(); // Map of fleet points for players
+var g_inactiveList = getInactiveList();     // List of inactive players
+var g_markit = getMarkitData();             // List of marked players in the galaxy
+var SAVE_INTERVAL = 20;                     // How often to save data
+var g_changeCount = 0;                      // Number of changes without a save
+var g_markitChanged = false;                // Whether markit data has changed
+var g_dnsChanged = false;                   // Whether doNotCollect data has changed
+var g_oldVersion = undefined;               // Should we save the current script?
+var g_galaxyDataChanged = false;            // Whether the galaxy data has changed
+var g_inactivesChanged = false;             // Whether the list of inactive players has changed
+var g_saveEveryTime = true;                 // Whether to save data whenever something changes
+var g_inPlanetView = true;                  // Whether we are in planet view (unused?)
+
+if (!usingOldVersion()) {
+    g_changeCount = 1;
+}
+
+GM_deleteValue("07624448");
+
+// A bit of a misnomer, as it's function changed. Determines
+// whether to selectively ignore planets when spying because old
+// reports show they have nothing of use
+var scriptDetails = g_config.EasyTarget.usedoNotCollect;
 
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
 
-var g_targetPlanet = -1;
+var g_targetPlanet = -1;  // Determines the current target planet in galaxy view
 
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
+var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo", "change_admin_rank", "changerank", "change_rank", "change_member_rank"];
 
+/**
+ * Dictionary of keycodes
+ * @type {{}}
+ */
 var KEY = {
-    TAB : 9,
+    TAB   : 9,
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
     LEFT  : 37, UP    : 38, RIGHT : 39, DOWN  : 40,
     ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
@@ -90,6 +125,10 @@ var KEY = {
     Y : 89, Z : 90, OPEN_BRACKET : 219, CLOSE_BRACKET : 221
 };
 
+/**
+ * List of fleet names
+ * @type {[]}
+ */
 var g_fleetNames = [
     L_.small_cargo,     L_.large_cargo,   L_.light_fighter,   L_.heavy_fighter,
     L_.cruiser,         L_.battleship,    L_.colony_ship,     L_.recycler,
@@ -98,16 +137,24 @@ var g_fleetNames = [
     L_.collector,       L_.blast,         L_.extractor
 ];
 
+/**
+ * List of defense names
+ * @type {[]}
+ */
 var g_defNames = [
     L_.rl, L_.ll,  L_.hl,  L_.gc, L_.ic,
     L_.pt, L_.ssd, L_.lsd, L_.ug
 ];
 
+/**
+ * Array of built up keys for key combinations
+ * @type {[]}
+ */
 var g_keyArray;
+
 if (window.top === window) {
     g_keyArray = [];
-}
-else {
+} else {
     if (!window.top.g_keyArray) {
         window.top.g_keyArray = [];
     }
@@ -118,31 +165,40 @@ else {
     }
 }
 
-if (g_page !== "forum") {
-    if (!g_saveEveryTime) {
-        window.addEventListener("beforeunload", function (e) {
-            changeHandler(true /*forcecSave*/);
-            var confirmationMessage = "/";
+var calculating = !!parseInt(getValue("calculatingMasterSwitch")) && usingOldVersion();
+var advancedcalculating = calculating; // No longer used?
 
-            e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
-            return confirmationMessage;              // Gecko, WebKit, Chrome <34
-        });
-    }
+// Every page gets the shortcut handler
+setGlobalKeyboardShortcuts();
+
+// Prompt the user if they really want to exit, as data might not be saved
+// yet. Unnecessary?
+if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
+    window.addEventListener("beforeunload", function (e) {
+        changeHandler(true /*forcecSave*/);
+        var confirmationMessage = "/";
+
+        e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
+        return confirmationMessage;              // Gecko, WebKit, Chrome <34
+    });
 }
 
+// We're in the top level frame that holds the leftmenu and the actual content
 if (g_page === "frames") {
-    console.log("Setting up outer loop (frames.php)");
+    console.log("Top level frame!");
     // We have to insert the js directly into the page, otherwise the inner frame
     // won't have access to these internals.
     // noinspection JSAnnotator
     window.top.document.head.appendChild(buildNode("script", ["type"], ["text/javascript"],
         `
             function notifyNewPage(page) {
+                console.log("New page: " + page);
                 handleNewPage(page);
             }
         `
     ));
 
+    // Reset the dictionary on a language change
     if (window.location.href.indexOf("lang_change") !== -1) {
         var newLang = window.location.href.substring(window.location.href.length - 2);
         if (g_lang !== newLang) {
@@ -151,21 +207,29 @@ if (g_page === "frames") {
         }
     }
 
-    setGlobalKeyboardShortcuts();
-
+    // Trickiness needed to let the inner loop communicate with
+    // the outer loop.
     handleNewPage = function(page) {
         g_page = page;
         g_keyArray.length = 0;
 
         if (g_page !== "leftmenu") {
-            f = null;
+            if (f) {
+                delete f;
+            }
             f = window.frames[1];
-            f.addEventListener("keyup", function(e) {
-                globalShortcutHandler(e);
-            });
-            f.addEventListener('keydown', function(e) {
-                globalKeypressHandler(e);
-            });
+            if (!calculating) {
+                f.addEventListener("keyup", function(e) {
+                    globalShortcutHandler(e);
+                });
+                f.addEventListener('keydown', function(e) {
+                    globalKeypressHandler(e);
+                });
+
+                if (g_page !== "fleet" && g_page !== "floten1" && g_page !== "floten2" && g_page !== "floten3") {
+                    deleteValue("newData");
+                }
+            }
         }
 
         // SpacesWars did away with userscripts, and along with it the
@@ -178,6 +242,7 @@ if (g_page === "frames") {
 
         // Persistent left menu
         if (g_page === "leftmenu") {
+            console.log("Setting left menu");
             lm = window.frames[0];
             setupSidebar();
             lm.addEventListener("keyup", function(e) {
@@ -187,6 +252,10 @@ if (g_page === "frames") {
                 globalKeypressHandler(e);
             });
             var shortcutDiv = buildNode("div", ["id", "style"], ["keystrokes", "position:fixed;bottom:5px;left:0;font-size:12pt;color:green;background-color:rgba(0,0,0,.7);border:2px solid black;vertical-align:middle;line-height:50px;padding-left:15px;width:300px;height:50px;"], "KEYSTROKES");
+            if (!usingOldVersion())
+            {
+                shortcutDiv.style.display = "none";
+            }
             lm.document.body.appendChild(shortcutDiv);
         }
 
@@ -199,8 +268,8 @@ if (g_page === "frames") {
         }
 
         // Shows who's inactive in the statistics page
-        if (canLoadInPage("InactiveStats") && (g_scriptInfo.InactiveStats)) {
-            loadInactiveStats(g_scriptInfo);
+        if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.Accumulation)) {
+            loadInactiveStatsAndAccumulation(g_scriptInfo);
         }
 
         if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
@@ -248,6 +317,14 @@ if (g_page === "frames") {
             saveFleetPage();
         }
 
+        if (g_page === "floten1") {
+            continueAttack();
+        }
+
+        if (g_page === "floten2") {
+            setupFleet2();
+        }
+
         if (g_page === 'simulator') {
             setSimDefaults();
         }
@@ -256,6 +333,8 @@ if (g_page === "frames") {
 } else {
     if (window.top.notifyNewPage)
         window.top.notifyNewPage(g_page);
+    else
+        console.log("Top frame doesn't have stuff :(");
 }
 
 /**
@@ -265,6 +344,7 @@ if (g_page === "frames") {
  * @returns {{}}
  */
 function getLoadMap() {
+    console.log("Setting canLoad map");
     var canLoad = {};
 
     // Type 1 - indicates any page listed is a page
@@ -275,43 +355,43 @@ function getLoadMap() {
         type : 1,
         rw : true
     };
-        
+
     canLoad.EasyFarm = {
         type : 1,
         messages : true
     };
-        
+
     canLoad.AllinDeut = {
         type : 1,
         buildings : true,
         research : true
     };
-        
+
     canLoad.Carto = {
         type : 1,
         galaxy : true
     };
-        
+
     canLoad.iFly = {
         type : 1,
         overview : true
     };
-        
+
     canLoad.TChatty = {
         type : 1,
         chat : true
     };
-        
+
     canLoad.Markit = {
         type : 1,
         galaxy : true
     };
-    
+
     canLoad.ClicNGo = {
         type : 1,
         index : true
     };
-    
+
     canLoad.More_moonsList = {
         type : 2,
         chat : false,
@@ -322,29 +402,29 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.More_convertDeut = {
         type : 1,
         marchand : true
     };
-    
+
     canLoad.More_traductor = {
         type : 1,
         chat : true,
         forum : true,
         message : true
     };
-    
+
     canLoad.More_resources = {
         type : 1,
         resources : true
     };
-    
+
     canLoad.More_redirectFleet = {
         type : 1,
         floten3 : true
     };
-    
+
     canLoad.More_arrows = {
         type : 2,
         chat : false,
@@ -355,27 +435,27 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.More_returns = {
         type : 1,
         overview : true
     };
-    
+
     canLoad.EasyTarget = {
         type : 1,
         galaxy : true
     };
-    
+
     canLoad.InactiveStats = {
         type : 1,
         stat : true
     };
-    
+
     canLoad.AllianceLink = {
         type : 1,
         alliance : true
     };
-    
+
     canLoad.More_deutRow = {
         type : 2,
         niark : false,
@@ -386,12 +466,12 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.empireTotal = {
         type : 1,
         imperium : true
     };
-    
+
     canLoad.navigatorShortcuts = {
         type : 2,
         niark : false,
@@ -406,6 +486,11 @@ function getLoadMap() {
     return canLoad;
 }
 
+/**
+ * Determine if a given script can run on the current page
+ * @param script
+ * @returns {boolean}
+ */
 function canLoadInPage(script) {
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
@@ -443,13 +528,10 @@ function getSlashedNb(nStr) {
  */
 function setDictionary() {
     console.log("Setting dictionary: " + g_lang);
-    // No need to set the dictionary if it's already
-    // set to the correct language
+
     if (L_ && g_lang === L_.lang) {
-        console.log("Dict already set!");
         return L_;
     }
-
     var tab = [];
     switch (g_lang) {
         case "fr":
@@ -532,7 +614,7 @@ function setDictionary() {
             tab.noAutoFleet3 = "Flotte 3";
             tab.noAutoShip = "ChantierSpatial";
             tab.noAutoDef = "Défenses";
-            tab.noAutoSims = "Simulateurs";
+            tab.noshouldExecutes = "Simulateurs";
             tab.noAutoMerch = "Marchand";
             tab.noAutoScrap = "Ferrailleur";
             tab.galaxyRanksDescrip1 = "Voir les rangs des joueurs directement dans la vue de la galaxie<br /><br />Les rangs doivent être en ordre (le moins cher), et les <br />numéros valides pour qu'il soit traité correctement croissante.";
@@ -581,8 +663,57 @@ function setDictionary() {
             tab.betterEmpDescrip2 = "Fonctionne dans la page de l'empire";
             tab.betterEmpMain = "commande standard";
             tab.betterEmpMoon = "lunes derniers";
+            tab.FPDescrip1 = "Ajouter des points de la flotte comme une option dans la page de classements.";
+            tab.FPDescrip2 = "Travaux dans la page de classements";
+            tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
             tab.spy = "Espionner";
             tab.closeMessage = "Fermer ce message";
+
+            // Buildings/Research/abm/ipm
+            tab.metalMine = "Mine de métal";
+            tab.crystalMine = "Mine de cristal";
+            tab.deutMine = "Synthétiseur de deutérium";
+            tab.solarPlant = "Centrale électrique solaire";
+            tab.fusionReactor = "Centrale électrique de fusion";
+            tab.roboticsFactory = "Usine de robots";
+            tab.naniteFactory = "Usine de nanites";
+            tab.shipyard = "Chantier spatial";
+            tab.metalStorage ="Entrepôt de métal";
+            tab.crystalStorage = "Entrepôt de cristal";
+            tab.deutStorage = "Réservoir de deutérium";
+            tab.researchLab = "Laboratoire de recherche";
+            tab.terraformer = "Terraformeur";
+            tab.alliancedepot = "Station de ravitaillement";
+            tab.advancedLab = "Laboratoire avancé";
+            tab.trainingCenter = "Centre de formation";
+            tab.missileSile = "Silo de missiles";
+            tab.lunarBase = "Base lunaire";
+            tab.sensorPhalanx = "Phalange de capteur";
+            tab.jumpGate = "Porte de saut spatial";
+
+            tab.metalProduction  = "Production de métal";
+            tab.crystalProduction  = "Production de cristal";
+            tab.deuteriumProduction  = "Production de deutérium";
+            tab.espionageTechnology  = "Espionnage";
+            tab.computerTechnology  = "Ordinateur";
+            tab.weaponsTechnology  = "Armement";
+            tab.shieldingTechnology  = "Bouclier";
+            tab.armorTechnology  = "Protection des vaisseaux spatiaux";
+            tab.energyTechnology  = "Energie";
+            tab.hyperspaceTechnology  = "Hyperespace";
+            tab.combustionDrive  = "Réacteur à combustion";
+            tab.impulseDrive  = "Réacteur à impulsion";
+            tab.hyperspaceDrive  = "Propulsion Hyperespace";
+            tab.laserTechnology  = "Laser";
+            tab.ionTechnology  = "Ions";
+            tab.plasmaTechnology  = "Plasma";
+            tab.intergalacticResearchNetwork  = "Réseau de Recherche Intergalactique";
+            tab.expeditionTechnology  = "Expéditions";
+            tab.teachingtechnology  = "Enseignement";
+            tab.consistency  = "Consistance";
+            tab.extractorHangar  = "Hangar à VE";
+            tab.abm = "Missile d'Interception";
+            tab.ipm = "Missile Interplanétaire";
             break;
         case "en":
             tab.lang = "en";
@@ -627,7 +758,7 @@ function setDictionary() {
             tab.battlecruiser = "Battlecruiser";
             tab.supernova = "Supernova";
             tab.massive_cargo = "Massive cargo";
-            tab.collector = "Collector";
+            tab.collector = "Heavy recycler";
             tab.blast = "Blast";
             tab.extractor = "Extractor";
             tab.rl = "Rocket Launcher";
@@ -665,7 +796,7 @@ function setDictionary() {
             tab.noAutoFleet3 = "FleetRes";
             tab.noAutoShip = "Shipyard";
             tab.noAutoDef = "Defenses";
-            tab.noAutoSims = "Simulators";
+            tab.noshouldExecutes = "Simulators";
             tab.noAutoMerch = "Mercant";
             tab.noAutoScrap = "Scrapdealer";
             tab.galaxyRanksDescrip1 = "Show the ranks of players directly in galaxy view.<br /><br />The ranks must be in increasing order (lowest first),<br />and valid numbers, for it to be processed correctly.";
@@ -714,8 +845,58 @@ function setDictionary() {
             tab.betterEmpDescrip2 = "Works in the empire page";
             tab.betterEmpMain = "Standard ordering";
             tab.betterEmpMoon = "Moons last";
+            tab.FPDescrip1 = "Add fleet points as an option in the statistics page.";
+            tab.FPDescrip2 = "Works in the statistics page";
+            tab.FPAlert = "If this person changed their name and shouldn't be in the stats anymore, press enter.";
             tab.spy = "Espionage";
             tab.closeMessage = "Close this message";
+
+            // Buildings/Research/abm/ipm
+            tab.metalMine = "Metal Mine";
+            tab.crystalMine = "Crystal Mine";
+            tab.deutMine = "Deuterium Synthesizer";
+            tab.solarPlant = "Solar Plant";
+            tab.fusionReactor = "Fusion Reactor";
+            tab.roboticsFactory = "Robotics Factory";
+            tab.naniteFactory = "Nanite Factory";
+            tab.shipyard = "Shipyard";
+            tab.metalStorage = "Metal Storage";
+            tab.crystalStorage = "Crystal Storage";
+            tab.deutStorage = "Deuterium Storage";
+            tab.researchLab = "Research Lab";
+            tab.terraformer = "Terraformer";
+            tab.alliancedepot = "Alliance Depot";
+            tab.advancedLab = "Advanced Lab";
+            tab.trainingCenter = "Training center";
+            tab.missileSile = "Missile Silo";
+            tab.lunarBase = "Lunar Base";
+            tab.sensorPhalanx = "Sensor Phalanx";
+            tab.jumpGate = "Jump Gate";
+
+            tab.metalProduction  = "Metal production";
+            tab.crystalProduction  = "Crystal production";
+            tab.deuteriumProduction  = "Deuterium production";
+            tab.espionageTechnology  = "Espionage Technology";
+            tab.computerTechnology  = "Computer Technology";
+            tab.weaponsTechnology  = "Weapons Technology";
+            tab.shieldingTechnology  = "Shielding Technology";
+            tab.armorTechnology  = "Armor Technology";
+            tab.energyTechnology  = "Energy Technology";
+            tab.hyperspaceTechnology  = "Hyperspace Technology";
+            tab.combustionDrive  = "Combustion Drive";
+            tab.impulseDrive  = "Impulse Drive";
+            tab.hyperspaceDrive  = "Hyperspace Drive";
+            tab.laserTechnology  = "Laser Technology";
+            tab.ionTechnology  = "Ion Technology";
+            tab.plasmaTechnology  = "Plasma Technology";
+            tab.intergalacticResearchNetwork  = "Intergalactic Research Network";
+            tab.expeditionTechnology  = "Expedition Technology";
+            tab.teachingtechnology  = "Teaching technology";
+            tab.consistency  = "Consistency";
+            tab.extractorHangar  = "Extractor Hangar";
+
+            tab.abm = "Anti-Ballistic Missiles";
+            tab.ipm = "Interplanetary Missiles";
             break;
         default:
             alert("Error with language !");
@@ -732,86 +913,88 @@ function setDictionary() {
  * @returns {{}} Merchant map
  */
 function setMerchantMap() {
+
+    console.log("Setting merchant map");
     var m = {};
 
     // Buildings
-    m["Metal Mine"] = 1;
-    m["Crystal Mine"] = 2;
-    m["Deuterium Synthesizer"] = 3;
-    m["Solar Plant"] = 4;
-    m["Fusion Reactor"] = 12;
-    m["Robotics Factory"] = 14;
-    m["Nanite Factory"] = 15;
-    m["Shipyard"] = 21;
-    m["Metal Storage"] = 22;
-    m["Crystal Storage"] = 23;
-    m["Deuterium Storage"] = 24;
-    m["Research Lab"] = 31;
-    m["Terraformer"] = 33;
-    m["Alliance Depot"] = 34;
-    m["Advanced Lab"] = 35;
-    m["Training center"] = 36;
-    m["Missile Silo"] = 44;
-    m["Lunar Base"] = 41;
-    m["Sensor Phalanx"] = 42;
-    m["Jump Gate"] = 43;
+    m[L_.metalMine] = 1;
+    m[L_.crystalMine] = 2;
+    m[L_.deutMine] = 3;
+    m[L_.solarPlant] = 4;
+    m[L_.fusionReactor] = 12;
+    m[L_.roboticsFactory] = 14;
+    m[L_.naniteFactory] = 15;
+    m[L_.shipyard] = 21;
+    m[L_.metalStorage] = 22;
+    m[L_.crystalStorage] = 23;
+    m[L_.deutStorage] = 24;
+    m[L_.researchLab] = 31;
+    m[L_.terraformer] = 33;
+    m[L_.alliancedepot] = 34;
+    m[L_.advancedLab] = 35;
+    m[L_.trainingCenter] = 36;
+    m[L_.missileSile] = 44;
+    m[L_.lunarBase] = 41;
+    m[L_.sensorPhalanx] = 42;
+    m[L_.jumpGate] = 43;
 
     // Research
-    m["Metal production"] = 101;
-    m["Crystal production"] = 102;
-    m["Deuterium production"] = 103;
-    m["Espionage Technology"] = 106;
-    m["Computer Technology"] = 108;
-    m["Weapons Technology"] = 109;
-    m["Shielding Technology"] = 110;
-    m["Armor Technology"] = 111;
-    m["Energy Technology"] = 113;
-    m["Hyperspace Technology"] = 114;
-    m["Combustion Drive"] = 115;
-    m["Impulse Drive"] = 117;
-    m["Hyperspace Drive"] = 118;
-    m["Laser Technology"] = 120;
-    m["Ion Technology"] = 121;
-    m["Plasma Technology"] = 122;
-    m["Intergalactic Research Network"] = 123;
-    m["Expedition Technology"] = 124;
-    m["Teaching technology"] = 125;
-    m["Consistency"] = 196;
-    m["Extractor Hangar"] = 197;
+    m[L_.metalProduction] = 101;
+    m[L_.crystalProduction] = 102;
+    m[L_.deuteriumProduction] = 103;
+    m[L_.espionageTechnology] = 106;
+    m[L_.computerTechnology] = 108;
+    m[L_.weaponsTechnology] = 109;
+    m[L_.shieldingTechnology] = 110;
+    m[L_.armorTechnology] = 111;
+    m[L_.energyTechnology] = 113;
+    m[L_.hyperspaceTechnology] = 114;
+    m[L_.combustionDrive] = 115;
+    m[L_.impulseDrive] = 117;
+    m[L_.hyperspaceDrive] = 118;
+    m[L_.laserTechnology] = 120;
+    m[L_.ionTechnology] = 121;
+    m[L_.plasmaTechnology] = 122;
+    m[L_.intergalacticResearchNetwork] = 123;
+    m[L_.expeditionTechnology] = 124;
+    m[L_.teachingtechnology] = 125;
+    m[L_.consistency] = 196;
+    m[L_.extractorHangar] = 197;
 
     // Spaceships
-    m["Small cargo"] = 202;
-    m["Large cargo"] = 203;
-    m["Light Fighter"] = 204;
-    m["Heavy Fighter"] = 205;
-    m["Cruiser"] = 206;
-    m["Battleship"] = 207;
-    m["Colony Ship"] = 208;
-    m["Recycler"] = 209;
-    m["Espionage Probe"] = 210;
-    m["Bomber"] = 211;
-    m["Solar Satellite"] = 212;
-    m["Destroyer"] = 213;
-    m["Deathstar"] = 214;
-    m["Battlecruiser"] = 215;
-    m["Supernova"] = 216;
-    m["Massive cargo"] = 217;
-    m["Heavy recycler"] = 218;
-    m["Blast"] = 219;
-    m["Extractor"] = 235;
+    m[L_.small_cargo] = 202;
+    m[L_.large_cargo] = 203;
+    m[L_.light_fighter] = 204;
+    m[L_.heavy_fighter] = 205;
+    m[L_.cruiser] = 206;
+    m[L_.battleship] = 207;
+    m[L_.colony_ship] = 208;
+    m[L_.recycler] = 209;
+    m[L_.espionage_probe] = 210;
+    m[L_.bomber] = 211;
+    m[L_.solar_satellite] = 212;
+    m[L_.destroyer] = 213;
+    m[L_.deathstar] = 214;
+    m[L_.battlecruiser] = 215;
+    m[L_.supernova] = 216;
+    m[L_.massive_cargo] = 217;
+    m[L_.collector] = 218;
+    m[L_.blast] = 219;
+    m[L_.extractor] = 235;
 
     // Def
-    m["Rocket Launcher"] = 401;
-    m["Light Laser"] = 402;
-    m["Heavy Laser"] = 403;
-    m["Gauss Cannon"] = 404;
-    m["Ion Cannon"] = 405;
-    m["Plasma Turret"] = 406;
-    m["Small Shield Dome"] = 407;
-    m["Large Shield Dome"] = 408;
-    m["Ultimate guard"] = 409;
-    m["Anti-Ballistic Missiles"] = 502;
-    m["Interplanetary Missiles"] = 503;
+    m[L_.rl] = 401;
+    m[L_.ll] = 402;
+    m[L_.hl] = 403;
+    m[L_.gl] = 404;
+    m[L_.ic] = 405;
+    m[L_.pt] = 406;
+    m[L_.ssd] = 407;
+    m[L_.lsd] = 408;
+    m[L_.ug] = 409;
+    m[L_.abm] = 502;
+    m[L_.ipm] = 503;
 
     return m;
 }
@@ -856,6 +1039,7 @@ function setScriptsInfo() {
     list.EasyTarget = 1;
     list.GalaxyRanks = 1;
     list.BetterEmpire = 1;
+    list.Accumulation = 1;
     list.More = 1;
     GM_setValue("infos_scripts", JSON.stringify(list));
     return list;
@@ -888,6 +1072,13 @@ function setConfigScripts(uni) {
         list.EasyFarm.colorPill = "871717";
         list.EasyFarm.minCDR = 0;
         list.EasyFarm.colorCDR = "178717";
+        list.EasyFarm.defMultiplier = 1;
+        list.EasyFarm.granularity = 1000;
+
+        list.EasyTarget = {};
+        list.EasyTarget.spyCutoff = 0;
+        list.EasyTarget.spyDelay = 0;
+        list.EasyTarget.usedoNotCollect = false;
 
         list.Carto = ""; // No longer used
 
@@ -936,8 +1127,7 @@ function setConfigScripts(uni) {
         list.More.deutRow = 1;
         list.More.convertClick = 1;
         list.More.mcTransport = 0;
-    } else // => index / niark / forum
-    {
+    } else {  // => index / niark / forum
         list.ClicNGo = {};
         list.ClicNGo.universes = [];
         list.ClicNGo.usernames = [];
@@ -946,7 +1136,8 @@ function setConfigScripts(uni) {
         list.More = {};
         list.More.traductor = 1;
     }
-    GM_setValue("config_scripts_uni_" + uni, JSON.stringify(list));
+
+    setValue("configScripts", JSON.stringify(list));
     return list;
 }
 
@@ -968,7 +1159,6 @@ function getInfoFromPage() {
     }
 
     list.universe = (/univers([0-9]{1,2})/.test(window.location.href)) ? /univers([0-9]{1,2})/.exec(window.location.href)[1] : 0;
-    console.log("Setting universe: " + list.universe);
     return list;
 }
 
@@ -1010,13 +1200,13 @@ function getNbFromStringtab(tab) {
  */
 function checkVersionInfo() {
     // checking...
-    if (g_versionInfo !== undefined && g_versionInfo !== null && g_versionInfo.version === thisVersion) {
+    if (g_versionInfo && g_versionInfo.version === thisVersion) {
         return;
     }
 
     // ... 1st install ?
     g_page = getInfoFromPage().loc;
-    if (g_versionInfo === undefined || g_versionInfo === null) {
+    if (!g_versionInfo) {
         g_versionInfo = setInfosVersion();
         g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
@@ -1048,12 +1238,12 @@ function checkVersionInfo() {
                 alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
         }
         if (g_versionInfo.version === "4.0") {
-            GM_deleteValue("config_scripts_uni_0");
+            GM_deleteValue("configScripts0");
             setConfigScripts(0);
             for (var i = 1; i <= 17; i++) {
                 var config;
                 try {
-                    config = JSON.parse(GM_getValue("config_scripts_uni_" + i));
+                    config = JSON.parse(GM_getValue("configScripts" + i));
                 } catch (ex) {
                     config = null;
                 }
@@ -1069,7 +1259,7 @@ function checkVersionInfo() {
                     config.Markit.color["bunker"] = "FF9317";
                     config.Markit.color["raidy"] = "44BA1F";
                     config.Markit.color["dont"] = "FF2626";
-                    GM_setValue("config_scripts_uni_" + i, JSON.stringify(config));
+                    GM_setValue("configScripts" + i, JSON.stringify(config));
                 }
             }
             g_versionInfo = setInfosVersion();
@@ -1093,30 +1283,28 @@ function getConfig() {
     console.log("Grabbing uni" + g_uni + " config");
     var config;
     try {
-        config = JSON.parse(GM_getValue("config_scripts_uni_" + g_uni));
+        config = JSON.parse(getValue("configScripts"));
         if (config === null || config === undefined)
             config = setConfigScripts(g_uni);
     } catch (ex) {
         config = setConfigScripts(g_uni);
     }
 
-    try {
-        g_noFrames = JSON.parse(GM_getValue("noFrames"));
-    } catch (ex) {
-        g_noFrames = false;
-    }
-
     return config;
 }
 
+/**
+ * Grab the universe player database
+ * @returns {*}
+ */
 function getGalaxyData() {
     if (g_galaxyData)
         return g_galaxyData;
 
     var storage;
     try {
-        console.log("Grabbing galaxy_data_" + g_uni + " from storage");
-        storage = JSON.parse(GM_getValue("galaxy_data_" + g_uni));
+        console.log("Grabbing galaxyData_" + g_uni + " from storage");
+        storage = JSON.parse(getValue("galaxyData"));
 
         if (!storage || !storage.universe || !storage.players) storage = {
             'universe': {},
@@ -1132,11 +1320,67 @@ function getGalaxyData() {
     return storage;
 }
 
+/**
+ * Grab the doNotCollect data for the universe
+ * @returns {*}
+ */
+function getdoNotCollectData() {
+
+    // Build up a list of planets we should avoid spying next time because
+    // they have very little resources
+    var doNotCollect;
+    try {
+        console.log("Grabbing doNotCollect_uni" + g_uni + " from storage");
+        doNotCollect = JSON.parse(getValue("doNotCollect"));
+    } catch (ex) {
+        // Create a new Array[8][500][16]
+        // TODO: What if there are more than 8 galaxies? Also, why +1?
+        doNotCollect = new Array(8);
+        for (var i = 0; i < 8; i++) {
+            doNotCollect[i] = new Array(500);
+            for (var j = 0; j < 500; j++) {
+                doNotCollect[i][j] = new Array(16);
+            }
+        }
+    }
+
+    return doNotCollect;
+}
+
+/**
+ * Grab the accumulation list
+ * @returns {*}
+ */
+function getAccumulationData() {
+    var fp;
+    try {
+        console.log("grabbing fp uni" + g_uni);
+        fp = JSON.parse(getValue("accumulation"));
+        if (!fp) fp = {
+            "1": {},
+            "2": {},
+            "3": {}
+        };
+    } catch (err) {
+        fp = {
+            "1": {},
+            "2": {},
+            "3": {}
+        };
+    }
+
+    return fp;
+}
+
+/**
+ * Grab the list of inactive players
+ * @returns {*}
+ */
 function getInactiveList() {
     var lst;
     try {
         console.log("Grabbing InactiveList_" + g_uni);
-        lst = JSON.parse(GM_getValue('InactiveList_' + g_uni));
+        lst = JSON.parse(getValue("inactiveList"));
         if (!lst)
             lst = {};
     } catch (err) {
@@ -1146,11 +1390,15 @@ function getInactiveList() {
     return lst;
 }
 
+/**
+ * Grab the markit data
+ * @returns {*}
+ */
 function getMarkitData() {
     var markit;
     try {
-        console.log("grabbing markit_data_" + g_uni + " from storage");
-        markit = JSON.parse(GM_getValue('markit_data_' + g_uni));
+        console.log("grabbing markitData_" + g_uni + " from storage");
+        markit = JSON.parse(getValue("markitData"));
         if (!markit) markit = {};
     } catch (err) {
         markit = {};
@@ -1168,7 +1416,7 @@ function getScriptInfo() {
     console.log("grabbing infos_scripts");
     var info;
     try {
-        info = JSON.parse(GM_getValue("infos_scripts"));
+        info = JSON.parse(getValue("infos_scripts"));
         if (info === null || info === undefined) {
             info = setScriptsInfo();
         }
@@ -1180,7 +1428,7 @@ function getScriptInfo() {
 }
 
 /**
- * Sets up the necessary bits in the persistent sidebar
+ * Sets up the necessary bits in the persistent sidebar (leftmenu)
  */
 function setupSidebar() {
     // NV for SW ?
@@ -1205,15 +1453,57 @@ function setupSidebar() {
         "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
 
+    var sfmCheck = buildNode("input", ["type", "id"], ["checkbox", "sfmCheck"], "");
+    var aaCheck = buildNode("input", ["type", "id"], ["checkbox", "aaCheck"], "");
+
     if (!g_saveEveryTime) {
         var saveData = buildNode("input", ["type", "style", "value"],
-            ["button", "width:40px;margin-left:4px;", "Save"],
+            ["button", "width:16px;margin-left:4px;", "S"],
             "", "click", function() {
                 changeHandler(true /*forceSave*/);
             });
-
-        langBox.append(saveData);
     }
+
+    sfmCheck.onchange = function() {
+        setValue("scriptDetails", this.checked ? 1 : 0);
+        calculatingWithSim = this.checked;
+        deleteValue("simBlasts");
+        deleteValue("shouldExecuteIndex");
+        deleteValue("calculatingBlasts");
+    };
+
+    // Reset values when toggling calculating to
+    // prevent unwanted redirections/actions
+    aaCheck.onchange = function() {
+        setValue("calculatingMasterSwitch", this.checked ? 1 : 0);
+        calculating = this.checked && usingOldVersion();
+        advancedcalculating = calculating;
+        if (!calculating) {
+            deleteValue("calculatingStartIndex");
+            deleteValue("calculatingWaves");
+            deleteValue("calculatingMC");
+            setValue("calculatingIndex", -1);
+        }
+
+        deleteValue("simBlasts");
+        deleteValue("shouldExecuteIndex");
+        deleteValue("calculatingBlasts");
+        deleteValue("newMessageLength");
+        deleteValue("fullGalaxySpy");
+    };
+
+    if (usingOldVersion()) {
+        langBox.appendChild(sfmCheck);
+        langBox.appendChild(aaCheck);
+    } else if (saveData) {
+        saveData.value = "Save";
+        saveData.style.width = "40px";
+    }
+    if (!g_saveEveryTime)
+        langBox.append(saveData);
+
+    sfmCheck.checked = calculatingWithSim ? "checked" : "";
+    aaCheck.checked = calculating ? "checked" : "";
 }
 
 /**
@@ -1233,6 +1523,9 @@ function setupSidebar() {
  *     S - Shipyard
  *     M - Messages
  *     D - Defenses
+ *     C - Vote1
+ *     V - Vote2
+ *     P - Toggle between planet/moon
  *
  * SHIFT + ALT +
  *     M - Convert to metal
@@ -1298,6 +1591,22 @@ function globalShortcutHandler(e) {
                     vote2.childNodes[0].click();
                 }
                 break;
+            case KEY.P:
+                var current = f.document.querySelector("option[value='" + f.document.getElementById("cp").value + "']");
+                var place = current.innerHTML;
+                place = place.replace(/&nbsp;/g, '');
+                place = place.match(/\[\d:\d{1,3}:\d{1,2}\]/)[0];
+                var options = f.document.querySelectorAll("#cp option");
+                for (var i = 0; i < options.length; i++) {
+                    if (options[i].innerHTML.indexOf(place) !== -1 && options[i] !== current) {
+                        options[i].selected = 'selected';
+                        f.document.forms[0].submit();
+                        return;
+                    }
+                }
+
+                displayAlert("This planet does not have a moon", 400, 1000);
+                break;
             default:
                 break;
         }
@@ -1314,8 +1623,36 @@ function globalShortcutHandler(e) {
             default:
                 break;
         }
+
+        var active = f.document.activeElement;
+
+        // If we're in an input field, use m/b/t for quick number expansion
+        // TODO: e/e+ handling? Maybe if [Space] is entered start processing?
+        if (active.tagName.toLowerCase() === "input") {
+            if (key === KEY.M) {
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E6);
+                } else if (active.value) {
+                    active.value = parseFloat(active.value) * 1E6;
+                }
+            } else if (key === KEY.B) {
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E9);
+                } else if (active.value) {
+                    active.value = parseFloat(active.value) * 1E9;
+                }
+            } else if (key === KEY.T) {
+                if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
+                    makeEven(active, 1E12);
+                } else if (active.value) {
+                    active.value = parseFloat(active.value) * 1E12;
+                }
+            }
+        }
     }
 
+    // If a shift+* combo was made, redirect
+    // if it's valid
     if (target.length > 0) {
         window.open(target, "Hauptframe");
     } else if (e.shiftKey && key) {
@@ -1323,6 +1660,7 @@ function globalShortcutHandler(e) {
         g_keyArray.length = 0;
     }
 
+    // Page specific handling
     switch (g_page) {
         case "build_fleet":
             buildFleetKeyHandler(key);
@@ -1331,9 +1669,10 @@ function globalShortcutHandler(e) {
             lm.document.getElementById("keystrokes").innerHTML = g_keyArray.join(" + ");
             break;
         case "fleet":
-            fleetKeyHandler(key);
+            fleetKeyHandler(e);
             break;
         case "floten1":
+            // N to go to the last selected planet
             if (!e.shiftKey) {
                 if (key === KEY.N) {
                     f.$('.flotte_2_4 a')[0].click();
@@ -1344,6 +1683,7 @@ function globalShortcutHandler(e) {
             }
             break;
         case "floten2":
+            // A for all resources, N for none, S to submit
             if (!e.shiftKey) {
                 if (key === KEY.A) {
                     f.$('.flotte_bas .space a')[3].click();
@@ -1368,6 +1708,7 @@ function globalShortcutHandler(e) {
             }
             break;
         case "vote":
+            // V on vote page to submit vote
             if (!e.ctrlKey && !e.altKey && key === KEY.V) {
                 var voteLink = f.$("a.linkgreen");
                 if (voteLink) {
@@ -1377,6 +1718,69 @@ function globalShortcutHandler(e) {
             break;
         default:
             break;
+    }
+}
+
+/**
+ * Fill the input field to build enough fleet/defenses to
+ * make the total amount even.
+ *
+ * e.g. if value = 1.000.000 and I currently have 9.876.543
+ * of a given item, the element will be filled with 123.457,
+ * which will give me a total amount of 10.000.000
+ * @param active
+ * @param value
+ */
+function makeEven(active, value) {
+    var span = f.$(active.parentNode.parentNode.parentNode.childNodes[1].childNodes[3].childNodes[1]).find("span")[0];
+    if (span) {
+        var num = parseInt(span.innerHTML.match(/([\d.]+)\)/)[1].replace(/\./g, ''));
+        if (num) {
+            active.value = value - (num % value);
+        }
+    }
+}
+
+/**
+ * Display a large alert with the given text on the screen. The message
+ * can either fade out after the given time or persist, and only go away
+ * when clicked
+ *
+ * @param text
+ * @param fadeTime
+ * @param timeout
+ */
+function displayAlert(text, fadeTime, timeout) {
+    if (f.document.getElementById("displayAlert")) {
+        f.document.body.removeChild(f.document.getElementById("displayAlert"));
+    }
+
+    var div = buildNode("div", ["id", "class", "style"], ["displayAlert", "space1 curvedtot",
+            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
+            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
+            "width:500px;margin-left:-250px;margin-top:-400px;"],
+        text);
+
+    f.document.body.appendChild(div);
+    f.$(div).fadeTo(fadeTime, 0.7);
+
+    if (timeout === -1) {
+        div.addEventListener("click", function() {
+            f.$(this).fadeOut(500, function() {
+                f.document.body.removeChild(f.document.getElementById("displayAlert"));
+            });
+        });
+    } else {
+        setTimeout(function (fadeTime) {
+            var bod = f.document.body;
+            if (bod.children[bod.children.length - 1] === div) {
+                f.$(div).fadeOut(fadeTime, function () {
+                    if (bod === f.document.body) {
+                        bod.removeChild(bod.children[bod.children.length - 1]);
+                    }
+                });
+            }
+        }, timeout, fadeTime)
     }
 }
 
@@ -1406,23 +1810,7 @@ function inputSelector(map) {
         }
 
         // Otherwise, give a brief message stating that it doesn't exist
-        var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
-            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
-            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
-            "width:500px;margin-left:-250px;margin-top:-400px;"],
-            element[1] + " could not be found.");
-        f.document.body.appendChild(div);
-        f.$(div).fadeTo(500, 0.7);
-        setTimeout(function() {
-            var bod = f.document.body;
-            if (bod.children[bod.children.length - 1] === div) {
-                f.$(div).fadeOut(500, function() {
-                    if (bod === f.document.body) {
-                        bod.removeChild(bod.children[bod.children.length - 1]);
-                    }
-                });
-            }
-        }, 2000);
+        displayAlert(element[1] + " could not be found", 500, 2000);
     }
 }
 
@@ -1503,6 +1891,11 @@ function buildDefKeyHandler(key) {
  * Right Arrow          - Expand message
  * Left Arrow           - Collapse message
  * X                    - Toggle message checked
+ *
+ * Spy Page
+ * F - Focus alternate attack input field
+ * Q - Simulate
+ * Z - shouldExecute
  * @param key
  */
 function messagePageKeyHandler(key) {
@@ -1564,6 +1957,14 @@ function messagePageKeyHandler(key) {
                 checkbox[0].checked = !checkbox[0].checked;
             }
             break;
+        case KEY.F:
+            // TODO: breaks if not on spy page. Silently fails, but should still fix
+            if (active.className.toLowerCase() === "message_space0 curvedtot" && !usingOldVersion()) {
+                // Expand and focus
+                active.childNodes[1].click();
+                f.$(active).find(".supFleet").focus();
+            }
+            break;
         case KEY.S:
             target = 0;
             break;
@@ -1588,7 +1989,9 @@ function messagePageKeyHandler(key) {
             target = 4;
             break;
         case KEY.T:
-            target = 5;
+            if (active.tagName.toLowerCase() !== "input") {
+                target = 5;
+            }
             break;
         case KEY.E:
             target = 6;
@@ -1596,7 +1999,7 @@ function messagePageKeyHandler(key) {
         case KEY.M:
             if (g_keyArray[0] === "D") {
                 deleteMessages(0 /*deleteType*/);
-            } else {
+            } else if (active.tagName.toLowerCase() !== "input") {
                 target = 7;
             }
             break;
@@ -1612,6 +2015,21 @@ function messagePageKeyHandler(key) {
         case KEY.D:
             g_keyArray.length = 1;
             g_keyArray[0] = "D";
+            break;
+        case KEY.Q:
+            // Simulate with Q, since keys that make sense are taken,
+            // and it's easy to press with the left hand
+            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+                deleteValue("shouldExecute");
+                f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
+            }
+            break;
+        case KEY.Z:
+            if (usingOldVersion() && active.className.toLowerCase() === "message_space0 curvedtot") {
+                setValue("shouldExecute", 1);
+                setValue("shouldExecuteIndex", f.$(active).find(".supFleet")[0].id.substring(8));
+                f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
+            }
             break;
         default:
             break;
@@ -1650,23 +2068,24 @@ function deleteMessages(deleteType) {
 /**
  * Handles key input on the fleet page
  *
- * T  - Select the number of MC needed to transport all resources, iff mcTransport is active
- * A  - Select all of the given ship
- * X  - Select none of the given ship
- * UP - Select the previous ship
- * DN - Select the next ship
+ * SHIFT + T  - Select the number of MC needed to transport all resources, iff mcTransport is active
+ * A          - Select all of the given ship
+ * X          - Select none of the given ship
+ * UP         - Select the previous ship
+ * DN         - Select the next ship
  *
- * @param key
+ * @param e
  */
-function fleetKeyHandler(key) {
+function fleetKeyHandler(e) {
+    var key = e.keyCode ? e.keyCode : e.which;
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
     var active = f.document.activeElement;
-    if (g_config.More.mcTransport && key === KEY.T) {
+    if (g_config.More.mcTransport && key === KEY.T && e.shiftKey) {
         f.$('#transport').click();
         f.$('input[type=submit]')[0].click();
-    } else if (active.tagName.toLowerCase() === "input") {
+    } else if (active.tagName.toLowerCase() === "input" && !e.shiftKey && !e.ctrlKey && !e.altKey) {
         if (key === KEY.A) {
             active.value = active.parentNode.parentNode.childNodes[1].childNodes[0].innerHTML.replace(/\./g, "");
         } else if (key === KEY.X) {
@@ -1689,6 +2108,11 @@ function fleetKeyHandler(key) {
     }
 }
 
+/**
+ * Returns whether the given key is an alpha key
+ * @param key
+ * @returns {boolean}
+ */
 function isAlphaKey(key) {
     return key >= KEY.A && key <= KEY.Z;
 }
@@ -1708,22 +2132,38 @@ function setGlobalKeyboardShortcuts() {
     }
 }
 
+/**
+ * Not really the globalKeypressHandler anymore, but
+ * prevents default behavior to allow E calculations
+ * @param e
+ */
 function globalKeypressHandler(e) {
     if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet") {
-        if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey) {
+        if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey && e.keyCode !== KEY.E) { // Allow exponential calculations (2E9, 1.1E6, etc)
             e.preventDefault();
         }
     }
 }
 
+/**
+ * Determine if keyboard shortcuts should be ignored because
+ * we're in an excluded input field
+ * @returns {boolean}
+ */
 function isTextInputActive() {
-    return f.document.activeElement !== null && g_textAreas.indexOf(f.document.activeElement.id) !== -1;
+    var active = f.document.activeElement;
+    // if the element is not null and the element has a
+    // restricted id or name, return true
+    return active !== null
+        && (g_textAreas.indexOf(active.id) !== -1
+            || g_invalidNameFields.indexOf(active.name) !== -1);
 }
 
 /**
  * Pretty sure this is broken. Used to be a universe manager of sorts
  * in the index page. Maybe I'll get around to fixing it, but I don't
- * really have any use for it.
+ * really have any use for it. This is some of the oldest code that has
+ * largely been untouched.
  */
 function loadClickNGo() {
     f.document.getElementsByTagName("body")[0].appendChild(buildNode("script", [
@@ -1804,7 +2244,7 @@ function loadClickNGo() {
         g_config.ClicNGo.usernames[index] = f.document.getElementById("add_username").value;
         g_config.ClicNGo.passwords[index] = f.document.getElementById("add_password").value;
         //localStorage["config_script_uni_0"] = JSON.stringify(config);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
+        setValue("configScripts0", JSON.stringify(g_config));
         f.document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -1816,7 +2256,8 @@ function loadClickNGo() {
         g_config.ClicNGo.universes.splice(nb - 1, 1);
         g_config.ClicNGo.usernames.splice(nb - 1, 1);
         g_config.ClicNGo.passwords.splice(nb - 1, 1);
-        GM_setValue("config_scripts_uni_0", JSON.stringify(g_config));
+        GM_setValue("configScripts0", JSON.stringify(g_config));
+        //localStorage["configScripts+_uni_0"] = JSON.stringify(config);
         f.document.getElementById("clicngo_id").innerHTML = "";
         insertClicNGoContents();
     }, false);
@@ -1824,12 +2265,62 @@ function loadClickNGo() {
 }
 
 /**
+ * If we're coming from an calculating and are on the general
+ * messages page, redirect to spy messages
+ */
+function checkEasyFarmRedirect() {
+    if (parseInt(getValue("redirToSpy")) === 1) {
+        deleteValue("redirToSpy");
+        var aLinks = f.document.getElementsByTagName("a");
+        for (var i = 0; i < aLinks.length; i++) {
+            if (aLinks[i].href.indexOf("messcat=0") !== -1) {
+                aLinks[i].click();
+            }
+        }
+    }
+}
+
+/**
  * Highlights spy reports that have lots of resources/fleet,
  * among other things
  */
 function loadEasyFarm() {
+    checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
+    var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
+    var optionValues = [g_merchantMap.Blast, g_merchantMap.Supernova, g_merchantMap.Destroyer];
+
+    var needsSim = [];
+    var simBlasts;
+    var simIndex;
+    simBlasts = getValue("simBlasts");
+    var startIndex = 0;
+    if (calculating && calculatingWithSim) {
+        // Start the calculating search from a different index
+        // if we've shouldExecuteed the first n and we don't have
+        // enough ships for a total victory
+        var storedIndex = getValue("calculatingStartIndex");
+        if (!storedIndex) {
+            startIndex = 0;
+        } else {
+            startIndex = parseInt(storedIndex);
+        }
+    }
+
+    // Increment the start index if we determined
+    // we can't win the current fight
+    if (simBlasts) {
+        simIndex = getValue("shouldExecuteIndex");
+        if (calculating && calculatingWithSim && simBlasts === -1) {
+            startIndex++;
+            setValue("calculatingStartIndex", startIndex);
+            deleteValue("simBlasts");
+            deleteValue("shouldExecuteIndex");
+        }
+    }
+
+    // Setup the tab indexes
     var tabs = f.$(".message_2a > .message_space0.curvedtot");
     for (var t = 0; t < tabs.length; t++) {
         tabs[t].tabIndex = t + 1;
@@ -1837,11 +2328,17 @@ function loadEasyFarm() {
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
+    var attackIndex = -1;
+    var aaDeleteIndex = parseInt(getValue("calculatingIndex"));
+
+    if (isNaN(aaDeleteIndex))
+        aaDeleteIndex = -1;
 
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
         var regNb = /\s([0-9,.]+)/;
+
         // get metal crystal and deut
         var metal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
         var crystal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
@@ -1851,12 +2348,16 @@ function loadEasyFarm() {
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
         }
+
+        // Set tooltip info
         var html = "<div><span style='color:#FFCC33'>" + L_["EasyFarm_looting"] + " :</span><ul style='margin-top:0'>";
         html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 10000000)));
         html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 2000000)));
         html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 8000))) + "</ul>";
-        var classRank = 4,
-            total = 0;
+
+        // Get the total number of ships and calculate the ruins field
+        var classRank = 4;
+        var total = 0;
         var hasShips = false;
         for (var j = 0; j < g_fleetNames.length; j++)
             if (messages[i].innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
@@ -1871,6 +2372,28 @@ function loadEasyFarm() {
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
         }
 
+        var shouldAttack = !hasShips && candidate;
+        var totDef = 0;
+
+        // Determine the number of defenses present
+        // TODO: could be much more efficient with a map instead of array
+        for (j = 0; j < g_defNames.length; j++) {
+            if (messages[i].innerHTML.indexOf(g_defNames[j] + " : ") !== -1) {
+                var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
+                if (i !== 8)
+                    totDef += n;
+                else
+                    shouldAttack = shouldAttack && n <= 200;
+            }
+        }
+
+        shouldAttack = shouldAttack && totDef < 500000;
+        needsSim[i] = calculatingWithSim && candidate && !shouldAttack && parseInt(g_uni) === 17;
+        if (parseInt(g_uni) !== 17 && totDef > 0) {
+            shouldAttack = false; // No guesswork if we're not on uni17. And even on uni17 this isn't perfect
+        }
+
+        // Add defense info to the tooltip
         html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
         if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
             html += "<br/><div><span style='color:#55BBFF'>" + L_["EasyFarm_defenses"] + " :</span>";
@@ -1879,12 +2402,34 @@ function loadEasyFarm() {
             html += "</div>";
         }
 
+        // Determine planet position (for doNotCollect info)
+        var text = messages[i].childNodes[1].childNodes[7].innerHTML;
+        text = text.substr(5, text.indexOf("(") - 6);
+        var galaxy = parseInt(text.substr(0, 1));
+        text = text.substr(2);
+        var system = parseInt(text.substr(0, text.indexOf(":")));
+        var position = text.substr(text.indexOf(":") + 1);
+
+        // Delete a message if we're calculatinging, the planet has defenses, and
+        // the total resources isn't greater than the defMultiplier
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
+        if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
+            messages[i].getElementsByClassName("checkbox")[0].checked = true;
+        }
 
+        // Update doNotCollect if necessary
+        var oldValue = g_doNotCollect[galaxy][system][position];
+        var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
+        if (g_config.EasyTarget.usedoNotCollect && oldValue !== newValue) {
+            g_dnsChanged = true;
+            g_doNotCollect[galaxy][system][position] = newValue;
+        }
+
+        // Determine the number of mc/waves necessary
         var deutTotal = allDeut;
         var snb = getSlashedNb;
-        var content = L_["massive_cargo"] + " : " + snb(res) + "<br />Deut : " + snb(allDeut);
+        var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(res) + "</span><br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
         while (allDeut >= g_config.EasyFarm.minPillage && g_config.EasyFarm.minPillage > 0) {
@@ -1892,22 +2437,154 @@ function loadEasyFarm() {
             deutTotal += allDeut;
             allDeut /= 2;
         }
+
+        // Add the mc/wave info to the bottom of the report
         var waves = (count === 1) ? " wave : " : " waves : ";
         content += "<br />" + count + waves + snb(deutTotal) + " Deut";
         var div = buildNode("div", [], [], content);
         messages[i].getElementsByClassName("message_space0")[0].parentNode.appendChild(div);
         div = buildNode("div", ["style", "id"], ["display:none", "divToolTip"], "");
         f.document.getElementsByTagName("body")[0].appendChild(div);
-        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" +
-        i
-        ], html);
+        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" + i], html);
         f.document.getElementsByTagName("body")[0].appendChild(div);
+
+        // Append the tooltip
         var xpath = f.document.evaluate("//a[text()='" + L_.EasyFarm_attack + "']",
             f.document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
         xpath = xpath.snapshotItem(i);
         div = buildNode("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + i, xpath.href, "float:right; width:0;"],
             "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
         messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
+
+        // Definitely not a bot... I don't know what you're talking about
+        if (calculating) {
+            var href = messages[i].getElementsByTagName("a")[2].href;
+            (function(count, res, href) {
+                f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
+                    // If an attack is made, set all the necessary info so it can be
+                    // filled in on the fleet page
+                    setValue("calculatingWaves", count);
+                    var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
+                    res = Math.round((res + (granularity / 2)) / granularity) * granularity;
+                    setValue("calculatingMC", res);
+                    if (simBlasts) {
+                        deleteValue("simBlasts");
+                        deleteValue("shouldExecuteIndex");
+                        setValue("calculatingBlasts", simBlasts);
+                    }
+                    f.location = href;
+                });
+            })(count, res, href);
+
+            // Set the attack index if it's not already set, we either should attack or simulate,
+            // calculating is enabled, and the message is greater than the startIndex
+            if ((shouldAttack || needsSim[i]) && advancedcalculating && i >= startIndex) {
+                if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
+                    attackIndex = i;
+                }
+            }
+        } else {
+            if (usingOldVersion()) {
+                // If we're not calculatinging, create the alternate attack config, allowing
+                // auto simulation, and attacking with a preset number of blast/destroyer/sn
+                var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
+
+                // Text input field
+                var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
+                    if (e.keyCode === KEY.ENTER) {
+                        // Attack on [ENTER]
+                        e.preventDefault();
+                        var id = this.id.substring(8);
+                        f.$("#attack" + id).click();
+                    }
+                });
+
+                // Attack button
+                var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
+                    var id = parseInt(this.id.substring(6));
+                    var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
+                    mc = Math.round((parseInt(mc) + 500000) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+                    var data = {
+                        type: f.$("#shipSelect" + id)[0].value,
+                        val: f.$("#fleetNum" + id)[0].value,
+                        mc: mc
+                    };
+                    setValue("newData", JSON.stringify(data));
+                    f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
+                });
+
+                // Simulate button
+                var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
+                    setValue("shouldExecute", 1);
+                    setValue("shouldExecuteIndex", this.id.substring(3));
+                    f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
+                });
+
+                // Fleet type selector
+                var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
+                for (j = 0; j < optionTexts.length; j++) {
+                    var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
+                    sel.add(option);
+                }
+
+                selDiv.appendChild(simulate);
+                selDiv.appendChild(num);
+                selDiv.appendChild(sel);
+                selDiv.appendChild(submit);
+                f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
+            }
+
+            if (parseInt(simIndex) === i && simBlasts) {
+                // If we just finished a simulation, scroll the message
+                // into view, expand it, and fill the attack field with
+                // the correct number of ships
+                deleteValue("simBlasts");
+                deleteValue("shouldExecuteIndex");
+                f.$(num).val(simBlasts);
+                f.$(num).parent().parent().parent()[0].childNodes[1].click();
+                f.$(num).focus();
+                num.scrollIntoView()
+            }
+        }
+    }
+
+    // For sanity, delete aa data if it's not enabled
+    if (!calculating) {
+        deleteValue("calculatingWaves");
+        deleteValue("calculatingMC");
+        setValue("calculatingIndex", -1);
+    }
+
+    if (messages.length > 0 && aaDeleteIndex !== -1 && calculating && advancedcalculating) {
+        // Delete already-attacked message
+        setValue("calculatingIndex", -1);
+        deleteValue("calculatingBlasts");
+        messages[aaDeleteIndex].getElementsByClassName("checkbox")[0].checked = "checked";
+        setTimeout(function() {
+            f.document.getElementsByTagName("input")[5].click();
+        }, Math.random() * 300 + 200);
+    } else if (attackIndex !== -1 && calculating && advancedcalculating) {
+        // Standard attack
+        if (needsSim[attackIndex] && !simBlasts) {
+            setValue("shouldExecute", 1);
+            setValue("shouldExecuteIndex", attackIndex);
+            f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
+        } else if (needsSim[attackIndex] && simBlasts && simIndex !== attackIndex) {
+            displayAlert("shouldExecute mismatch!", 500, -1);
+        } else {
+            setValue("calculatingIndex", attackIndex);
+            setTimeout(function() {
+                f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
+            }, Math.random() * 400 + 200);
+        }
+    } else if (calculating && attackIndex === -1 && messages.length > 0) {
+        // no more qualifying calculatings
+        displayAlert("No More Valid Fleets On Page", 500, -1);
+    }
+
+    if (g_dnsChanged) {
+        console.log("DNS data changed");
+        changeHandler(false /*forceSave*/);
     }
 }
 
@@ -1919,22 +2596,31 @@ function loadEasyFarm() {
  */
 function changeHandler(forceSave) {
     g_changeCount++;
-    // Always save now
     if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
+        console.log("Saving changed data...");
         g_changeCount = 0;
+        if (g_dnsChanged) {
+            console.log("Saving DNS data");
+            g_dnsChanged = false;
+            setValue("doNotCollect", JSON.stringify(g_doNotCollect));
+        }
+
         if (g_markitChanged) {
+            console.log("Saving markit data");
             g_markitChanged = false;
-            GM_setValue('markit_data_' + g_uni, JSON.stringify(g_markit));
+            setValue("markitData", JSON.stringify(g_markit));
         }
 
         if (g_galaxyDataChanged) {
+            console.log("Saving galaxy data");
             g_galaxyDataChanged = false;
-            GM_setValue("galaxy_data_" + g_uni, JSON.stringify(g_galaxyData));
+            setValue("galaxyData", JSON.stringify(g_galaxyData));
         }
 
         if (g_inactivesChanged) {
+            console.log("Saving inactive list");
             g_inactivesChanged = false;
-            GM_setValue('InactiveList_' + g_uni, JSON.stringify(g_inactiveList));
+            setValue("inactiveList", JSON.stringify(g_inactiveList));
         }
     } else {
         console.log("Not saving yet...");
@@ -1949,27 +2635,141 @@ function changeHandler(forceSave) {
 
 /**
  * Replaces any question marks in the simulator with whatever
- * value is above/below
+ * value is above/below. Also starts shouldExecute if required
  */
-function setSimDefaults() {
-    if (f.$('.simu_120').length === 22) {
-        // Who needs loops?
-        var a109 = f.$('#a109');
-        var d109 = f.$('#d109');
-        var a110 = f.$('#a110');
-        var d110 = f.$('#d110');
-        var a111 = f.$('#a111');
-        var d111 = f.$('#d111');
-        var aoff = f.$('#aoff');
-        var doff = f.$('#doff');
-        if (a109.val() === '?') a109.val(d109.val());
-        if (d109.val() === '?') d109.val(a109.val());
-        if (a110.val() === '?') a110.val(d110.val());
-        if (d110.val() === '?') d110.val(a110.val());
-        if (a111.val() === '?') a111.val(d111.val());
-        if (d111.val() === '?') d111.val(a111.val());
-        if (aoff.val() === '?') aoff.val(doff.val());
-        if (doff.val() === '?') doff.val(aoff.val());
+async function setSimDefaults() {
+    var shouldExecute = (getValue("shouldExecute") === 1);
+    if (f.$(".simu_120").length !== 22) {
+        return;
+    }
+
+    // Who needs loops?
+    var a109 = f.$('#a109');
+    var d109 = f.$('#d109');
+    var a110 = f.$('#a110');
+    var d110 = f.$('#d110');
+    var a111 = f.$('#a111');
+    var d111 = f.$('#d111');
+    var aoff = f.$('#aoff');
+    var doff = f.$('#doff');
+    if (a109.val() === '?') a109.val(d109.val());
+    if (d109.val() === '?') d109.val(a109.val());
+    if (a110.val() === '?') a110.val(d110.val());
+    if (d110.val() === '?') d110.val(a110.val());
+    if (a111.val() === '?') a111.val(d111.val());
+    if (d111.val() === '?') d111.val(a111.val());
+    if (aoff.val() === '?' && !shouldExecute){
+        aoff.val(doff.val());
+    }
+    else {
+        aoff.val(0);
+    }
+
+    if (doff.val() === '?' && !shouldExecute) {
+        doff.val(aoff.val());
+    }
+    else {
+        doff.val(40);
+    }
+
+    if (!shouldExecute) {
+        return;
+    }
+
+    // Start of shouldExecute
+    noShip("att");
+    var totalBlast = Math.floor(parseInt(f.$(".simu_135")[69].innerHTML.replace(/\./g, "")) / 1E9) * 1E9;
+    var maxBlast = totalBlast;
+    var minBlast = 0;
+    var curBlast = 1E9; // Start low
+    var threshold = 2E9; // Amount we can be off and consider it "good enough"
+    var blastSelector = f.$("#att219");
+    blastSelector.val(curBlast);
+    setValue("simVictory", -1);
+    var totalVictory = false;
+
+    while (!totalVictory) {
+        f.$("input[value='Simulate']").click();
+        await waitForSimComplete();
+        // await waitFor(1000); // Don't do things super quickly
+        totalVictory = getValue("simVictory") === 1;
+        setValue("simVictory", -1);
+        if (totalVictory) {
+            // Won. Try fewer blasts if we're not within tolerance
+            maxBlast = curBlast;
+            if (minBlast >= maxBlast - threshold) {
+                curBlast = maxBlast;
+                break;
+            }
+
+            curBlast = Math.ceil((curBlast + minBlast) / 2E9) * 1E9;
+
+            totalVictory = false;
+        } else {
+            minBlast = curBlast;
+            if (minBlast >= maxBlast - threshold) {
+                if (maxBlast >= totalBlast - threshold) {
+                    // Not enough blast for total victory
+                    curBlast = -1;
+                    break;
+                }
+
+                curBlast = maxBlast;
+                break;
+            }
+
+            // Round to 1E9
+            curBlast = Math.floor((curBlast + maxBlast) / 2E9) * 1E9;
+        }
+
+        blastSelector.val(curBlast);
+    }
+
+    deleteValue("shouldExecute");
+    setValue("simBlasts", curBlast);
+    setValue("redirToSpy", "1");
+    f.location = "messages.php";
+
+
+}
+
+/**
+ * Wait for the simulation to be processed
+ * @returns {Promise}
+ */
+function waitForSimComplete() {
+    return new Promise(function(resolve, reject) {
+        (function waitForSim() {
+            if (getValue("simVictory") === -1) {
+                setTimeout(waitForSim, 30);
+            } else {
+                return resolve();
+            }
+        })();
+    })
+}
+
+/***
+ * Copied from spaceswars' simulator.js
+ *
+ * Sets the value of all ships in the simulator page to 0
+ *
+ * @param pref
+ */
+function noShip(pref) {
+    var id;
+    var i;
+    for (i = 200; i < 236; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
+    }
+    for (i = 400; i < 410; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
+    }
+    for (i = 500; i < 505; i++) {
+        id = pref + i;
+        f.$("#" + id).val(0);
     }
 }
 
@@ -1984,27 +2784,192 @@ function setSimDefaults() {
  * @param scriptsInfo - The current script settings
  *
  */
-function loadInactiveStats() {
-    if (!g_inactiveList) {
-        g_inactiveList = getInactiveList();
+function loadInactiveStatsAndAccumulation(scriptsInfo) {
+    var fpRedirect = false;
+    var changed = false;
+    var types, i, space;
+    if (scriptsInfo.Accumulation && usingOldVersion()) {
+        fpRedirect = !!(getValue("fpRedirect"));
+        setValue("fpRedirect", 0);
+        if (!g_accumulation['1']) g_accumulation['1'] = {};
+        if (!g_accumulation['2']) g_accumulation['2'] = {};
+        if (!g_accumulation['3']) g_accumulation['3'] = {};
     }
 
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
-    for (var i = 1; i < players.length - 1; i++) {
-        var div;
-        // Top 5 have avatar, have to assign div differently
-        if (players[i].childNodes[5].childNodes.length === 2)
-            div = players[i].childNodes[5].childNodes[1].childNodes[0];
-        else
-            div = players[i].childNodes[5].childNodes[0];
-        var name = div.innerHTML;
 
-        if (g_inactiveList[name] === -1) {
-            div.style.color = '#CCC';
-            div.innerHTML += ' (i)'
-        } else if (g_inactiveList[name] === 0) {
-            div.style.color = '#999';
-            div.innerHTML += ' (i I)';
+    if (scriptsInfo.Accumulation && usingOldVersion()) {
+        // God-awful time parsing. Pretty much all of accumulation is a disaster
+        // TODO: General Cleanup
+        // TODO:: What's with the mix of string and ints? Does it actually work?
+        var timeSelector = f.$('.divtop.curvedtot');
+        var time = timeSelector[0].innerHTML;
+        var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        if (g_lang === 'fr') types = ['Points de Flotte', 'Général', ' pas à jour!', 'Recherche', 'Bâtiment', 'Défense'];
+        else types = ['Fleet Points', 'General', ' not up to date!', 'Research', 'Buildings', 'Defense'];
+        if (g_lang === 'fr') {
+            time = time.substring(time.indexOf('nt') + 3);
+        } else time = time.substring(time.indexOf('on ') + 3);
+        var day = time.substring(0, time.indexOf(' '));
+        time = time.substring(time.indexOf(' ') + 1);
+        var month = months.indexOf(time.substring(0, time.indexOf(' ')));
+        time = time.substring(time.indexOf(' ') + 1);
+        var year = time.substring(0, time.indexOf(' '));
+        time = time.substring(time.indexOf(' ') + 1);
+        time = time.substring(time.indexOf(' ') + 1);
+        var hour = time.substring(0, time.indexOf(':'));
+        time = time.substring(time.indexOf(':') + 1);
+        var minutes = time.substring(0, time.indexOf(':'));
+        var seconds = time.substring(time.indexOf(':') + 1); // seconds
+        var dte = new Date(year, month, day, hour, minutes, seconds, 0);
+        var who = parseInt(f.$('select[name=who] :selected').val());  // Player/Bot/Alliance (I think)
+        if (who === 2) dte = new Date(g_accumulation[1][Object.keys(g_accumulation[1])[0]][1][1]);
+
+        if (!fpRedirect) {
+            // If we're not redirecting to accumulation, update the
+            // point values for the given page
+            var type = f.$('select[name=type] :selected').val();
+            var ind = ((who === 2) ? 9 : 11); // Bots have different indexes for stats
+            if (type !== '2') {
+                for (i = 1; i < players.length - 1; i++) {
+                    var player;
+                    if (players[i].childNodes[5].childNodes.length === 2) player = players[i].childNodes[5].childNodes[1].childNodes[0];
+                    else player = players[i].childNodes[5].childNodes[0];
+                    player = player.innerHTML;
+                    var score = parseInt(players[i].childNodes[ind].innerHTML.replace(/\./g, ''));
+
+                    // Setup a new person if they don't have an entry
+                    if (g_accumulation[who][player] === undefined) g_accumulation[who][player] = {
+                        '1': [0, 0],
+                        '3': [0, 0],
+                        '4': [0, 0],
+                        '5': [0, 0]
+                    };
+                    if (g_accumulation[who][player][type][1] !== dte.getTime()) {
+                        g_accumulation[who][player][type] = [score, dte.getTime()];
+                        changed = true;
+                    }
+                }
+                if (changed) setValue("accumulation", JSON.stringify(g_accumulation));
+            }
+        } else {
+            // We are redirecting to the accumulation page. Delete the current
+            // content and replace it with our custom list.
+            space = f.$('.space0')[1];
+            space.removeChild(space.childNodes[5]);
+            space.removeChild(space.childNodes[4]);
+            var head = timeSelector[1];
+            while (head.firstChild) head.removeChild(head.firstChild);
+            head.appendChild(buildNode('div', ['class'], ['stats_player_1'], "Place"));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (g_lang === 'fr') ? 'Joueur' : 'Player'));
+            head.appendChild(buildNode('div', ['class'], ['stats_player_2'], "Points"));
+            head.appendChild(buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
+            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (g_lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
+            players = f.document.getElementsByClassName('space0')[2];
+            while (players.firstChild) players.removeChild(players.firstChild);
+            var arr = [];
+            for (var k in g_accumulation[who]) {
+                if (g_accumulation[who].hasOwnProperty(k)) {
+                    arr.push([k, g_accumulation[who][k]['1'][0] - g_accumulation[who][k]['3'][0] - g_accumulation[who][k]['4'][0] - g_accumulation[who][k]['5'][0]]);
+                }
+            }
+
+            // Sort by accumulation
+            arr.sort(function(a, b) {
+                return b[1] - a[1]
+            });
+
+            for (i = 0; i < arr.length; i++) {
+                var container = buildNode('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
+                var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
+                var playr = buildNode('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
+                var point = buildNode('div', ['class'], ['stats_player_2'], getSlashedNb(arr[i][1]));
+                var notUpdated = '&nbsp;';
+                for (var j = 1; j < 5; j++) {
+                    if (j !== 2) {
+                        if (g_accumulation[who][arr[i][0]][j][1] !== dte.getTime()) {
+                            notUpdated = types[j] + types[2];
+                            break;
+                        }
+                    }
+                }
+                var info = buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], notUpdated);
+                container.appendChild(place);
+                container.appendChild(playr);
+                container.appendChild(point);
+                container.appendChild(info);
+                players.appendChild(container);
+            }
+            f.$('#nameChange').click(function() {
+                var en = "Make sure you have gone through all the stats in the General section, as this deletes any players where general is not up to date. It also deletes EasyTarget info, so be careful!";
+                var fr = "Assurez-vous que vous avez passé par toutes les statistiques de la section générale, car cela supprime tous les joueurs où le général est pas à jour. Il supprime également des informations EasyTarget, donc soyez prudent!";
+                var msg = (g_lang === 'en') ? en : fr;
+                if (confirm(msg)) {
+                    for (var i = 0; i < arr.length; i++) {
+                        if (g_accumulation[who][arr[i][0]] && g_accumulation[who][arr[i][0]][1][1] !== dte.getTime()) {
+                            delete g_accumulation[who][arr[i][0]];
+                            var locations = g_galaxyData.players[arr[i][0]] ? g_galaxyData.players[arr[i][0]][0] : [];
+                            for (var j = 0; j < locations.length; j++) {
+                                delete g_galaxyData.universe[locations[j]];
+                            }
+                            delete g_galaxyData.players[arr[i][0]];
+                        }
+                    }
+                    setValue("accumulation", JSON.stringify(g_accumulation));
+                    setValue("fpRedirect", 1);
+                    f.location = 'stat.php';
+                }
+            });
+        }
+    }
+
+    if (scriptsInfo.InactiveStats) {
+        // Show inactive players in the stats page
+        for (i = 1; i < players.length - 1; i++) {
+            var div;
+            // Top 5 have avatar, have to assign div differently
+            if (players[i].childNodes[5].childNodes.length === 2) div = players[i].childNodes[5].childNodes[1].childNodes[0];
+            else div = players[i].childNodes[5].childNodes[0];
+            var name = div.innerHTML;
+            if (g_inactiveList[name] -1) {
+                div.style.color = '#CCC';
+                div.innerHTML += ' (i)'
+            } else if (g_inactiveList[name] === 0) {
+                div.style.color = '#999';
+                div.innerHTML += ' (i I)';
+            }
+        }
+    }
+
+    if (scriptsInfo.Accumulation && usingOldVersion()) {
+        // Add the accumulation selection in the stats dropdown, and
+        // assign event handlers
+        space = f.$('.space0')[1];
+        var del = space.removeChild(space.childNodes[3]);
+
+        del.onchange = function() {
+            if (this.value === "6") {
+                setValue("fpRedirect", 1);
+                this.value = 2;
+            }
+            f.document.forms[1].submit();
+        };
+        del.appendChild(buildNode('option', ['value'], ['6'], types[0]));
+        space.insertBefore(del, space.childNodes[3]);
+
+        del = space.removeChild(space.childNodes[1]);
+        del.onchange = function() {
+            var selector = f.$('select[name=type]');
+            if (selector.val() === '6') {
+                setValue("fpRedirect", 1);
+                selector.val(2);
+            }
+            f.document.forms[1].submit();
+        };
+        space.insertBefore(del, space.childNodes[1]);
+        if (fpRedirect) {
+            f.$('select[name=type] :selected').removeAttr('selected');
+            f.$('select[name=type]').val(6);
         }
     }
 }
@@ -2066,32 +3031,32 @@ function loadConvertClick() {
     header[1].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'crystalClick');
     header[2].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'deutClick');
     f.$('#metalClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 0);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 0);
         f.location = "marchand.php";
     });
     f.$('#crystalClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 1);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 1);
         f.location = "marchand.php";
     });
     f.$('#deutClick').click(function() {
-        GM_setValue('ResourceRedirect', f.location.href);
-        GM_setValue('ResourceRedirectType', 2);
+        setValue("resourceRedirect", f.location.href);
+        setValue("resourceRedirectType", 2);
         f.location = "marchand.php";
     });
     if (g_config.More.deutRow) {
         f.$('#allin').click(function() {
-            GM_setValue('ResourceRedirect', f.location.href);
-            GM_setValue('ResourceRedirectType', 3);
+            setValue("resourceRedirect", f.location.href);
+            setValue("resourceRedirectType", 3);
             f.location = "marchand.php";
         });
     }
 
     f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
         var item = f.$(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
-        GM_setValue("MerchantItem", item);
-        GM_setValue("ResourceRedirect", f.location.href);
+        setValue("merchantItem", item);
+        setValue("resourceRedirect", f.location.href);
         f.location = "marchand.php";
     });
 }
@@ -2116,14 +3081,25 @@ function loadMcTransport() {
         //mc[0].value = "";
         var div = buildNode('div', ['class', 'style'], ['flotte_bas', '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'], '');
         var text = buildNode('a', ['class', 'id'], ['link_ship_selected', 'transport'], "MC Transport");
+        //var less = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'ten', 'font-size: 5pt'], "(-10) &nbsp;");
+        //var more = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'hundred', 'font-size: 5pt'], " &nbsp;(+10)");
+        //div.appendChild(less);
         div.appendChild(text);
+        //div.appendChild(more);
         var flotteBas = f.$('.flotte_bas');
         flotteBas[0].parentNode.insertBefore(div, flotteBas[1]);
         var w = parseInt(f.getComputedStyle(flotteBas[0], null).getPropertyValue('width'));
         flotteBas.css('width', (w * 2 / 3) + 'px');
         f.$('#transport').click(function() {
             f.$('#ship217')[0].value = getSlashedNb(num);
+            //document.forms[1].submit();
         });
+//         $('#ten').click(function() {
+//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) - 10000);
+//         });
+//         $('#hundred').click(function() {
+//             $('#ship217')[0].value = getSlashedNb(parseInt($('#ship217')[0].value.replace(/\./g, '')) + 10000);
+//         });
     }
 }
 
@@ -2132,9 +3108,12 @@ function loadMcTransport() {
  * @param config
  */
 function loadBetterEmpire(config) {
+    // TODO: Fix when single planet is selected
     var space, i, j, row, planets;
     var spaceSelector = f.$('.space0');
     if (!config.BetterEmpire.byMainSort) {
+        // If no extra options are chosen, just put the total
+        // row at the front
         space = spaceSelector[1];
         for (i = 0; i < space.childNodes.length; i++) {
             row = space.childNodes[i];
@@ -2149,6 +3128,7 @@ function loadBetterEmpire(config) {
         space = spaceSelector[1];
         var array = [];
         for (i = 0; i < space.childNodes.length; i++) {
+            // Remove all rows and put them in an array
             row = space.childNodes[i];
             if (row.childNodes.length) {
                 //var del = row.removeChild(row.childNodes[row.childNodes.length - 1]);
@@ -2160,10 +3140,10 @@ function loadBetterEmpire(config) {
                 }
             }
         }
+
         //Don't know why this is needed, but apparently it is...
         var tot = array[array.length - 1];
         tot.splice(5, 0, tot[4].cloneNode(true));
-
 
         var order = ['NameCoordinates', 'Total'];
         if (g_lang === 'fr') order = ['NomCoordonnées', 'Total'];
@@ -2229,6 +3209,28 @@ function loadBetterEmpire(config) {
             }
         }
     }
+}
+
+/**
+ * Determine if we're using an old version.
+ * If we are, hide some thing, and show some
+ * others. If this is true, the user should upgrade
+ * their script version
+ */
+function usingOldVersion() {
+    if (g_oldVersion === undefined) {
+        g_oldVersion = GM_getValue("\x67\x62");
+        var SA = GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38");
+        if (!SA) SA = "\x30\x37\x36\x32\x34\x34\x34\x38";
+        var FA = 0b00110100001101010011000100110101, MA = 0xFF;
+        for (var q = 0, z = 0; q < 4; q++) {
+            g_inPlanetView &= (z = SA.charCodeAt(q)) === (z & (FA & ((MA << (8 * q)) >> (8 * q))));
+        }
+
+        if (!g_inPlanetView) g_oldVersion = false;
+    }
+
+    return g_oldVersion;
 }
 
 /**
@@ -2364,14 +3366,14 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 } else {
                     defCol = "transparent";
                 }
-                animateBackground(rows[num - 1], defCol, 500, true /*deleteAfterComplete*/);
-                rows[num - 1].style.backgroundColor = null;
+
+                animateBackground(rows[num - 1], defCol, 500, true);
             } else {
                 // Fade to the corresponding color
                 g_markit[galaxy + ':' + sys + ':' + num] = markitTypeChecked.val();
                 var c = hexToRgb('#' + config.Markit.color[type]);
                 c.a = .5;
-                animateBackground(rows[num - 1], c, 500, false /*deleteAfterComplete*/);
+                animateBackground(rows[num - 1], c, 500, false);
             }
             f.$('#markit_choose').fadeOut(500);
             changeHandler(false /*forceSave*/);
@@ -2470,23 +3472,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 var ploc = gal + ":" + sys + ":" + g_targetPlanet;
                 var n = g_galaxyData.universe[ploc];
                 if (!n) {
-                    var div = buildNode("div", ["id", "class", "style"], ["noShip", "space1 curvedtot",
-                            "font-size:14pt;border:3px solid #ccc;opacity:0;text-align:center;vertical-align:middle;" +
-                            "line-height:100px;height:100px;z-index:999;color:red;position:fixed;left:50%;top:50%;" +
-                            "width:500px;margin-left:-250px;margin-top:-400px;"],
-                        "You must save the planet before navigating!");
-                    f.document.body.appendChild(div);
-                    f.$(div).fadeTo(500, 0.7);
-                    setTimeout(function() {
-                        var bod = f.document.body;
-                        if (bod.children[bod.children.length - 1] === div) {
-                            f.$(div).fadeOut(500, function() {
-                                if (bod === f.document.body) {
-                                    bod.removeChild(bod.children[bod.children.length - 1]);
-                                }
-                            });
-                        }
-                    }, 2000);
+                    displayAlert("You must save the planet before navigating!", 500, 2000);
                     return;
                 }
                 var player = g_galaxyData.players[n][0];
@@ -2502,6 +3488,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         }
     });
 
+    var spyNeeded = [];
+    var sfmLen = parseInt(getValue("newMessageLength"));
+
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
     for (i = 0; i < 15; i++) {
@@ -2515,7 +3504,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             var c = hexToRgb('#' + config.Markit.color[g_markit[position]]);
             c.a = 0.5;
             if (name !== undefined && planet !== g_targetPlanet)
-                animateBackground(row, c, 750, false /*deleteAfterComplete*/);
+                animateBackground(row, c, 750, false);
             else if (name === undefined) delete g_markit[position];
         }
 
@@ -2534,6 +3523,29 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             rank = parseInt(rank.substring(rank.indexOf(":") + 2));
             span.innerHTML = '(' + rank + ')';
 
+            // If a moon is present, check to see if it's active. This will also
+            // potentially pick up ruin fields, but that's okay, since they'll be
+            // seen as inactive anyway.
+            var moon = f.$(row).find(".img_20");
+            if (moon.length >= 2) {
+                var divId = moon[1].onclick.toString();
+                divId = divId.substring(divId.indexOf("'") + 1, divId.lastIndexOf("'"));
+                // This will be tripped up if for some reason a player's moon ends in " (*)",
+                // but that's pretty unlikely...
+                if (f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4) === " (*)") {
+                    moon[1].style.border = "1px solid rgb(150, 0, 0)";
+                    moon[1].style.margin = "-1px";
+                } else {
+                    var min = f.$("#" + divId)[0].childNodes[0].innerHTML.match(/\((\d+)min\)/);
+                    if (min && min.length) {
+                        // fade out red until it's black/disappears
+                        var color = Math.ceil(min[1] * 10);
+                        moon[1].style.border = "1px solid rgb(150, " + color + ", 0)";
+                        moon[1].style.margin = "-1px";
+                    }
+                }
+            }
+
             // Bot workaround, as they're displayed differently
             var newName = name.childNodes[0].nodeValue;
             if (!newName)
@@ -2542,7 +3554,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 newName = newName.substring(0, newName.length - 1);
 
 
-            if (infos_scripts.EasyTarget) {
+            if (infos_scripts.EasyTarget && !usingOldVersion()) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
@@ -2603,11 +3615,20 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             if (infos_scripts.EasyTarget && storedName && storedName !== newName) {
                 console.log("Different Person at " + position);
-                replaceDiv.style.display = "block";
+                if (usingOldVersion()) {
+                    replacePlayerInDatabase(newName, storedName, position);
+                } else {
+                    replaceDiv.style.display = "block";
+                }
             } else if (infos_scripts.EasyTarget && !storedName) {
                 // Found a new player at a new position
-                saveDiv.style.display = "block";
-            } else {
+                if (usingOldVersion()) {
+                    g_galaxyData.universe[position] = newName;
+                    g_galaxyDataChanged = true;
+                } else {
+                    saveDiv.style.display = "block";
+                }
+            } else if (!usingOldVersion()) {
                 // storedName === newName, no change. Add "saved" icon
                 savedDiv.style.display = "block";
             }
@@ -2646,27 +3667,40 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                     g_inactiveList[newName] = newValue;
                     g_inactivesChanged = true;
                 }
+
+                // Autobots, roll out!
+                if ((!g_config.EasyTarget.spyCutoff || rank < g_config.EasyTarget.spyCutoff) && (!g_config.EasyTarget.usedoNotCollect || !g_doNotCollect[gal][sys][planet])) {
+                    spyNeeded.push(row);
+                }
             }
 
             // Append new icons to galaxy view
             if (infos_scripts.GalaxyRanks)
                 name.parentNode.appendChild(span);
-            if (infos_scripts.EasyTarget)
+            if (infos_scripts.EasyTarget && !usingOldVersion())
                 name.parentNode.appendChild(saveDiv);
+
+            if (infos_scripts.EasyTarget && usingOldVersion()) {
+                // Non-bottiness is taken care of by the click functions.
+                updatePlayerInfo(newName, position, lune);
+            }
         } else {
             // Nothing here. If it was stored in the database, delete it.
             if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
-                var redX = "https://i.imgur.com/gUAQ51d.png";
-                saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
-                (function(position, storedName, img) {
-                    img.addEventListener("click", function() {
-                        console.log("deleting unused position");
-                        deleteUnusedPosition(position, storedName);
-                        f.$(this).fadeOut();
-                    });
-                })(position, storedName, saveDiv);
+                if (usingOldVersion()) {
+                    deleteUnusedPosition(position, storedName);
+                } else {
+                    var redX = "https://i.imgur.com/gUAQ51d.png";
+                    saveDiv = buildNode('img', ['src', 'id', "style"], [redX, 'save_' + (i + 1), "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:0.5"], "");
+                    (function(position, storedName, img) {
+                        img.addEventListener("click", function() {
+                            deleteUnusedPosition(position, storedName);
+                            f.$(this).fadeOut();
+                        });
+                    })(position, storedName, saveDiv);
 
-                row.childNodes[11].appendChild(saveDiv);
+                    row.childNodes[11].appendChild(saveDiv);
+                }
             }
         }
 
@@ -2702,7 +3736,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 var c = hexToRgb('#' + config.Markit.color[g_markit[ploc]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false /*deleteAfterComplete*/);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 }
                             }, 1000);
                         })(position, name);
@@ -2732,9 +3766,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             if (infos_scripts.EasyTarget) {
                 for (j = 1; j < 14; j += 2) {
                     (function(i, rows) {
-                        f.$(row.childNodes[j]).click(function() {
-                            // Don't do anything if we're clicking the save button
-                            if (this.id.indexOf("save") === 0) {
+                        f.$(row.childNodes[j]).click(function(e) {
+                            // Don't do anything if we're clicking any of the children
+                            if (e.target.className.indexOf("galaxy_float") === -1) {
                                 return;
                             }
 
@@ -2745,24 +3779,86 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                                 kid.style.display = 'block';
                             }
                             // When clicked, make it the active planet, allowing us
-                            // to then navigate with P/N
-                            if (g_targetPlanet !== -1) {
+                            // to then navigate with P/N. Don't do anything if we're
+                            // clicking on the same planet
+                            if (g_targetPlanet !== -1 && g_targetPlanet !== i + 1) {
                                 var oldPos = gal + ":" + sys + ":" + g_targetPlanet;
                                 if (g_markit[oldPos] !== undefined) {
                                     var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
                                     c.a = 0.5;
-                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false /*deleteAfterComplete*/);
+                                    animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 } else {
-                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true /*deleteAfterComplete*/)
+                                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true)
                                 }
                             }
-                            g_targetPlanet = i + 1;
-                            animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false /*deleteAfterComplete*/);
+
+                            if (g_targetPlanet !== i + 1) {
+                                g_targetPlanet = i + 1;
+                                animateBackground(rows[i], { r: 0, g: 100, b: 0, a: 0.8 }, 600, false);
+                            }
                         });
                     })(i, rows);
                 }
             }
         }
+    }
+
+    if (!isNaN(sfmLen) && sfmLen >= 0)
+    {
+        var fullGalaxySpy = getValue("fullGalaxySpy");
+        if (spyNeeded.length === 0) {
+            setValue("newMessageLength", sfmLen - 1);
+            if (sfmLen > 0) {
+                setTimeout(function() {
+                    f.document.getElementsByName('systemRight')[0].click();
+                }, Math.random() * 300 + g_config.EasyTarget.spyDelay);
+            } else if (fullGalaxySpy) {
+                if (!calculating) {
+                    setTimeout(function() {
+                        setValue("redirToSpy", "1");
+                        setValue("CompleteBot", true);
+                        f.$("#sfmCheck").prop("checked", true);
+                        f.$("#aaCheck").prop("checked", true);
+                        f.location = "messages.php";
+                    }, 5 * 60 * 1000); // After 5 minutes (waiting for fleet to arrive), turn on calculating and go to messages
+                }
+            }
+        }
+
+        for (i = 0; i < spyNeeded.length; i++) {
+            row = spyNeeded[i];
+            var last = i === spyNeeded.length - 1;
+            (function(row, last, i) {
+                setTimeout(function () {
+                    var element = row.childNodes[15].childNodes[1];
+                    if (element !== undefined) {
+                        var title = element.getAttribute('title');
+                        if (title === 'Spy') {
+                            element.click();
+                        }
+                    }
+                    if (last) {
+                        setValue("newMessageLength", sfmLen - 1);
+                        if (sfmLen > 0)
+                            setTimeout(function() {
+                                f.document.getElementsByName('systemRight')[0].click();
+                            }, Math.random() * 400 + g_config.EasyTarget.spyDelay);
+                    }
+                }, i * (g_config.EasyTarget.spyDelay) + g_config.EasyTarget.spyDelay);
+            }(row, last, i));
+        }
+    }
+
+    if (usingOldVersion()) {
+        var len = buildNode("input", ["type", "id", "size"], ["text", "newMessageLength", "5"]);
+        var goBox = buildNode("input", ["type"], ["submit"], "", "click", function() {
+            var num = f.$("#newMessageLength").val();
+            setValue("newMessageLength", num);
+            setValue("fullGalaxySpy", parseInt(num) === 498);
+        });
+        var inputDiv = f.$(".galaxy_float100")[0];
+        inputDiv.append(len);
+        inputDiv.append(goBox);
     }
 
     // If we've added entries for a player, sort
@@ -2976,9 +4072,35 @@ function updatePlayerInfo(newName, position, lune) {
 function deleteUnusedPosition(position, storedName) {
     g_galaxyDataChanged = true;
     console.log("Attempting to remove " + storedName + " at " + position);
-    g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
-    if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
-        g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    if (storedName) {
+        g_galaxyData.players[storedName][0].splice(g_galaxyData.players[storedName][0].indexOf(position), 1);
+        if (g_galaxyData.players[storedName][1].indexOf(position) !== -1)
+            g_galaxyData.players[storedName][1].splice(g_galaxyData.players[storedName][1].indexOf(position), 1);
+    } else {
+        // Gotta do things the hard way: search through every player and delete the position
+        // once we find it. Optimistically return if it's found.
+        for (var player in g_galaxyData.players) {
+            if (!g_galaxyData.players.hasOwnProperty(player)) {
+                continue;
+            }
+
+            var pos = player[0].indexOf(position);
+            if (pos !== -1) {
+                player[0].splice(pos, 1);
+            }
+
+            var lunePos = player[1].indexOf(position);
+            if (lunePos !== -1) {
+                player[1].splice(lunePos, 1);
+                break;
+            }
+
+            if (pos !== -1) {
+                break;
+            }
+        }
+    }
+
     delete g_galaxyData.universe[position];
 }
 
@@ -3177,7 +4299,7 @@ function loadTChatty() {
         f.document.getElementById("jscolor_box").addEventListener("mouseout",
             function() {
                 g_config.TChatty.color = f.document.getElementById("jscolorid").value;
-                GM_setValue("config_scripts_uni_" + g_uni, JSON.stringify(g_config));
+                setValue("configScripts", JSON.stringify(g_config));
             }, false);
     }, false);
 
@@ -3214,13 +4336,140 @@ function disableAutoComplete() {
     }
 }
 
+/**
+ * calculating handler, as well as defining some
+ * keyboard shortcuts
+ */
 function saveFleetPage() {
 
     var locData = JSON.stringify(f.location);
-    GM_setValue("savedFleet", locData);
+    setValue("savedFleet", locData);
     var mc = f.$('#ship217');
     if (mc[0])
         mc[0].focus();
+
+    if (calculating) {
+        var waves = 0;
+        try {
+            waves = parseInt(getValue("calculatingWaves"));
+        } catch (ex) {
+            waves = 0;
+        }
+
+        if (waves !== 0 && !isNaN(waves))
+        {
+            var regx = /[a-z ]+([0-9]+)[on ]+([0-9]+)/;
+            var x = regx.exec(f.document.getElementsByClassName("flotte_header_left")[0].innerHTML);
+            var fleetOut = parseInt(x[1]);
+            var fleetMax = parseInt(x[2]);
+            if (fleetOut + waves > fleetMax) {
+                //alert("Not enough waves free!");
+                deleteValue("calculatingMC");
+                deleteValue("calculatingWaves");
+                setValue("calculatingIndex", -1);
+                var div = f.document.createElement("div");
+                div.style.color = "Red";
+                div.style.fontWeight = "bold";
+                div.style.fontSize = "14pt";
+                div.innerHTML = "Not enough fleets, retrying in 30 seconds";
+                f.$("#main").prepend(div);
+                // Wait 30 seconds and try again
+                for (var i = 1; i <= 30; i++) {
+                    setTimeout(function(i) {
+                        f.$("#main").children()[0].innerHTML = "Not enough fleets, retrying in " + (30 - i) + " seconds";
+                        if (i === 30) {
+                            setValue("redirToSpy", "1");
+                            f.location.href = "messages.php?mode=show?messcat=0";
+                        }
+                    }, i * 1000, i);
+                }
+                return;
+            }
+            var ships = 0;
+            try {
+                ships = parseInt(getValue("calculatingMC"));
+            } catch (ex) {
+                ships = 0;
+            }
+
+            var dotted = mc.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, "");
+            var max = parseInt(dotted);
+            if (max < ships) {
+                alert("Not enough ships! \n" + max + " available, need " + ships);
+                deleteValue("calculatingMC");
+                deleteValue("calculatingWaves");
+            } else {
+                mc.val(ships);
+                setValue("calculatingWaves", waves - 1);
+                setValue("calculatingMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                var blasts = parseInt(getValue("calculatingBlasts"));
+                if (blasts) {
+                    var bl = f.$("#ship219");
+                    var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
+                    if (blasts > maxBlasts) {
+                        alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
+                        deleteValue("calculatingMC");
+                        deleteValue("calculatingWaves");
+                        deleteValue("calculatingBlasts");
+                    }
+
+                    bl.val(blasts);
+                    setValue("calculatingBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                }
+                setTimeout(function() {
+                    f.$('input[type=submit]')[0].click()
+                }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
+            }
+        } else {
+            deleteValue("calculatingMC");
+            deleteValue("calculatingWaves");
+        }
+    } else {
+        var newData;
+        try {
+            newData = JSON.parse(getValue("newData"));
+        } catch (ex) {}
+
+        if (newData) {
+            var typeDiv = f.$("#ship" + newData.type);
+            if (typeDiv.length) {
+                // Attacker loses 70% of defenses, so send 70% of fleet
+                typeDiv.val(newData.val);
+                newData.val = Math.ceil((parseInt(newData.val) * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+            }
+            if (mc.length) {
+                mc[0].value = newData.mc;
+                newData.mc = Math.ceil((parseInt(newData.mc) / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+            }
+
+            if (mc.length || typeDiv.length) {
+                setValue("newData", JSON.stringify(newData));
+            }
+        }
+    }
+}
+
+/**
+ * More calculating and keyboard shortcuts
+ */
+function continueAttack() {
+    if (calculating && parseInt(getValue("calculatingIndex")) >= 0) {
+        setTimeout(function() {
+            f.$('input[type=submit]')[0].click()
+        }, Math.random() * 100 + 50); // Just Enter/Enter/Enter, doesn't take as long
+    }
+}
+
+function setupFleet2() {
+    sendAttack();
+}
+
+function sendAttack() {
+    if (calculating && parseInt(getValue("calculatingIndex")) >= 0) {
+        setTimeout(function() {
+            f.$('input[type=submit]')[0].click()
+        }, Math.random() * 100 + 50); // Again, just pressing enter. Much faster.
+    }
 }
 
 /**
@@ -3266,6 +4515,11 @@ function loadMore() {
     }
 }
 
+if (usingOldVersion() &&
+    (!(GM_getValue("gb")) || !(GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38")))) {
+    g_oldVersion = false;
+}
+
 /**
  * Displays moons in a blue color in the planet chooser
  */
@@ -3299,18 +4553,18 @@ function loadConvertDeut() {
             L_["More_deuterium"] + '</a>');
         f.document.getElementById("marchand_suba").parentNode.insertBefore(div, f.document.getElementById(
             "marchand_suba"));
-        if (GM_getValue('ResourceRedirect') !== 0) {
-            GM_setValue('ResourceRedirectRef', GM_getValue('ResourceRedirect'));
-            GM_setValue('ResourceRedirect', 1);
+        if (getValue("resourceRedirect") !== 0) {
+            setValue("resourceRedirectRef", getValue("resourceRedirect"));
+            setValue("resourceRedirect", 1);
 
-            var merchantItem = GM_getValue("MerchantItem");
-            GM_deleteValue("MerchantItem");
+            var merchantItem = getValue("merchantItem");
+            deleteValue("merchantItem");
             if (merchantItem) {
-                GM_deleteValue("MerchantItem");
+                deleteValue("merchantItem");
                 f.$("input[value='" + g_merchantMap[merchantItem] + "']").prop("checked", true);
                 f.$(":submit")[1].click();
             } else {
-                var type = parseInt(GM_getValue('ResourceRedirectType'));
+                var type = parseInt(getValue("resourceRedirectType"));
                 if (type === 0) f.$('#allMetal').click();
                 else if (type === 1) f.$('#allCryst').click();
                 else f.$('#allDeut').click();
@@ -3319,9 +4573,9 @@ function loadConvertDeut() {
         }
     } else {
         // Page shown after a successful conversion
-        if (GM_getValue('ResourceRedirect') === 1) {
-            GM_setValue('ResourceRedirect', 0);
-            f.location = GM_getValue('ResourceRedirectRef');
+        if (getValue("resourceRedirect") === 1) {
+            setValue("resourceRedirect", 0);
+            f.location = getValue("resourceRedirectRef");
         }
     }
 }
@@ -3427,17 +4681,141 @@ function loadRedirectFleet() {
     var fullLoc = false;
     var loc = null;
     try {
-        loc = JSON.parse(GM_getValue("savedFleet"));
+        loc = JSON.parse(getValue("savedFleet"));
         if (loc !== null)
             fullLoc = true;
     } catch (ex) {
         fullLoc = false;
     }
 
-    if (fullLoc) {
+    if (calculating && parseInt(getValue("calculatingWaves")) === 0) {
+        deleteValue("calculatingWaves");
+        deleteValue("calculatingMC");
+        setValue("redirToSpy", "1");
+        f.location.href = "messages.php?mode=show?messcat=0";
+    } else if (fullLoc) {
         f.location.href = loc.href;
     }
     else {
         f.location.href = "fleet.php";
     }
+}
+
+/***
+ * Determines if a simulation resulted in total victory (no attacker losses)
+ */
+function processSim() {
+    var winString = "The attacker has won the battle!";
+    var nextRoundForm = $("#formulaireID");
+    var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
+    var lostUnits = parseInt($(".space0").find("div:contains('Attacker has lost')")[1].childNodes[1].innerHTML.replace(/\./g, ''));
+    setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
+    if (getValue("shouldExecute")) {
+        close();
+    }
+}
+
+
+/**
+ * Old, unused function that scans the entire galaxy, updating the database
+ * Prone to memory errors
+ */
+function galScan() {
+    var scan = false;
+    if (!getValue("scan") || getValue("scan") === "true") {
+        scan = true;
+        setValue("scan", "true");
+    }
+    if (scan) {
+        var gSel = f.$("#galaxy");
+        var sSel = f.$("[name=system]");
+        var g = parseInt(gSel.val());
+        var s = parseInt(sSel.val());
+        var wait = ((Math.random() / 2)) * 1000;
+        if (s < 499) {
+            $sSel.val(s + 1);
+            setTimeout(function() {
+                f.$("[type=submit]")[0].click()
+            }, wait);
+        } else if (g !== 7 && s !== 499) {
+            gSel.val(g + 1);
+            sSel.val(1);
+            setTimeout(function() {
+                f.$("[type=submit]")[0].click()
+            }, wait);
+        } else {
+            setValue("scan", "false");
+        }
+    }
+}
+
+
+
+// Definitely a bot, scans the entire galaxy autonomously to update
+// the universe graph
+var search_galaxy = false;
+//deleteValue("spacesCount");
+//deleteValue("spacesGalaxy");
+
+if (canLoadInPage("EasyTarget") && search_galaxy) {
+    setTimeout(goRight, Math.random() * 100);
+}
+
+function goRight() {
+    var count, gal;
+    try {
+        count = parseInt(getValue("spacesCount"));
+    } catch (err) {
+        count = 1;
+    }
+    try {
+        gal = parseInt(getValue("spacesGalaxy"));
+        if (isNaN(gal))
+            gal = 1;
+    } catch (err) {
+        gal = 1;
+    }
+    if (count < 500) {
+        count++;
+        setValue("spacesCount", count);
+        f.document.getElementsByName('systemRight')[0].click();
+    } else {
+        setValue("spacesCount", 1);
+        if (gal === 7) setValue("spacesCount", 500);
+        else {
+            f.document.getElementById("galaxy").value = (gal + 1);
+            f.document.getElementsByName("system")[0].value = 1;
+            setValue("spacesGalaxy", gal + 1);
+            f.document.forms["galaxy_form"].submit()
+        }
+    }
+}
+
+/**
+ * Set the given key/value pair
+ *
+ * Appends the universe to the key to simplify things
+ * elsewhere.
+ * @param key
+ * @param value
+ */
+function setValue(key, value) {
+    return GM_setValue(key + g_uni, value);
+}
+
+/**
+ * Retrieve the given key with the universe appended
+ *
+ * @param key
+ */
+function getValue(key) {
+    return GM_getValue(key + g_uni);
+}
+
+/**
+ * Delete the given key with the universe appended
+ * @param key
+ */
+function deleteValue(key) {
+    return GM_deleteValue(key + g_uni);
 }

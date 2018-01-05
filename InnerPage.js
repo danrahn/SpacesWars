@@ -11,6 +11,9 @@
 // @include     http://spaceswars.fr/forum*
 // @include     http://www.spaceswars.fr/forum*
 //
+// @grant GM_getValue
+// @grant GM_setValue
+//
 // ==/UserScript==
 //
 // userscript created by NiArK
@@ -18,10 +21,26 @@
 // userscript updated and expanded by DTR
 
 /* global GM_getValue*/
+/* global $*/
 
 
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
+
+// add a function to the page to allow cross-communication between
+// inner and outer loop
+window.document.head.appendChild(buildNodeInner("script", ["type"], ["text/javascript"],
+    `
+            function setConfig(config, scripts, uni) {
+                setConfigInternal(config, scripts, uni);
+            }
+        `
+));
+
+setConfigInternal = function(config, scripts, uni) {
+    GM_setValue("configScripts" + uni, JSON.stringify(config));
+    GM_setValue("infos_scripts", JSON.stringify(scripts));
+};
 
 
 /**
@@ -59,7 +78,6 @@ if (g_page === "rw") {
     loadRConverter();
 }
 
-
 /**
  * Creates nicely formatted battle reports. Not written by me, but has
  * been tweaked so as not to break anything.
@@ -72,7 +90,7 @@ function loadRConverter() {
     var config;
     try {
         console.log("uni: " + g_info.universe);
-        config = JSON.parse(GM_getValue("config_scripts_uni_" + g_info.universe));
+        config = JSON.parse(GM_getValue("configScripts" + g_info.universe));
         console.log(config);
     } catch (ex) {}
 
@@ -88,7 +106,7 @@ function loadRConverter() {
 
     // The original icons are gone.
     var scriptsIcons = "";
-    
+
     var couleurs_rc = {
         0: "#0000FF",
         1: "#8A2BE2",
