@@ -444,7 +444,7 @@ function createEasyTargetScript() {
     // Hacky stuff for usingOldVersion(). Don't remove them, just hide them. This
     // allows no change in logic when filling/retrieving setting information
     var spyCutoff = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'Autospy Cutoff']);
+        [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'autoSpy Cutoff']);
     for (var j = 0; j < spyCutoff.length; j++) {
         if (!usingOldVersion()) {
             spyCutoff[j].style.display = "none";
@@ -453,7 +453,7 @@ function createEasyTargetScript() {
     }
     if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
     var spyDelay = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'Autospy Delay']);
+        [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'autoSpy Delay']);
     for (j = 0; j < spyDelay.length; j++) {
         if (!usingOldVersion()) {
             spyDelay[j].style.display = "none";
@@ -463,7 +463,7 @@ function createEasyTargetScript() {
 
     if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
 
-    var useDoNotSpy = createCheckBoxItems(["Use DoNotSpy"], 150)[0];
+    var useDoNotSpy = createCheckBoxItems(["Use doNotSpy"], 150)[0];
     if (!usingOldVersion()) {
         useDoNotSpy.style.display = "none";
     }
@@ -751,6 +751,9 @@ function createEasyFarmOptions() {
     var granularity = createScriptOption(['input', 'label'],
         [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
     for (j = 0; j < granularity.length; j++) {
+        if (!usingOldVersion()) {
+            granularity[j].style.display = "none";
+        }
         result.push(granularity[j]);
     }
 
@@ -946,8 +949,13 @@ function saveSettings() {
                 break;
         }
     }
+
     setValue("configScripts", JSON.stringify(g_config));
     GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
+    if (f.setConfig) {
+        console.log("Setting internal config");
+        f.setConfig(g_config, g_scriptInfo, g_uni);
+    }
     saveButton.value = "Saved";
     setTimeout(function() {
         f.$("#save")[0].value = "Save";

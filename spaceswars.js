@@ -89,7 +89,9 @@ var g_inactivesChanged = false;             // Whether the list of inactive play
 var g_saveEveryTime = false;                // Whether to save data whenever something changes
 var g_inPlanetView = true;                  // Whether we are in planet view (unused?)
 
-usingOldVersion();
+if (!usingOldVersion()) {
+    g_changeCount = 1;
+}
 
 // A bit of a misnomer, as it's function changed. Determines
 // whether to selectively ignore planets when spying because old
@@ -161,8 +163,6 @@ if (window.top === window) {
     }
 }
 
-// Ah, the bread and butter. Should we go through every spy report
-// and attack? True bottiness
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var advancedAutoAttack = autoAttack; // No longer used?
 
@@ -250,6 +250,10 @@ if (g_page === "frames") {
                 globalKeypressHandler(e);
             });
             var shortcutDiv = buildNode("div", ["id", "style"], ["keystrokes", "position:fixed;bottom:5px;left:0;font-size:12pt;color:green;background-color:rgba(0,0,0,.7);border:2px solid black;vertical-align:middle;line-height:50px;padding-left:15px;width:300px;height:50px;"], "KEYSTROKES");
+            if (!usingOldVersion())
+            {
+                shortcutDiv.style.display = "none";
+            }
             lm.document.body.appendChild(shortcutDiv);
         }
 
@@ -349,43 +353,43 @@ function getLoadMap() {
         type : 1,
         rw : true
     };
-        
+
     canLoad.EasyFarm = {
         type : 1,
         messages : true
     };
-        
+
     canLoad.AllinDeut = {
         type : 1,
         buildings : true,
         research : true
     };
-        
+
     canLoad.Carto = {
         type : 1,
         galaxy : true
     };
-        
+
     canLoad.iFly = {
         type : 1,
         overview : true
     };
-        
+
     canLoad.TChatty = {
         type : 1,
         chat : true
     };
-        
+
     canLoad.Markit = {
         type : 1,
         galaxy : true
     };
-    
+
     canLoad.ClicNGo = {
         type : 1,
         index : true
     };
-    
+
     canLoad.More_moonsList = {
         type : 2,
         chat : false,
@@ -396,29 +400,29 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.More_convertDeut = {
         type : 1,
         marchand : true
     };
-    
+
     canLoad.More_traductor = {
         type : 1,
         chat : true,
         forum : true,
         message : true
     };
-    
+
     canLoad.More_resources = {
         type : 1,
         resources : true
     };
-    
+
     canLoad.More_redirectFleet = {
         type : 1,
         floten3 : true
     };
-    
+
     canLoad.More_arrows = {
         type : 2,
         chat : false,
@@ -429,27 +433,27 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.More_returns = {
         type : 1,
         overview : true
     };
-    
+
     canLoad.EasyTarget = {
         type : 1,
         galaxy : true
     };
-    
+
     canLoad.InactiveStats = {
         type : 1,
         stat : true
     };
-    
+
     canLoad.AllianceLink = {
         type : 1,
         alliance : true
     };
-    
+
     canLoad.More_deutRow = {
         type : 2,
         niark : false,
@@ -460,12 +464,12 @@ function getLoadMap() {
         frames : false,
         leftmenu : false
     };
-    
+
     canLoad.empireTotal = {
         type : 1,
         imperium : true
     };
-    
+
     canLoad.navigatorShortcuts = {
         type : 2,
         niark : false,
@@ -978,7 +982,7 @@ function setMerchantMap() {
     m[L_.extractor] = 235;
 
     // Def
-    m[L_.rg] = 401;
+    m[L_.rl] = 401;
     m[L_.ll] = 402;
     m[L_.hl] = 403;
     m[L_.gl] = 404;
@@ -1324,7 +1328,7 @@ function getDoNotSpyData() {
     // they have very little resources
     var doNotSpy;
     try {
-        console.log("Grabbing DoNotSpy_uni" + g_uni + " from storage");
+        console.log("Grabbing doNotSpy_uni" + g_uni + " from storage");
         doNotSpy = JSON.parse(getValue("doNotSpy"));
     } catch (ex) {
         // Create a new Array[8][500][16]
@@ -1466,7 +1470,7 @@ function setupSidebar() {
         deleteValue("autoAttackBlasts");
     };
 
-    // Reset values when toggling AutoAttack to
+    // Reset values when toggling autoAttack to
     // prevent unwanted redirections/actions
     aaCheck.onchange = function() {
         setValue("autoAttackMasterSwitch", this.checked ? 1 : 0);
@@ -1475,7 +1479,7 @@ function setupSidebar() {
         if (!autoAttack) {
             deleteValue("autoAttackStartIndex");
             deleteValue("autoAttackWaves");
-            deleteValue("AutoAttackMC");
+            deleteValue("autoAttackMC");
             setValue("autoAttackIndex", -1);
         }
 
@@ -1626,19 +1630,19 @@ function globalShortcutHandler(e) {
             if (key === KEY.M) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
                     makeEven(active, 1E6);
-                } else {
+                } else if (active.value) {
                     active.value = parseFloat(active.value) * 1E6;
                 }
             } else if (key === KEY.B) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
                     makeEven(active, 1E9);
-                } else {
+                } else if (active.value) {
                     active.value = parseFloat(active.value) * 1E9;
                 }
             } else if (key === KEY.T) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
                     makeEven(active, 1E12);
-                } else {
+                } else if (active.value) {
                     active.value = parseFloat(active.value) * 1E12;
                 }
             }
@@ -1889,7 +1893,7 @@ function buildDefKeyHandler(key) {
  * Spy Page
  * F - Focus alternate attack input field
  * Q - Simulate
- * Z - AutoSim
+ * Z - autoSim
  * @param key
  */
 function messagePageKeyHandler(key) {
@@ -1953,7 +1957,7 @@ function messagePageKeyHandler(key) {
             break;
         case KEY.F:
             // TODO: breaks if not on spy page. Silently fails, but should still fix
-            if (active.className.toLowerCase() === "message_space0 curvedtot") {
+            if (active.className.toLowerCase() === "message_space0 curvedtot" && !usingOldVersion()) {
                 // Expand and focus
                 active.childNodes[1].click();
                 f.$(active).find(".supFleet").focus();
@@ -2150,7 +2154,7 @@ function isTextInputActive() {
     // restricted id or name, return true
     return active !== null
         && (g_textAreas.indexOf(active.id) !== -1
-        || g_invalidNameFields.indexOf(active.name) !== -1);
+            || g_invalidNameFields.indexOf(active.name) !== -1);
 }
 
 /**
@@ -2259,7 +2263,7 @@ function loadClickNGo() {
 }
 
 /**
- * If we're coming from an autoattack and are on the general
+ * If we're coming from an autoAttack and are on the general
  * messages page, redirect to spy messages
  */
 function checkEasyFarmRedirect() {
@@ -2291,8 +2295,8 @@ function loadEasyFarm() {
     simBlasts = getValue("simBlasts");
     var startIndex = 0;
     if (autoAttack && autoAttackWithSim) {
-        // Start the autoattack search from a different index
-        // if we've autosimed the first n and we don't have
+        // Start the autoAttack search from a different index
+        // if we've autoSimed the first n and we don't have
         // enough ships for a total victory
         var storedIndex = getValue("autoAttackStartIndex");
         if (!storedIndex) {
@@ -2404,7 +2408,7 @@ function loadEasyFarm() {
         var system = parseInt(text.substr(0, text.indexOf(":")));
         var position = text.substr(text.indexOf(":") + 1);
 
-        // Delete a message if we're autoattacking, the planet has defenses, and
+        // Delete a message if we're autoAttacking, the planet has defenses, and
         // the total resources isn't greater than the defMultiplier
         var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
         var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
@@ -2459,8 +2463,8 @@ function loadEasyFarm() {
                     // filled in on the fleet page
                     setValue("autoAttackWaves", count);
                     var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
-                        res = Math.round((res + (granularity / 2)) / granularity) * granularity;
-                    setValue("AutoAttackMC", res);
+                    res = Math.round((res + (granularity / 2)) / granularity) * granularity;
+                    setValue("autoAttackMC", res);
                     if (simBlasts) {
                         deleteValue("simBlasts");
                         deleteValue("autoSimIndex");
@@ -2471,62 +2475,62 @@ function loadEasyFarm() {
             })(count, res, href);
 
             // Set the attack index if it's not already set, we either should attack or simulate,
-            // autoattack is enabled, and the message is greater than the startIndex
+            // autoAttack is enabled, and the message is greater than the startIndex
             if ((shouldAttack || needsSim[i]) && advancedAutoAttack && i >= startIndex) {
                 if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
                 }
             }
         } else {
-            // If we're not AutoAttacking, create the alternate attack config, allowing
-            // auto simulation, and attacking with a preset number of blast/destroyer/sn
-            var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
-
-            // Text input field
-            var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
-                if (e.keyCode === KEY.ENTER) {
-                    // Attack on [ENTER]
-                    e.preventDefault();
-                    var id = this.id.substring(8);
-                    f.$("#attack" + id).click();
-                }
-            });
-
-            // Attack button
-            var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
-                var id = parseInt(this.id.substring(6));
-                var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
-                mc = Math.round((parseInt(mc) + 500000) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
-                var data = {
-                    type: f.$("#shipSelect" + id)[0].value,
-                    val: f.$("#fleetNum" + id)[0].value,
-                    mc: mc
-                };
-                setValue("attackData", JSON.stringify(data));
-                f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
-            });
-
-            // Simulate button
-            var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
-                setValue("autoSim", 1);
-                setValue("autoSimIndex", this.id.substring(3));
-                f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
-            });
-
-            // Fleet type selector
-            var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
-            for (j = 0; j < optionTexts.length; j++) {
-                var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
-                sel.add(option);
-            }
-
-            selDiv.appendChild(num);
-            selDiv.appendChild(sel);
-            selDiv.appendChild(submit);
             if (usingOldVersion()) {
+                // If we're not autoAttacking, create the alternate attack config, allowing
+                // auto simulation, and attacking with a preset number of blast/destroyer/sn
+                var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
+
+                // Text input field
+                var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
+                    if (e.keyCode === KEY.ENTER) {
+                        // Attack on [ENTER]
+                        e.preventDefault();
+                        var id = this.id.substring(8);
+                        f.$("#attack" + id).click();
+                    }
+                });
+
+                // Attack button
+                var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
+                    var id = parseInt(this.id.substring(6));
+                    var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
+                    mc = Math.round((parseInt(mc) + 500000) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+                    var data = {
+                        type: f.$("#shipSelect" + id)[0].value,
+                        val: f.$("#fleetNum" + id)[0].value,
+                        mc: mc
+                    };
+                    setValue("attackData", JSON.stringify(data));
+                    f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
+                });
+
+                // Simulate button
+                var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
+                    setValue("autoSim", 1);
+                    setValue("autoSimIndex", this.id.substring(3));
+                    f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
+                });
+
+                // Fleet type selector
+                var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
+                for (j = 0; j < optionTexts.length; j++) {
+                    var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
+                    sel.add(option);
+                }
+
                 selDiv.appendChild(simulate);
+                selDiv.appendChild(num);
+                selDiv.appendChild(sel);
+                selDiv.appendChild(submit);
+                f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
             }
-            f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
 
             if (parseInt(simIndex) === i && simBlasts) {
                 // If we just finished a simulation, scroll the message
@@ -2545,7 +2549,7 @@ function loadEasyFarm() {
     // For sanity, delete aa data if it's not enabled
     if (!autoAttack) {
         deleteValue("autoAttackWaves");
-        deleteValue("AutoAttackMC");
+        deleteValue("autoAttackMC");
         setValue("autoAttackIndex", -1);
     }
 
@@ -2564,7 +2568,7 @@ function loadEasyFarm() {
             setValue("autoSimIndex", attackIndex);
             f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
         } else if (needsSim[attackIndex] && simBlasts && simIndex !== attackIndex) {
-            displayAlert("AutoSim mismatch!", 500, -1);
+            displayAlert("autoSim mismatch!", 500, -1);
         } else {
             setValue("autoAttackIndex", attackIndex);
             setTimeout(function() {
@@ -2572,7 +2576,7 @@ function loadEasyFarm() {
             }, Math.random() * 400 + 200);
         }
     } else if (autoAttack && attackIndex === -1 && messages.length > 0) {
-        // no more qualifying autoattacks
+        // no more qualifying autoAttacks
         displayAlert("No More Valid Fleets On Page", 500, -1);
     }
 
@@ -2629,7 +2633,7 @@ function changeHandler(forceSave) {
 
 /**
  * Replaces any question marks in the simulator with whatever
- * value is above/below. Also starts autosim if required
+ * value is above/below. Also starts autoSim if required
  */
 async function setSimDefaults() {
     var autoSim = (getValue("autoSim") === 1);
@@ -3049,7 +3053,6 @@ function loadConvertClick() {
 
     f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
         var item = f.$(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
-        console.log("Clicked on " + item);
         setValue("merchantItem", item);
         setValue("resourceRedirect", f.location.href);
         f.location = "marchand.php";
@@ -3815,7 +3818,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                         f.$("#sfmCheck").prop("checked", true);
                         f.$("#aaCheck").prop("checked", true);
                         f.location = "messages.php";
-                    }, 5 * 60 * 1000); // After 5 minutes (waiting for fleet to arrive), turn on autoattack and go to messages
+                    }, 5 * 60 * 1000); // After 5 minutes (waiting for fleet to arrive), turn on autoAttack and go to messages
                 }
             }
         }
@@ -4332,7 +4335,7 @@ function disableAutoComplete() {
 }
 
 /**
- * Autoattack handler, as well as defining some
+ * autoAttack handler, as well as defining some
  * keyboard shortcuts
  */
 function saveFleetPage() {
@@ -4359,7 +4362,7 @@ function saveFleetPage() {
             var fleetMax = parseInt(x[2]);
             if (fleetOut + waves > fleetMax) {
                 //alert("Not enough waves free!");
-                deleteValue("AutoAttackMC");
+                deleteValue("autoAttackMC");
                 deleteValue("autoAttackWaves");
                 setValue("autoAttackIndex", -1);
                 var div = f.document.createElement("div");
@@ -4382,7 +4385,7 @@ function saveFleetPage() {
             }
             var ships = 0;
             try {
-                ships = parseInt(getValue("AutoAttackMC"));
+                ships = parseInt(getValue("autoAttackMC"));
             } catch (ex) {
                 ships = 0;
             }
@@ -4391,19 +4394,19 @@ function saveFleetPage() {
             var max = parseInt(dotted);
             if (max < ships) {
                 alert("Not enough ships! \n" + max + " available, need " + ships);
-                deleteValue("AutoAttackMC");
+                deleteValue("autoAttackMC");
                 deleteValue("autoAttackWaves");
             } else {
                 mc.val(ships);
                 setValue("autoAttackWaves", waves - 1);
-                setValue("AutoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+                setValue("autoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
                 var blasts = parseInt(getValue("autoAttackBlasts"));
                 if (blasts) {
                     var bl = f.$("#ship219");
                     var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
                     if (blasts > maxBlasts) {
                         alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
-                        deleteValue("AutoAttackMC");
+                        deleteValue("autoAttackMC");
                         deleteValue("autoAttackWaves");
                         deleteValue("autoAttackBlasts");
                     }
@@ -4416,7 +4419,7 @@ function saveFleetPage() {
                 }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
             }
         } else {
-            deleteValue("AutoAttackMC");
+            deleteValue("autoAttackMC");
             deleteValue("autoAttackWaves");
         }
     } else {
@@ -4445,7 +4448,7 @@ function saveFleetPage() {
 }
 
 /**
- * More autoattack and keyboard shortcuts
+ * More autoAttack and keyboard shortcuts
  */
 function continueAttack() {
     if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
@@ -4510,6 +4513,11 @@ function loadMore() {
     }
 }
 
+if (usingOldVersion() &&
+    (!(GM_getValue("gb")) || !(GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38")))) {
+    g_oldVersion = false;
+}
+
 /**
  * Displays moons in a blue color in the planet chooser
  */
@@ -4551,8 +4559,6 @@ function loadConvertDeut() {
             deleteValue("merchantItem");
             if (merchantItem) {
                 deleteValue("merchantItem");
-                console.log(g_merchantMap);
-                console.log("Looking for input[value='" + g_merchantMap[merchantItem] + "']");
                 f.$("input[value='" + g_merchantMap[merchantItem] + "']").prop("checked", true);
                 f.$(":submit")[1].click();
             } else {
@@ -4682,7 +4688,7 @@ function loadRedirectFleet() {
 
     if (autoAttack && parseInt(getValue("autoAttackWaves")) === 0) {
         deleteValue("autoAttackWaves");
-        deleteValue("AutoAttackMC");
+        deleteValue("autoAttackMC");
         setValue("redirToSpy", "1");
         f.location.href = "messages.php?mode=show?messcat=0";
     } else if (fullLoc) {
