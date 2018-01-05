@@ -12,6 +12,7 @@
 // @include     http://www.spaceswars.fr/forum*
 //
 // @grant GM_getValue
+// @grant GM_setValue
 //
 // ==/UserScript==
 //
@@ -25,6 +26,21 @@
 
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
+
+// add a function to the page to allow cross-communication between
+// inner and outer loop
+window.document.head.appendChild(buildNodeInner("script", ["type"], ["text/javascript"],
+    `
+            function setConfig(config, scripts, uni) {
+                setConfigInternal(config, scripts, uni);
+            }
+        `
+));
+
+setConfigInternal = function(config, scripts, uni) {
+    GM_setValue("configScripts" + uni, JSON.stringify(config));
+    GM_setValue("infos_scripts", JSON.stringify(scripts));
+};
 
 
 /**
@@ -90,7 +106,7 @@ function loadRConverter() {
 
     // The original icons are gone.
     var scriptsIcons = "";
-    
+
     var couleurs_rc = {
         0: "#0000FF",
         1: "#8A2BE2",
