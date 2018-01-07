@@ -112,7 +112,7 @@ var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", 
  * @type {{}}
  */
 var KEY = {
-    TAB   : 9,
+    TAB   : 9,  SPACE : 32,
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
     LEFT  : 37, UP    : 38, RIGHT : 39, DOWN  : 40,
     ZERO  : 48, ONE   : 49, TWO   : 50, THREE : 51, FOUR : 52,
@@ -1625,7 +1625,6 @@ function globalShortcutHandler(e) {
         var active = f.document.activeElement;
 
         // If we're in an input field, use m/b/t for quick number expansion
-        // TODO: e/e+ handling? Maybe if [Space] is entered start processing?
         if (active.tagName.toLowerCase() === "input") {
             if (key === KEY.M) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
@@ -1645,6 +1644,8 @@ function globalShortcutHandler(e) {
                 } else if (active.value) {
                     active.value = parseFloat(active.value) * 1E12;
                 }
+            } else if (key === KEY.SPACE && active.value) {
+                active.value = Math.ceil(parseFloat(active.value));
             }
         }
     }
@@ -1962,7 +1963,6 @@ function messagePageKeyHandler(key) {
             }
             break;
         case KEY.F:
-            // TODO: breaks if not on spy page. Silently fails, but should still fix
             if (active.className.toLowerCase() === "message_space0 curvedtot" && usingOldVersion()) {
                 // Expand and focus
                 active.childNodes[1].click();
@@ -2380,17 +2380,24 @@ function loadEasyFarm() {
         var totDef = 0;
 
         // Determine the number of defenses present
-        // TODO: could be much more efficient with a map instead of array
-        for (j = 0; j < g_defNames.length; j++) {
-            if (messages[i].innerHTML.indexOf(g_defNames[j] + " : ") !== -1) {
-                var n = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank++].innerHTML)[1].split(","));
-                if (i !== 8)
+        var defenses = messages[i].children[1];
+        if (defenses.children.length > 5) {
+            defenses = defenses.children[5].children;
+            for (j = 0; j < defenses.length; j++) {
+                var def = defenses[j].innerText.substring(0, defenses[j].innerText.indexOf(" :"));
+                var n = getNbFromStringtab(defenses[j].innerText.substr(defenses[j].innerText.indexOf(": ") + 2).split(","));
+                if (def === L_.ug) {
+                    shouldAttack = shouldAttack && n <= 100;
+                } else if (def !== L_.abm && def !== L_.ipm) {
                     totDef += n;
-                else
-                    shouldAttack = shouldAttack && n <= 200;
+                }
             }
+        } else {
+            // We didn't send enough probes to find the defenses!
+            shouldAttack = false;
         }
 
+        console.log(totDef);
         shouldAttack = shouldAttack && totDef < 500000;
         needsSim[i] = autoAttackWithSim && candidate && !shouldAttack && parseInt(g_uni) === 17;
         if (parseInt(g_uni) !== 17 && totDef > 0) {
@@ -4828,9 +4835,9 @@ function Coordinates(gal, sys, planet) {
         this.s = parseInt(gal.substr(0, gal.indexOf(":")));
         this.p = parseInt(gal.substr(gal.indexOf(":") + 1));
     } else {
-        this.g = gal;
-        this.s = sys;
-        this.p = planet;
+        this.g = parseInt(gal);
+        this.s = parseInt(sys);
+        this.p = parseInt(planet);
         this.str = gal + ":" + sys + ":" + planet;
     }
 }
