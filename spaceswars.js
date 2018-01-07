@@ -3308,77 +3308,20 @@ function loadEasyTargetAndMarkit() {
     rows.splice(0, 2);
     rows.splice(15);
 
-    var gRanksRanks = g_config.GalaxyRanks.ranks;
-    var gRanksColors = g_config.GalaxyRanks.values;
+    var configRanks = g_config.GalaxyRanks.ranks;
+    var configColors = g_config.GalaxyRanks.values;
 
     var i, j;
 
     // attach the Markit popup window
-    f.document.body.appendChild(buildNode('div', ['id', 'style'], ['markit_current', 'display:none'], "0"));
-    var choosebox;
-
-    // Grab the Markit data and create the Markit window. Lots of fun when you only use JS
-    // TODO: pull out into own method
-    if (g_scriptInfo.Markit) {
-
-        choosebox = buildNode(
-            'div',
-            ['class', 'id', 'style'],
-            ['divtop', 'markit_choose', 'width:200px; margin:auto; height:auto; border-radius:15px; text-align:center; position:relative; bottom:400px; opacity:0.8;'],
-            "<div class='space0'>" + L_.mTitle + "</div>"
-        );
-
-        var values = ["default", "fridge", "bunker", "raidy", "dont"];
-        var descripts = [L_.mNone, L_.mFridge, L_.mBunker, L_.mAttack, L_.mDont];
-        var text = "<div class='space0' style='margin-left: 60px;text-align:left'>";
-
-        for (i = 0; i < 5; i++) {
-            text +=
-                "<input type='radio' name='markit_type' value='" + values[i] + "' id='" + values[i] + "' />" +
-                "<label for='" + values[i] + "' style='" + ((i === 0) ? "" : "color: #" + g_config.Markit.color[values[i]] + "; ") + "margin: auto 20px auto 10px;vertical-align:text-top;line-height:6pt;'>" + descripts[i] + "</label><br />"
-        }
-        text += "</div><input type='submit' style='margin:5px;padding:5px;text-align:center' value='Submit' id='markit_submit' />";
-        choosebox.innerHTML += text;
-        f.document.body.appendChild(choosebox);
-
-        f.$('#markit_choose').hide();
-        f.$('#markit_submit').click(function() {
-            g_markitChanged = true;
-            var coords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, parseInt(f.$('#markit_current')[0].innerHTML));
-            var markitTypeChecked = f.$('input[name="markit_type"]:checked');
-            var type = markitTypeChecked.val();
-
-            if (type === "default") {
-                // Fade back to the default background, which depends on
-                // which row it's in
-                if (g_markit[coords.str] !== undefined) delete g_markit[coords.str];
-                var defCol;
-                if (coords.p % 2 === 0) {
-                    defCol = "#111111";
-                } else {
-                    defCol = "transparent";
-                }
-
-                animateBackground(rows[coords.p - 1], defCol, 500, true);
-            } else {
-                // Fade to the corresponding color
-                g_markit[coords.str] = markitTypeChecked.val();
-                var c = hexToRgb('#' + g_config.Markit.color[type]);
-                c.a = .5;
-                animateBackground(rows[coords.p - 1], c, 500, false);
-            }
-            f.$('#markit_choose').fadeOut(500);
-            changeHandler(false /*forceSave*/);
-        });
-    }
+    appendMarkitWindow(rows);
 
     var gal = parseInt(f.document.getElementById('galaxy').value);
     var sys = parseInt(f.document.getElementsByName('system')[0].value);
+    var galaxySelector = f.$('#galaxy');
 
     // Nice hack to know if we want to highlight a planet. Before we redirected, we set some
     // local storage.
-    var galaxySelector = f.$('#galaxy');
-
     g_targetPlanet = -1;
     var redir;
     try {
@@ -3591,10 +3534,10 @@ function loadEasyTargetAndMarkit() {
                     delete g_inactiveList[newName];
                 }
 
-                span.style.color = '#' + gRanksColors[gRanksColors.length - 1];
-                for (j = 0; j < gRanksRanks.length; j++) {
-                    if (rank <= parseInt(gRanksRanks[j])) {
-                        span.style.color = '#' + gRanksColors[j];
+                span.style.color = '#' + configColors[configColors.length - 1];
+                for (j = 0; j < configRanks.length; j++) {
+                    if (rank <= parseInt(configRanks[j])) {
+                        span.style.color = '#' + configColors[j];
                         break;
                     }
                 }
@@ -3828,9 +3771,114 @@ function loadEasyTargetAndMarkit() {
     }
 }
 
+/**
+ * Create the Markit popup window, letting the user choose a markit color
+ * for a specific coordinate
+ *
+ * @param rows
+ */
+function appendMarkitWindow(rows) {
+
+    f.document.body.appendChild(buildNode('div', ['id', 'style'], ['markit_current', 'display:none'], "0"));
+
+    // Grab the Markit data and create the Markit window. Lots of fun when you only use JS
+    if (g_scriptInfo.Markit) {
+        f.document.body.appendChild(buildMarkitWindow());
+
+        f.$('#markit_choose').hide();
+        f.$('#markit_submit').click(function() {
+            g_markitChanged = true;
+            var coords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, parseInt(f.$('#markit_current')[0].innerHTML));
+            var markitTypeChecked = f.$('input[name="markit_type"]:checked');
+            var type = markitTypeChecked.val();
+
+            if (type === "default") {
+                // Fade back to the default background, which depends on
+                // which row it's in
+                if (g_markit[coords.str] !== undefined) delete g_markit[coords.str];
+                var defCol;
+                if (coords.p % 2 === 0) {
+                    defCol = "#111111";
+                } else {
+                    defCol = "transparent";
+                }
+
+                animateBackground(rows[coords.p - 1], defCol, 500, true);
+            } else {
+                // Fade to the corresponding color
+                g_markit[coords.str] = markitTypeChecked.val();
+                var c = hexToRgb('#' + g_config.Markit.color[type]);
+                c.a = .5;
+                animateBackground(rows[coords.p - 1], c, 500, false);
+            }
+            f.$('#markit_choose').fadeOut(500);
+            changeHandler(false /*forceSave*/);
+        });
+    }
+}
+
+function buildMarkitWindow() {
+    var chooseBox = buildNode(
+        'div',
+        ['class', 'id', 'style'],
+        ['divtop', 'markit_choose', 'width:200px; margin:auto; height:auto; border-radius:15px; text-align:center; position:relative; bottom:400px; opacity:0.8;'],
+        "<div class='space0'>" + L_.mTitle + "</div>"
+    );
+
+    var values = ["default", "fridge", "bunker", "raidy", "dont"];
+    var descriptions = [L_.mNone, L_.mFridge, L_.mBunker, L_.mAttack, L_.mDont];
+    var text = buildNode(
+        "div",
+        ["class",  "style"],
+        ["space0", "margin-left: 60px; " +
+                   "text-align: left;"
+        ],
+        ""
+    );
+
+    for (var i = 0; i < 5; i++) {
+        // Build each option
+        var input = buildNode(
+            "input",
+            ["type",  "name",        "value",   "id"],
+            ["radio", "markit_type", values[i], values[i]],
+            ""
+        );
+        var label = buildNode(
+            "label",
+            ["for",     "style"],
+            [values[i], ((i === 0) ? "" : "color: #" + g_config.Markit.color[values[i]] + ";") +
+                        "margin: auto 20px auto 10px; " +
+                        "vertical-align: text-top; " +
+                        "line-height: 6pt;"
+            ],
+            descriptions[i]
+        );
+        text.appendChild(input);
+        text.appendChild(label);
+        text.appendChild(document.createElement("br"));
+    }
+
+    var submit = buildNode(
+        "input",
+        ["type",   "value",  "id",            "style"],
+        ["submit", "Submit", "markit_submit", "margin: 5px; " +
+                                              "padding: 5px; " +
+                                              "text-align: center"
+        ],
+        ""
+    );
+    chooseBox.appendChild(text);
+    chooseBox.appendChild(submit);
+    return chooseBox;
+}
+
+/**
+ * Add the key listener for the galaxy page: spying and navigation
+ *
+ * @param rows
+ */
 function addTargetPlanetKeyListener(rows) {
-
-
     f.addEventListener("keyup", function(e) {
         if (g_targetPlanet === -1) {
             return;
@@ -4840,16 +4888,16 @@ function deleteValue(key) {
  * @constructor
  */
 function Coordinates(gal, sys, planet) {
-    if (gal.indexOf(":") === -1) {
-        this.g = gal;
-        this.s = sys;
-        this.p = planet;
-        this.str = gal + ":" + sys + ":" + planet;
-    } else {
+    if ((typeof(gal)).toLowerCase() === "string" && gal.indexOf(":") !== -1) {
         this.str = gal;
         this.g = parseInt(gal.substr(0, 1));
         gal = gal.substr(2);
         this.s = parseInt(gal.substr(0, gal.indexOf(":")));
         this.p = parseInt(gal.substr(gal.indexOf(":") + 1));
+    } else {
+        this.g = gal;
+        this.s = sys;
+        this.p = planet;
+        this.str = gal + ":" + sys + ":" + planet;
     }
 }
