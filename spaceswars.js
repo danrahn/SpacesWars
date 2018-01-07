@@ -2408,11 +2408,7 @@ function loadEasyFarm() {
 
         // Determine planet position (for doNotSpy info)
         var text = messages[i].childNodes[1].childNodes[7].innerHTML;
-        text = text.substr(5, text.indexOf("(") - 6);
-        var galaxy = parseInt(text.substr(0, 1));
-        text = text.substr(2);
-        var system = parseInt(text.substr(0, text.indexOf(":")));
-        var position = text.substr(text.indexOf(":") + 1);
+        var coords = new Coordinates(text.substr(5, text.indexOf("(") - 6));
 
         // Delete a message if we're autoAttacking, the planet has defenses, and
         // the total resources isn't greater than the defMultiplier
@@ -2423,11 +2419,11 @@ function loadEasyFarm() {
         }
 
         // Update doNotSpy if necessary
-        var oldValue = g_doNotSpy[galaxy][system][position];
+        var oldValue = g_doNotSpy[coords.g][coords.s][coords.p];
         var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
         if (g_config.EasyTarget.useDoNotSpy && oldValue !== newValue) {
             g_dnsChanged = true;
-            g_doNotSpy[galaxy][system][position] = newValue;
+            g_doNotSpy[coords.g][coords.s][coords.p] = newValue;
         }
 
         // Determine the number of mc/waves necessary
@@ -3348,31 +3344,28 @@ function loadEasyTargetAndMarkit() {
         f.$('#markit_choose').hide();
         f.$('#markit_submit').click(function() {
             g_markitChanged = true;
-            var num = parseInt(f.$('#markit_current')[0].innerHTML);
-            var galaxy = f.$('#galaxy')[0].value;
-            var sys = f.document.getElementsByName('system')[0].value;
+            var coords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, parseInt(f.$('#markit_current')[0].innerHTML));
             var markitTypeChecked = f.$('input[name="markit_type"]:checked');
             var type = markitTypeChecked.val();
-            var loc = galaxy + ':' + sys + ':' + num;
 
             if (type === "default") {
                 // Fade back to the default background, which depends on
                 // which row it's in
-                if (g_markit[loc] !== undefined) delete g_markit[loc];
+                if (g_markit[coords.str] !== undefined) delete g_markit[coords.str];
                 var defCol;
-                if (num % 2 === 0) {
+                if (coords.p % 2 === 0) {
                     defCol = "#111111";
                 } else {
                     defCol = "transparent";
                 }
 
-                animateBackground(rows[num - 1], defCol, 500, true);
+                animateBackground(rows[coords.p - 1], defCol, 500, true);
             } else {
                 // Fade to the corresponding color
-                g_markit[galaxy + ':' + sys + ':' + num] = markitTypeChecked.val();
+                g_markit[coords.str] = markitTypeChecked.val();
                 var c = hexToRgb('#' + g_config.Markit.color[type]);
                 c.a = .5;
-                animateBackground(rows[num - 1], c, 500, false);
+                animateBackground(rows[coords.p - 1], c, 500, false);
             }
             f.$('#markit_choose').fadeOut(500);
             changeHandler(false /*forceSave*/);
@@ -3389,7 +3382,7 @@ function loadEasyTargetAndMarkit() {
     g_targetPlanet = -1;
     var redir;
     try {
-        redir = JSON.parse(getValue("easyTargetRedirect");
+        redir = JSON.parse(getValue("easyTargetRedirect"));
     } catch (err) {
         redir = undefined;
     }
@@ -3444,7 +3437,8 @@ function loadEasyTargetAndMarkit() {
         var row = rows[i];
         var name = row.childNodes[11].childNodes[1];
         var planet = i + 1;
-        var position = gal + ":" + sys + ":" + planet;
+        var coords = new Coordinates(gal, sys, planet);
+        var position = coords.str;
 
         // This person is marked!
         if (g_scriptInfo.Markit && g_markit[position] !== undefined) {
@@ -3684,17 +3678,16 @@ function loadEasyTargetAndMarkit() {
                     name.parentNode.parentNode.style.backgroundColor = 'rgba(0, 100, 0, .8)';
                     if (g_scriptInfo.Markit && g_markit[position] !== undefined) {
                         // This person is also marked. Show the marking after a second.
-                        (function (sum, name) {
+                        (function (coords, name) {
                             setTimeout(function () {
-                                var ploc = sum.substring(0, sum.indexOf(':', sum.indexOf(':') + 1) + 1);
-                                ploc += g_targetPlanet;
-                                var c = hexToRgb('#' + g_config.Markit.color[g_markit[ploc]]);
+                                var newCoords = new Coordinates(coords.g, coords.s, g_targetPlanet);
+                                var c = hexToRgb('#' + g_config.Markit.color[g_markit[newCoords.str]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
                                     animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 }
                             }, 1000);
-                        })(position, name);
+                        })(coords, name);
                     }
                 }
             }
