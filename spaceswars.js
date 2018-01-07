@@ -1630,7 +1630,7 @@ function globalShortcutHandler(e) {
             if (key === KEY.M) {
                 if (!parseInt(active.value) && (g_page === "build_fleet" || g_page === "build_def")) {
                     makeEven(active, 1E6);
-                } else if (active.value) {
+                } else if (active.value && g_page !== "floten1") {
                     active.value = parseFloat(active.value) * 1E6;
                 }
             } else if (key === KEY.B) {
@@ -1677,6 +1677,12 @@ function globalShortcutHandler(e) {
                     setTimeout(function() {
                         f.$('input[type=submit]')[0].click();
                     }, 200);
+                } else if (key === KEY.M) {
+                    e.preventDefault();
+                    f.$("#planettype option:eq(2)").prop("selected", true);
+                } else if (key === KEY.H) {
+                    e.preventDefault();
+                    f.$("#planettype option:eq(1)").prop("selected", true);
                 }
             }
             break;
@@ -1957,7 +1963,7 @@ function messagePageKeyHandler(key) {
             break;
         case KEY.F:
             // TODO: breaks if not on spy page. Silently fails, but should still fix
-            if (active.className.toLowerCase() === "message_space0 curvedtot" && !usingOldVersion()) {
+            if (active.className.toLowerCase() === "message_space0 curvedtot" && usingOldVersion()) {
                 // Expand and focus
                 active.childNodes[1].click();
                 f.$(active).find(".supFleet").focus();
@@ -2136,7 +2142,7 @@ function setGlobalKeyboardShortcuts() {
  * @param e
  */
 function globalKeypressHandler(e) {
-    if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet") {
+    if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet" || g_page === "floten1") {
         if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey && e.keyCode !== KEY.E) { // Allow exponential calculations (2E9, 1.1E6, etc)
             e.preventDefault();
         }
@@ -2525,10 +2531,10 @@ function loadEasyFarm() {
                     sel.add(option);
                 }
 
-                selDiv.appendChild(simulate);
                 selDiv.appendChild(num);
                 selDiv.appendChild(sel);
                 selDiv.appendChild(submit);
+                selDiv.appendChild(simulate);
                 f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
             }
 
@@ -3525,22 +3531,30 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             // potentially pick up ruin fields, but that's okay, since they'll be
             // seen as inactive anyway.
             var moon = f.$(row).find(".img_20");
+            var planetActive = row.childNodes[5].innerHTML.slice(-4).match(/\((\*|\d{1,2})\)/);
+            if (planetActive) {
+                if (planetActive[1] === "*") {
+                    planetActive[1] = "0";
+                }
+                var g = Math.ceil(planetActive[1] * 10);
+                moon[0].style.border = "1px solid rgb(150, " + g + ", 0)";
+                moon[0].style.margin = "-1px";
+            }
+
             if (moon.length >= 2) {
                 var divId = moon[1].onclick.toString();
                 divId = divId.substring(divId.indexOf("'") + 1, divId.lastIndexOf("'"));
-                // This will be tripped up if for some reason a player's moon ends in " (*)",
+                // This will be tripped up if for some reason a player's moon ends in " (*)" or (\d+),
                 // but that's pretty unlikely...
-                if (f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4) === " (*)") {
-                    moon[1].style.border = "1px solid rgb(150, 0, 0)";
-                    moon[1].style.margin = "-1px";
-                } else {
-                    var min = f.$("#" + divId)[0].childNodes[0].innerHTML.match(/\((\d+)min\)/);
-                    if (min && min.length) {
-                        // fade out red until it's black/disappears
-                        var color = Math.ceil(min[1] * 10);
-                        moon[1].style.border = "1px solid rgb(150, " + color + ", 0)";
-                        moon[1].style.margin = "-1px";
+                var moonActive = f.$("#" + divId)[0].childNodes[0].innerHTML.slice(-4).match(/\((\*|\d{1,2})\)/);
+                if (moonActive) {
+                    if (moonActive[1] === "*") {
+                        moonActive[1] = "0";
                     }
+
+                    var color = Math.ceil(moonActive[1] * 10);
+                    moon[1].style.border = "1px solid rgb(150, " + color + ", 0)";
+                    moon[1].style.margin = "-1px";
                 }
             }
 
@@ -4360,7 +4374,24 @@ function saveFleetPage() {
             var x = regx.exec(f.document.getElementsByClassName("flotte_header_left")[0].innerHTML);
             var fleetOut = parseInt(x[1]);
             var fleetMax = parseInt(x[2]);
-            if (fleetOut + waves > fleetMax) {
+
+            var ships = 0;
+            try {
+                ships = parseInt(getValue("autoAttackMC"));
+            } catch (ex) {
+                ships = 0;
+            }
+
+            var dotted = mc.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, "");
+            var max = parseInt(dotted);
+            var totalShips = 0;
+            var futureShips = ships;
+            for (var i = 0; i < waves; i++) {
+                totalShips += futureShips;
+                futureShips = Math.ceil((futureShips / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+            }
+
+            if (fleetOut + waves > fleetMax || max < totalShips) {
                 //alert("Not enough waves free!");
                 deleteValue("autoAttackMC");
                 deleteValue("autoAttackWaves");
@@ -4372,9 +4403,9 @@ function saveFleetPage() {
                 div.innerHTML = "Not enough fleets, retrying in 30 seconds";
                 f.$("#main").prepend(div);
                 // Wait 30 seconds and try again
-                for (var i = 1; i <= 30; i++) {
+                for (i = 1; i <= 30; i++) {
                     setTimeout(function(i) {
-                        f.$("#main").children()[0].innerHTML = "Not enough fleets, retrying in " + (30 - i) + " seconds";
+                        f.$("#main").children()[0].innerHTML = "Not enough fleets/ships, retrying in " + (30 - i) + " seconds";
                         if (i === 30) {
                             setValue("redirToSpy", "1");
                             f.location.href = "messages.php?mode=show?messcat=0";
@@ -4383,41 +4414,34 @@ function saveFleetPage() {
                 }
                 return;
             }
-            var ships = 0;
-            try {
-                ships = parseInt(getValue("autoAttackMC"));
-            } catch (ex) {
-                ships = 0;
-            }
 
-            var dotted = mc.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, "");
-            var max = parseInt(dotted);
-            if (max < ships) {
-                alert("Not enough ships! \n" + max + " available, need " + ships);
-                deleteValue("autoAttackMC");
-                deleteValue("autoAttackWaves");
-            } else {
-                mc.val(ships);
-                setValue("autoAttackWaves", waves - 1);
-                setValue("autoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
-                var blasts = parseInt(getValue("autoAttackBlasts"));
-                if (blasts) {
-                    var bl = f.$("#ship219");
-                    var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
-                    if (blasts > maxBlasts) {
-                        alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
-                        deleteValue("autoAttackMC");
-                        deleteValue("autoAttackWaves");
-                        deleteValue("autoAttackBlasts");
-                    }
+            // if (max < ships) {
+            //     alert("Not enough ships! \n" + max + " available, need " + ships);
+            //     deleteValue("autoAttackMC");
+            //     deleteValue("autoAttackWaves");
+            // } else {
 
-                    bl.val(blasts);
-                    setValue("autoAttackBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+            mc.val(ships);
+            setValue("autoAttackWaves", waves - 1);
+            setValue("autoAttackMC", Math.ceil((ships / 2) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
+            var blasts = parseInt(getValue("autoAttackBlasts"));
+            if (blasts) {
+                var bl = f.$("#ship219");
+                var maxBlasts = parseInt(bl.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
+                if (blasts > maxBlasts) {
+                    alert("Not enough blasts! \n" + maxBlasts + " available, need " + ships);
+                    deleteValue("autoAttackMC");
+                    deleteValue("autoAttackWaves");
+                    deleteValue("autoAttackBlasts");
                 }
-                setTimeout(function() {
-                    f.$('input[type=submit]')[0].click()
-                }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
+
+                bl.val(blasts);
+                setValue("autoAttackBlasts", Math.ceil((blasts * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity);
             }
+            setTimeout(function() {
+                f.$('input[type=submit]')[0].click()
+            }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
+            // }
         } else {
             deleteValue("autoAttackMC");
             deleteValue("autoAttackWaves");
