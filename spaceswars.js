@@ -3389,7 +3389,7 @@ function loadEasyTargetAndMarkit() {
     g_targetPlanet = -1;
     var redir;
     try {
-        redir = JSON.parse(localStorage.EasyTargetRedirect);
+        redir = JSON.parse(getValue("easyTargetRedirect");
     } catch (err) {
         redir = undefined;
     }
@@ -3406,10 +3406,11 @@ function loadEasyTargetAndMarkit() {
                 g_targetPlanet = parseInt(redir.planet);
             }
         }
-        localStorage.EasyTargetRedirect = JSON.stringify({
+
+        setValue("easyTargetRedirect", JSON.stringify({
             'planet': -1,
             'redirect': 0
-        });
+        }));
     }
 
     var changedPlayers = [];
@@ -3704,12 +3705,9 @@ function loadEasyTargetAndMarkit() {
             if (g_scriptInfo.Markit) {
 
                 f.$('#img_' + (i + 1)).click(function() {
-                    var gal = galaxySelector[0].value;
-                    var sys = f.document.getElementsByName('system')[0].value;
-                    var planet = this.id.substring(this.id.indexOf('_') + 1);
-                    var loc = gal + ':' + sys + ':' + planet;
-                    f.$('#markit_current').html(planet);
-                    if (g_markit[loc] !== undefined) f.$('#' + g_markit[loc])[0].checked = 'checked';
+                    var coords = new Coordinates(galaxySelector[0].value, f.document.getElementsByName("system")[0].value, this.id.substring(this.id.indexOf("_") + 1));
+                    f.$('#markit_current').html(coords.p);
+                    if (g_markit[coords.str] !== undefined) f.$('#' + g_markit[coords.str])[0].checked = 'checked';
                     else f.$('#default')[0].checked = 'checked';
                     f.$('#markit_choose').fadeIn(500);
                 });
@@ -3879,30 +3877,28 @@ function addTargetPlanetKeyListener(rows) {
         }
 
         if (key === KEY.N || key === KEY.P) {
-            var coords = '';
+            var oldCoords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, g_targetPlanet);
+            var newCoords;
 
-            var gal = f.$('#galaxy')[0].value;
-            var sys = f.document.getElementsByName('system')[0].value;
-            var ploc = gal + ":" + sys + ":" + g_targetPlanet;
-            var n = g_galaxyData.universe[ploc];
+            var n = g_galaxyData.universe[oldCoords.str];
             if (!n) {
                 displayAlert("You must save the planet before navigating!", 500, 2000);
                 return;
             }
 
             var player = g_galaxyData.players[n][0];
-            var index = player.indexOf(ploc);
+            var index = player.indexOf(oldCoords.str);
             if (key === KEY.N) {
-                coords = player[(index + 1) % player.length];
+                newCoords = new Coordinates(player[(index + 1) % player.length]);
             } else {
                 if (index === 0) {
                     index += player.length;
                 }
 
-                coords = player[(index - 1) % player.length];
+                newCoords = new Coordinates(player[(index - 1) % player.length]);
             }
 
-            g_targetPlanet = easyTargetRedirect(ploc, coords, rows, rows[g_targetPlanet - 1].childNodes[11].childNodes[1]);
+            g_targetPlanet = easyTargetRedirect(oldCoords, newCoords, rows, rows[g_targetPlanet - 1].childNodes[11].childNodes[1]);
         }
     });
 }
@@ -3947,56 +3943,47 @@ function galaxySort(a, b) {
  * @returns {string}
  */
 function easyTargetRedirect(oldCoords, newCoords, rows, name) {
-    var oldTemp = oldCoords;
-    var oldGal = oldCoords.substring(0, oldCoords.indexOf(":"));
-    oldTemp = oldTemp.substring(oldCoords.indexOf(":") + 1);
-    var oldSys = oldTemp.substring(0, oldTemp.indexOf(":"));
-    var oldPlanet = oldTemp.substring(oldTemp.lastIndexOf(":") + 1);
-
-    var newTemp = newCoords;
-    var newGal = newCoords.substring(0, newCoords.indexOf(":"));
-    newTemp = newTemp.substring(newCoords.indexOf(":") + 1);
-    var newSys = newTemp.substring(0, newTemp.indexOf(":"));
-    var newPlanet = newTemp.substring(newTemp.lastIndexOf(":") + 1);
-
-    if (newGal === oldGal && newSys === oldSys) {
-        if (g_scriptInfo.Markit && g_markit[newCoords] !== undefined) {
+    if (newCoords.g === oldCoords.g && newCoords.s === oldCoords.s) {
+        // Same galaxy and system. We need to unmark the current planet,
+        // and mark the new, making sure any markit data also stays intact
+        if (g_scriptInfo.Markit && g_markit[newCoords.str] !== undefined) {
             setTimeout(function() {
-                var c = hexToRgb('#' + g_config.Markit.color[g_markit[newCoords]]);
+                var c = hexToRgb('#' + g_config.Markit.color[g_markit[newCoords.str]]);
                 c.a = 0.5;
                 if (name !== undefined) {
-                    animateBackground(rows[newPlanet - 1], c, 600, false);
+                    animateBackground(rows[newCoords.p - 1], c, 600, false);
                 }
             }, 1000);
         }
-        if (g_scriptInfo.Markit && g_markit[oldCoords] !== undefined) {
+
+        if (g_scriptInfo.Markit && g_markit[oldCoords.str] !== undefined) {
             // Check to see if we need to overwrite a markit color
-            var c = hexToRgb('#' + g_config.Markit.color[g_markit[oldCoords]]);
+            var c = hexToRgb('#' + g_config.Markit.color[g_markit[oldCoords.str]]);
             c.a = 0.5;
             if (name !== undefined) {
-                animateBackground(rows[oldPlanet - 1], c, 600, false);
+                animateBackground(rows[oldCoords.p - 1], c, 600, false);
             }
-        } else if (oldPlanet % 2 === 0) {
+        } else if (oldCoords.p % 2 === 0) {
             // Otherwise fill it in with its default color
-            animateBackground(rows[oldPlanet - 1], "#111111", 200, true);
-        } else if (parseInt(oldPlanet) !== -1) {
-            animateBackground(rows[oldPlanet - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200, true);
+            animateBackground(rows[oldCoords.p - 1], "#111111", 200, true);
+        } else if (parseInt(oldCoords.p) !== -1) {
+            animateBackground(rows[oldCoords.p - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200, true);
         }
         // Mark the next target green
-        animateBackground(rows[parseInt(newPlanet) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
+        animateBackground(rows[parseInt(newCoords.p) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
 
-        return newPlanet;
+        return newCoords.p;
     } else {
         // Redirect, save the magic values in storage so
         // we know our state after a refresh
-        localStorage.EasyTargetRedirect = JSON.stringify({
+        setValue("easyTargetRedirect", JSON.stringify({
             'g': -1,
             's': -1,
-            'planet': newPlanet,
+            'planet': newCoords.p,
             'redirect': 1
-        });
-        f.$('#galaxy')[0].value = newGal;
-        f.document.getElementsByName('system')[0].value = newSys;
+        }));
+        f.$('#galaxy')[0].value = newCoords.g;
+        f.document.getElementsByName('system')[0].value = newCoords.s;
         f.document.forms['galaxy_form'].submit();
     }
 }
@@ -4177,10 +4164,9 @@ function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows) {
         (function(i, j, name) {
             f.$('#target_' + (i + 1) + '_' + (j + 1)).click(function() {
                 var coords = this.innerHTML;
-                coords = coords.replace(" (L)", "");
-                var gal = f.$('#galaxy')[0].value;
-                var sys = f.document.getElementsByName('system')[0].value;
-                g_targetPlanet = easyTargetRedirect(gal + ":" + sys + ":" + g_targetPlanet, coords, rows, name);
+                var newCoords = new Coordinates(coords.replace(" (L)", ""));
+                var oldCoords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, g_targetPlanet);
+                g_targetPlanet = easyTargetRedirect(oldCoords, newCoords, rows, name);
             });
         })(i, j, nameDiv);
     }
@@ -4850,4 +4836,27 @@ function getValue(key) {
  */
 function deleteValue(key) {
     return GM_deleteValue(key + g_uni);
+}
+
+/**
+ * Creates a coordinate object containing the galaxy, system, and planet,
+ * as well as a string representation of them all.
+ * @param gal - the galaxy, or the entire coordinate as a string which will be parsed
+ * @param sys
+ * @param planet
+ * @constructor
+ */
+function Coordinates(gal, sys, planet) {
+    if (gal.indexOf(":") === -1) {
+        this.g = gal;
+        this.s = sys;
+        this.p = planet;
+        this.str = gal + ":" + sys + ":" + planet;
+    } else {
+        this.str = gal;
+        this.g = parseInt(gal.substr(0, 1));
+        gal = gal.substr(2);
+        this.s = parseInt(gal.substr(0, gal.indexOf(":")));
+        this.p = parseInt(gal.substr(gal.indexOf(":") + 1));
+    }
 }
