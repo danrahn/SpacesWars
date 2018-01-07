@@ -267,7 +267,7 @@ if (g_page === "frames") {
 
         // Shows who's inactive in the statistics page
         if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
-            loadInactiveStatsAndFleetPoints(g_scriptInfo);
+            loadInactiveStatsAndFleetPoints();
         }
 
         if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
@@ -283,11 +283,11 @@ if (g_page === "frames") {
         }
 
         if (canLoadInPage("empireTotal") && g_scriptInfo.BetterEmpire) {
-            loadBetterEmpire(g_config);
+            loadBetterEmpire();
         }
 
         if (canLoadInPage("EasyTarget")) {
-            loadEasyTargetAndMarkit(g_scriptInfo, g_config);
+            loadEasyTargetAndMarkit();
         }
 
         if (canLoadInPage("iFly") && g_scriptInfo.iFly) {
@@ -2785,14 +2785,12 @@ function noShip(pref) {
  *
  * This is only the beginning of my awfulness...
  *
- * @param scriptsInfo - The current script settings
- *
  */
-function loadInactiveStatsAndFleetPoints(scriptsInfo) {
+function loadInactiveStatsAndFleetPoints() {
     var fpRedirect = false;
     var changed = false;
     var types, i, space;
-    if (scriptsInfo.FleetPoints && usingOldVersion()) {
+    if (g_scriptInfo.FleetPoints && usingOldVersion()) {
         fpRedirect = !!(getValue("fpRedirect"));
         setValue("fpRedirect", 0);
         if (!g_fleetPoints['1']) g_fleetPoints['1'] = {};
@@ -2802,7 +2800,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
 
     var players = f.document.getElementsByClassName('space0')[2].childNodes;
 
-    if (scriptsInfo.FleetPoints && usingOldVersion()) {
+    if (g_scriptInfo.FleetPoints && usingOldVersion()) {
         // God-awful time parsing. Pretty much all of fleetPoints is a disaster
         // TODO: General Cleanup
         // TODO:: What's with the mix of string and ints? Does it actually work?
@@ -2827,7 +2825,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         var seconds = time.substring(time.indexOf(':') + 1); // seconds
         var dte = new Date(year, month, day, hour, minutes, seconds, 0);
         var who = parseInt(f.$('select[name=who] :selected').val());  // Player/Bot/Alliance (I think)
-        if (who === 2) dte = new Date(g_fleetPoints[1][Object.keys(g_fleetPoints[1])[0]][1][1]);
+        if (who === 2) dte = new Date(g_fleetPoints[1][Object.keys(g_fleetPoints[1])[0]][1][1]); //jfc
 
         if (!fpRedirect) {
             // If we're not redirecting to fleetPoints, update the
@@ -2927,7 +2925,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         }
     }
 
-    if (scriptsInfo.InactiveStats) {
+    if (g_scriptInfo.InactiveStats) {
         // Show inactive players in the stats page
         for (i = 1; i < players.length - 1; i++) {
             var div;
@@ -2945,7 +2943,7 @@ function loadInactiveStatsAndFleetPoints(scriptsInfo) {
         }
     }
 
-    if (scriptsInfo.FleetPoints && usingOldVersion()) {
+    if (g_scriptInfo.FleetPoints && usingOldVersion()) {
         // Add the fleetPoints selection in the stats dropdown, and
         // assign event handlers
         space = f.$('.space0')[1];
@@ -3109,13 +3107,12 @@ function loadMcTransport() {
 
 /**
  * Organizes Empire view to optionally show totals first and moons last
- * @param config
  */
-function loadBetterEmpire(config) {
+function loadBetterEmpire() {
     // TODO: Fix when single planet is selected
     var space, i, j, row, planets;
     var spaceSelector = f.$('.space0');
-    if (!config.BetterEmpire.byMainSort) {
+    if (!g_config.BetterEmpire.byMainSort) {
         // If no extra options are chosen, just put the total
         // row at the front
         space = spaceSelector[1];
@@ -3128,7 +3125,7 @@ function loadBetterEmpire(config) {
             }
         }
     } else {
-        var moonsLast = config.BetterEmpire.moonsLast;
+        var moonsLast = g_config.BetterEmpire.moonsLast;
         space = spaceSelector[1];
         var array = [];
         for (i = 0; i < space.childNodes.length; i++) {
@@ -3307,18 +3304,16 @@ function animateBackground(element, newColor, duration, deleteAfterTransition) {
  *
  * Looking back, I'm surprised I was able to make this when I did. Lots of little hitches,
  * but for the most part very robust and feature rich. (Minus the god-awful style/maintainability)
- * @param infos_scripts
- * @param config
  */
-function loadEasyTargetAndMarkit(infos_scripts, config) {
+function loadEasyTargetAndMarkit() {
 
     // grab the rows and splice out any we don't care about
     var rows = f.$('.curvedtot.space, .curvedtot.space1');
     rows.splice(0, 2);
     rows.splice(15);
 
-    var gRanksRanks = config.GalaxyRanks.ranks;
-    var gRanksColors = config.GalaxyRanks.values;
+    var gRanksRanks = g_config.GalaxyRanks.ranks;
+    var gRanksColors = g_config.GalaxyRanks.values;
 
     var i, j;
 
@@ -3328,7 +3323,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
     // Grab the Markit data and create the Markit window. Lots of fun when you only use JS
     // TODO: pull out into own method
-    if (infos_scripts.Markit) {
+    if (g_scriptInfo.Markit) {
 
         choosebox = buildNode(
             'div',
@@ -3344,7 +3339,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         for (i = 0; i < 5; i++) {
             text +=
                 "<input type='radio' name='markit_type' value='" + values[i] + "' id='" + values[i] + "' />" +
-                "<label for='" + values[i] + "' style='" + ((i === 0) ? "" : "color: #" + config.Markit.color[values[i]] + "; ") + "margin: auto 20px auto 10px;vertical-align:text-top;line-height:6pt;'>" + descripts[i] + "</label><br />"
+                "<label for='" + values[i] + "' style='" + ((i === 0) ? "" : "color: #" + g_config.Markit.color[values[i]] + "; ") + "margin: auto 20px auto 10px;vertical-align:text-top;line-height:6pt;'>" + descripts[i] + "</label><br />"
         }
         text += "</div><input type='submit' style='margin:5px;padding:5px;text-align:center' value='Submit' id='markit_submit' />";
         choosebox.innerHTML += text;
@@ -3375,7 +3370,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             } else {
                 // Fade to the corresponding color
                 g_markit[galaxy + ':' + sys + ':' + num] = markitTypeChecked.val();
-                var c = hexToRgb('#' + config.Markit.color[type]);
+                var c = hexToRgb('#' + g_config.Markit.color[type]);
                 c.a = .5;
                 animateBackground(rows[num - 1], c, 500, false);
             }
@@ -3437,60 +3432,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         'user-select': 'none'
     });
 
-    f.addEventListener("keyup", function(e) {
-        if (g_targetPlanet !== -1) {
-            var key = e.keyCode ? e.keyCode : e.which;
-
-            if (key === KEY.S) {
-                e.preventDefault();
-                var element = rows[g_targetPlanet - 1].childNodes[15].childNodes[1];
-                if (element !== undefined) {
-                    var title = element.getAttribute('title');
-                    if (title === 'Spy') {
-                        element.click();
-                    }
-                }
-            } else if (key === KEY.L) {
-                e.preventDefault();
-                var row = rows[g_targetPlanet - 1];
-                var name = row.childNodes[7].childNodes[1];
-                if (!name)
-                    return; // No moon
-                var id = name.onclick.toString();
-                id = id.substring(id.lastIndexOf("(") + 2, id.lastIndexOf(")") - 1);
-                var moonDiv = f.document.getElementById(id);
-                var node = moonDiv.childNodes[4];
-                for (var i = 0; i < node.childNodes.length; i++) {
-                    if (node.childNodes[i].childNodes[0].innerHTML === L_.spy) {
-                        node.childNodes[i].childNodes[0].click();
-                        break;
-                    }
-                }
-            }
-
-            if (key === KEY.N || key === KEY.P) {
-                var coords = '';
-
-                var gal = galaxySelector[0].value;
-                var sys = f.document.getElementsByName('system')[0].value;
-                var ploc = gal + ":" + sys + ":" + g_targetPlanet;
-                var n = g_galaxyData.universe[ploc];
-                if (!n) {
-                    displayAlert("You must save the planet before navigating!", 500, 2000);
-                    return;
-                }
-                var player = g_galaxyData.players[n][0];
-                var index = player.indexOf(ploc);
-                if (key === KEY.N) {
-                    coords = player[(index + 1) % player.length];
-                } else {
-                    if (index === 0) index += player.length;
-                    coords = player[(index - 1) % player.length];
-                }
-                g_targetPlanet = easyTargetRedirect(ploc, coords, rows, rows[g_targetPlanet - 1].childNodes[11].childNodes[1], infos_scripts, g_markit);
-            }
-        }
-    });
+    addTargetPlanetKeyListener(rows);
 
     var spyNeeded = [];
     var sfmLen = parseInt(getValue("autoSpyLength"));
@@ -3504,8 +3446,8 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         var position = gal + ":" + sys + ":" + planet;
 
         // This person is marked!
-        if (infos_scripts.Markit && g_markit[position] !== undefined) {
-            var c = hexToRgb('#' + config.Markit.color[g_markit[position]]);
+        if (g_scriptInfo.Markit && g_markit[position] !== undefined) {
+            var c = hexToRgb('#' + g_config.Markit.color[g_markit[position]]);
             c.a = 0.5;
             if (name !== undefined && planet !== g_targetPlanet)
                 animateBackground(row, c, 750, false);
@@ -3566,7 +3508,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 newName = newName.substring(0, newName.length - 1);
 
 
-            if (infos_scripts.EasyTarget && !usingOldVersion()) {
+            if (g_scriptInfo.EasyTarget && !usingOldVersion()) {
                 var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
                 var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
                 var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
@@ -3586,7 +3528,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
-                        createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
+                        createEasyTargetLocationDiv(name, newName, position, index, rows)
                     });
                 })(newName, storedName, position, lune, name, replaceDiv, savedDiv);
 
@@ -3600,7 +3542,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(newName, index);
-                        createEasyTargetLocationDiv(name, newName, position, index, rows, infos_scripts)
+                        createEasyTargetLocationDiv(name, newName, position, index, rows)
                     });
                 })(newName, position, lune, name, saveDiv, savedDiv);
 
@@ -3614,7 +3556,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
                         var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
                         writeLocationsOnMarkitTarget(storedName, index);
-                        createEasyTargetLocationDiv(name, storedName, position, index, rows, infos_scripts)
+                        createEasyTargetLocationDiv(name, storedName, position, index, rows)
                     });
                 })(position, newName, row, name, savedDiv, saveDiv);
                 replaceDiv.style.display = "none";
@@ -3625,14 +3567,14 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                 name.parentNode.appendChild(savedDiv);
             }
 
-            if (infos_scripts.EasyTarget && storedName && storedName !== newName) {
+            if (g_scriptInfo.EasyTarget && storedName && storedName !== newName) {
                 console.log("Different Person at " + position);
                 if (usingOldVersion()) {
                     replacePlayerInDatabase(newName, storedName, position);
                 } else {
                     replaceDiv.style.display = "block";
                 }
-            } else if (infos_scripts.EasyTarget && !storedName) {
+            } else if (g_scriptInfo.EasyTarget && !storedName) {
                 // Found a new player at a new position
                 if (usingOldVersion()) {
                     g_galaxyData.universe[position] = newName;
@@ -3646,7 +3588,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             }
 
             // Change the color of the rank according to the values set in GalaxyRanks
-            if (name.className.indexOf('inactive') === -1 || config.GalaxyRanks.inactives) {
+            if (name.className.indexOf('inactive') === -1 || g_config.GalaxyRanks.inactives) {
 
                 // Remove them from the inactives list if they're active again
                 if (g_inactiveList[newName] !== undefined && name.className.indexOf('inactive') === -1) {
@@ -3668,7 +3610,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
                 // Set the rank color to the correct inactive
                 // color iff we aren't coloring them
-                if (!config.GalaxyRanks.inactives)
+                if (!g_config.GalaxyRanks.inactives)
                     span.style.color = f.getComputedStyle(name).color;
 
                 // Kinda hacky. Set the inactive/longinactive flag to
@@ -3687,18 +3629,18 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             }
 
             // Append new icons to galaxy view
-            if (infos_scripts.GalaxyRanks)
+            if (g_scriptInfo.GalaxyRanks)
                 name.parentNode.appendChild(span);
-            if (infos_scripts.EasyTarget && !usingOldVersion())
+            if (g_scriptInfo.EasyTarget && !usingOldVersion())
                 name.parentNode.appendChild(saveDiv);
 
-            if (infos_scripts.EasyTarget && usingOldVersion()) {
+            if (g_scriptInfo.EasyTarget && usingOldVersion()) {
                 // Non-bottiness is taken care of by the click functions.
                 updatePlayerInfo(newName, position, lune);
             }
         } else {
             // Nothing here. If it was stored in the database, delete it.
-            if (infos_scripts.EasyTarget && g_galaxyData.universe[position]) {
+            if (g_scriptInfo.EasyTarget && g_galaxyData.universe[position]) {
                 if (usingOldVersion()) {
                     deleteUnusedPosition(position, storedName);
                 } else {
@@ -3716,9 +3658,9 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             }
         }
 
-        if ((infos_scripts.EasyTarget || infos_scripts.Markit) && name !== undefined) {
+        if ((g_scriptInfo.EasyTarget || g_scriptInfo.Markit) && name !== undefined) {
             var div = null;
-            if (infos_scripts.EasyTarget) {
+            if (g_scriptInfo.EasyTarget) {
                 getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
                     "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip(" +
                     "{width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -3733,19 +3675,19 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             div = buildNode('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + i, 'float:left; width:15px;'], "");
             var img = buildNode('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + (i + 1)], "");
             div.appendChild(img);
-            if (infos_scripts.EasyTarget) {
-                createEasyTargetLocationDiv(name, newName, position, i, rows, infos_scripts);
+            if (g_scriptInfo.EasyTarget) {
+                createEasyTargetLocationDiv(name, newName, position, i, rows);
 
                 // We found our target!
                 if (g_targetPlanet === i + 1) {
                     name.parentNode.parentNode.style.backgroundColor = 'rgba(0, 100, 0, .8)';
-                    if (infos_scripts.Markit && g_markit[position] !== undefined) {
+                    if (g_scriptInfo.Markit && g_markit[position] !== undefined) {
                         // This person is also marked. Show the marking after a second.
                         (function (sum, name) {
                             setTimeout(function () {
                                 var ploc = sum.substring(0, sum.indexOf(':', sum.indexOf(':') + 1) + 1);
                                 ploc += g_targetPlanet;
-                                var c = hexToRgb('#' + config.Markit.color[g_markit[ploc]]);
+                                var c = hexToRgb('#' + g_config.Markit.color[g_markit[ploc]]);
                                 if (name !== undefined) {
                                     c.a = 0.5;
                                     animateBackground(rows[g_targetPlanet - 1], c, 600, false);
@@ -3759,7 +3701,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
             row.childNodes[15].appendChild(div);
 
             // Add the target for Markit
-            if (infos_scripts.Markit) {
+            if (g_scriptInfo.Markit) {
 
                 f.$('#img_' + (i + 1)).click(function() {
                     var gal = galaxySelector[0].value;
@@ -3775,7 +3717,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
             // If EasyTarget is enabled, show/hide locations when
             // clicking on the div
-            if (infos_scripts.EasyTarget) {
+            if (g_scriptInfo.EasyTarget) {
                 for (j = 1; j < 14; j += 2) {
                     (function(i, rows) {
                         f.$(row.childNodes[j]).click(function(e) {
@@ -3796,7 +3738,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
                             if (g_targetPlanet !== -1 && g_targetPlanet !== i + 1) {
                                 var oldPos = gal + ":" + sys + ":" + g_targetPlanet;
                                 if (g_markit[oldPos] !== undefined) {
-                                    var c =  hexToRgb('#' + config.Markit.color[g_markit[oldPos]]);
+                                    var c =  hexToRgb('#' + g_config.Markit.color[g_markit[oldPos]]);
                                     c.a = 0.5;
                                     animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                                 } else {
@@ -3885,7 +3827,7 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
 
     // Only write the potentially massive text file if we need to
     // TODO: Separate into smaller chunks?
-    if (infos_scripts.EasyTarget && g_galaxyDataChanged) {
+    if (g_scriptInfo.EasyTarget && g_galaxyDataChanged) {
         console.log("Galaxy Data changed");
         changeHandler(false /*forceSave*/);
     }
@@ -3893,6 +3835,76 @@ function loadEasyTargetAndMarkit(infos_scripts, config) {
         console.log("Inactive list changed");
         changeHandler(false /*forceSave*/);
     }
+}
+
+function addTargetPlanetKeyListener(rows) {
+
+
+    f.addEventListener("keyup", function(e) {
+        if (g_targetPlanet === -1) {
+            return;
+        }
+
+        var key = e.keyCode ? e.keyCode : e.which;
+
+        if (key === KEY.S) {
+            e.preventDefault();
+            var element = rows[g_targetPlanet - 1].childNodes[15].childNodes[1];
+            if (!element) {
+                return;
+            }
+
+            var title = element.getAttribute('title');
+            if (title === 'Spy') {
+                element.click();
+            }
+        } else if (key === KEY.L) {
+            e.preventDefault();
+            var row = rows[g_targetPlanet - 1];
+            var name = row.childNodes[7].childNodes[1];
+            if (!name) {
+                return; // No moon
+            }
+
+            var id = name.onclick.toString();
+            id = id.substring(id.lastIndexOf("(") + 2, id.lastIndexOf(")") - 1);
+            var moonDiv = f.document.getElementById(id);
+            var node = moonDiv.childNodes[4];
+            for (var i = 0; i < node.childNodes.length; i++) {
+                if (node.childNodes[i].childNodes[0].innerHTML === L_.spy) {
+                    node.childNodes[i].childNodes[0].click();
+                    break;
+                }
+            }
+        }
+
+        if (key === KEY.N || key === KEY.P) {
+            var coords = '';
+
+            var gal = f.$('#galaxy')[0].value;
+            var sys = f.document.getElementsByName('system')[0].value;
+            var ploc = gal + ":" + sys + ":" + g_targetPlanet;
+            var n = g_galaxyData.universe[ploc];
+            if (!n) {
+                displayAlert("You must save the planet before navigating!", 500, 2000);
+                return;
+            }
+
+            var player = g_galaxyData.players[n][0];
+            var index = player.indexOf(ploc);
+            if (key === KEY.N) {
+                coords = player[(index + 1) % player.length];
+            } else {
+                if (index === 0) {
+                    index += player.length;
+                }
+
+                coords = player[(index - 1) % player.length];
+            }
+
+            g_targetPlanet = easyTargetRedirect(ploc, coords, rows, rows[g_targetPlanet - 1].childNodes[11].childNodes[1]);
+        }
+    });
 }
 
 /**
@@ -3932,11 +3944,9 @@ function galaxySort(a, b) {
  * @param newCoords
  * @param rows - Array of rows containing the planets in the current system
  * @param name -
- * @param infos_scripts - The current script settings
- * @param markit - the script markit data
  * @returns {string}
  */
-function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, markit) {
+function easyTargetRedirect(oldCoords, newCoords, rows, name) {
     var oldTemp = oldCoords;
     var oldGal = oldCoords.substring(0, oldCoords.indexOf(":"));
     oldTemp = oldTemp.substring(oldCoords.indexOf(":") + 1);
@@ -3950,18 +3960,18 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name, infos_scripts, mar
     var newPlanet = newTemp.substring(newTemp.lastIndexOf(":") + 1);
 
     if (newGal === oldGal && newSys === oldSys) {
-        if (infos_scripts.Markit && markit[newCoords] !== undefined) {
+        if (g_scriptInfo.Markit && g_markit[newCoords] !== undefined) {
             setTimeout(function() {
-                var c = hexToRgb('#' + g_config.Markit.color[markit[newCoords]]);
+                var c = hexToRgb('#' + g_config.Markit.color[g_markit[newCoords]]);
                 c.a = 0.5;
                 if (name !== undefined) {
                     animateBackground(rows[newPlanet - 1], c, 600, false);
                 }
             }, 1000);
         }
-        if (infos_scripts.Markit && markit[oldCoords] !== undefined) {
+        if (g_scriptInfo.Markit && g_markit[oldCoords] !== undefined) {
             // Check to see if we need to overwrite a markit color
-            var c = hexToRgb('#' + g_config.Markit.color[markit[oldCoords]]);
+            var c = hexToRgb('#' + g_config.Markit.color[g_markit[oldCoords]]);
             c.a = 0.5;
             if (name !== undefined) {
                 animateBackground(rows[oldPlanet - 1], c, 600, false);
@@ -4139,7 +4149,7 @@ function writeLocationsOnMarkitTarget(newName, i) {
     div.innerHTML = html;
 }
 
-function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows, infos_scripts) {
+function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows) {
     var oldInsert = f.document.getElementById("easyTargetList" + i);
 
     var insert = f.document.createElement("div");
@@ -4170,7 +4180,7 @@ function createEasyTargetLocationDiv(nameDiv, newName, position, i, rows, infos_
                 coords = coords.replace(" (L)", "");
                 var gal = f.$('#galaxy')[0].value;
                 var sys = f.document.getElementsByName('system')[0].value;
-                g_targetPlanet = easyTargetRedirect(gal + ":" + sys + ":" + g_targetPlanet, coords, rows, name, infos_scripts, g_markit);
+                g_targetPlanet = easyTargetRedirect(gal + ":" + sys + ":" + g_targetPlanet, coords, rows, name);
             });
         })(i, j, nameDiv);
     }
