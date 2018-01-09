@@ -30,6 +30,19 @@ var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
 
+// Masks for the new storage:
+// 17 bits. Lowest order for moon (t/f), next 4 for
+// planet (0-15), next 9 for system (0-511), last 3
+// for galaxy (0-7)
+// 111 111111111 1111 1
+var GAL_MASK = 0x1C000; // bits 15-17
+var SYS_MASK = 0x3FE0;  // bits 6-14
+var PLN_MASK = 0x1E;    // bits 2-5
+var LUN_MASK = 0x1;     // first bit
+var GAL_SHIFT = 14;
+var SYS_SHIFT = 5;
+var PLN_SHIFT = 1;
+
 // We allow the main script to run on simulator pages so we can
 // process simulations and communicate with other outer loop processes
 if (g_page === "simulator") {
@@ -1338,6 +1351,17 @@ function getGalaxyData() {
         setValue("galaxyData", JSON.stringify(storage));
     }
 
+    // Convert everything to an integer one time here for ease of use later
+    for (var player in storage.players) {
+        if (!storage.players.hasOwnProperty(player)) {
+            continue;
+        }
+
+        for (var i = 0; i < storage.players[player].length; i++) {
+            storage.players[player][i] = parseInt(storage.players[player][i]);
+        }
+    }
+
     return storage;
 }
 
@@ -1371,7 +1395,7 @@ function convertOldGalaxyData(storage) {
         newPlayers[key] = [];
         for (var i = 0; i < planets.length; i++) {
             var coords = new Coordinates(planets[i]);
-            newPlayers[key].push([coords.g, coords.s, coords.p, players[key][1].indexOf(coords.str) !== -1 ? 1 : 0]);
+            newPlayers[key].push(storageFromCoords(coords) | (players[key][1].indexOf(coords.str) !== -1 ? 1 : 0));
         }
     }
 
@@ -3460,7 +3484,8 @@ function loadEasyTargetAndMarkit() {
         var row = rows[i];
         var name = row.childNodes[11].childNodes[1];
         var planet = i + 1;
-        var coords = new Coordinates(gal, sys, planet);
+        var lune = (row.childNodes[7].childNodes.length > 1);
+        var coords = new Coordinates(gal, sys, planet, lune);
         var position = coords.str;
 
         // See if we should mark the player via Markit
@@ -3468,8 +3493,6 @@ function loadEasyTargetAndMarkit() {
 
         //Name of the person previously stored at the given coord
         var storedName = getPlayerAtLocation(coords);
-
-        var lune = (row.childNodes[7].childNodes.length > 1);
 
         if (name) { // There's a player here
 
@@ -3484,7 +3507,7 @@ function loadEasyTargetAndMarkit() {
 
             // Create save/remove/delete buttons for easyTarget
             if (g_scriptInfo.EasyTarget && !usingOldVersion()) {
-                createEasyTargetButtons(i, rows, row, name, newName, storedName, coords, lune);
+                createEasyTargetButtons(i, rows, row, name, newName, storedName, coords);
             }
 
             if (g_scriptInfo.EasyTarget && storedName && storedName !== newName) {
@@ -3515,9 +3538,11 @@ function loadEasyTargetAndMarkit() {
                 }
             }
 
-            if (g_scriptInfo.EasyTarget && usingOldVersion()) {
-                // Non-bottiness is taken care of by the click functions.
-                updatePlayerInfo(newName, coords, lune);
+            if (g_scriptInfo.EasyTarget && (usingOldVersion() || indexOfPlanet(newName, coords) !== -1)) {
+                // Either usingOldVersion is true and we call this regardless, or
+                // the player is already saved, so we can call update knowing
+                // the only thing that might change is the moon.
+                updatePlayerInfo(newName, coords);
             }
         } else {
             // Nothing here. If it was stored in the database, delete it.
@@ -3886,14 +3911,13 @@ function setHighlightColor(regMatch, item) {
  * @param newName - the actual (string) name of the player
  * @param storedName - the name that we think should be in this position
  * @param coords - the coordinates of this position
- * @param lune - whether or not there's a moon at this location
  */
-function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords, lune) {
+function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords) {
     var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, i + 1, 1);
     var saveDiv = createGalaxyDataButton(g_saveIcon, 1, i + 1, 1);
     var savedDiv = createGalaxyDataButton(g_savedIcon, 2, i + 1, 0.5);
 
-    (function (newName, storedName, coords, lune, name, replaceDiv, savedDiv) {
+    (function (newName, storedName, coords, name, replaceDiv, savedDiv) {
         replaceDiv.addEventListener("click", function () {
             if (confirm("It looks like " + storedName + " may have changed their name to " + newName + ". Do you want to update all planets?")) {
                 alert("Replacing " + storedName + " with " + newName);
@@ -3901,7 +3925,7 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
             } else {
                 setPlayerLocation(newName, coords);
             }
-            updatePlayerInfo(newName, coords, lune);
+            updatePlayerInfo(newName, coords);
             f.$(this).fadeOut(500, function() {
                 f.$(savedDiv).fadeTo(500, 0.5);
             });
@@ -3910,12 +3934,12 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
             writeLocationsOnMarkitTarget(newName, index);
             createEasyTargetLocationDiv(name, newName, coords, index, rows)
         });
-    })(newName, storedName, coords, lune, name, replaceDiv, savedDiv);
+    })(newName, storedName, coords, name, replaceDiv, savedDiv);
 
-    (function (newName, coords, lune, name, saveDiv, savedDiv) {
+    (function (newName, coords, name, saveDiv, savedDiv) {
         saveDiv.addEventListener("click", function () {
             setPlayerLocation(newName, coords);
-            updatePlayerInfo(newName, coords, lune);
+            updatePlayerInfo(newName, coords);
             f.$(this).fadeOut(500, function() {
                 f.$(savedDiv).fadeTo(500, 0.5);
             });
@@ -3924,7 +3948,7 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
             writeLocationsOnMarkitTarget(newName, index);
             createEasyTargetLocationDiv(name, newName, coords, index, rows)
         });
-    })(newName, coords, lune, name, saveDiv, savedDiv);
+    })(newName, coords, name, saveDiv, savedDiv);
 
     (function (coords, storedName, row, name, savedDiv, saveDiv) {
         savedDiv.addEventListener("click", function () {
@@ -4150,13 +4174,19 @@ function addTargetPlanetKeyListener(rows) {
  * @returns {number}
  */
 function galaxySort(a, b) {
-    if (a[0] !== b[0]) {
-        return a[0] - b[0];
-    } else if (a[1] !== b[1]) {
-        return a[1] - b[1];
-    } else {
-        return a[2] - b[2];
+    var galA = getGal(a);
+    var galB = getGal(b);
+    if (galA !== galB) {
+        return galA - galB;
     }
+
+    var sysA = getSys(a);
+    var sysB = getSys(b);
+    if (sysA !== sysB) {
+        return sysA - sysB;
+    }
+
+    return getPln(a) - getPln(b);
 }
 
 /**
@@ -4261,7 +4291,7 @@ function replacePlayerInDatabase(newName, storedName, coords) {
  * @returns {boolean}
  */
 function coordsEqualStoredData(coords, location) {
-    return coords.g === location[0] && coords.s === location[1] && coords.p === location[2];
+    return coords.g === getGal(location) && coords.s === getSys(location) && coords.p === getPln(location);
 }
 
 /**
@@ -4273,6 +4303,10 @@ function coordsEqualStoredData(coords, location) {
  */
 function indexOfPlanet(name, coords) {
     var locations = g_galaxyData.players[name];
+    if (!locations) {
+        return -1;
+    }
+
     for (var i = 0; i < locations.length; i++) {
         if (coordsEqualStoredData(coords, locations[i])) {
             return i;
@@ -4285,11 +4319,10 @@ function indexOfPlanet(name, coords) {
 /**
  * Return the file storage representation of the given coordinates
  * @param coords
- * @param lune
- * @returns {[number, number, number, number]}
+ * @returns {number}
  */
-function storageFromCoords(coords, lune) {
-    return [coords.g, coords.s, coords.p, lune ? 1 : 0];
+function storageFromCoords(coords) {
+    return ((coords.g - 1) << GAL_SHIFT) + ((coords.s - 1) << SYS_SHIFT) + ((coords.p - 1) << PLN_SHIFT) + coords.l;
 }
 
 /**
@@ -4298,7 +4331,7 @@ function storageFromCoords(coords, lune) {
  * @returns {Coordinates}
  */
 function coordsFromStorage(storage) {
-    return new Coordinates(storage[0], storage[1], storage[2]);
+    return new Coordinates(getGal(storage), getSys(storage), getPln(storage), getLun(storage));
 }
 
 /**
@@ -4309,16 +4342,52 @@ function coordsFromStorage(storage) {
  * @returns {string}
  */
 function coordsStrFromStorage(storage, lune) {
-    return storage[0] + ":" + storage[1] + ":" + storage[2] + (lune && storage[3] ? " (L)" : "");
+    return getGal(storage) + ":" + getSys(storage) + ":" + getPln(storage) + (lune && getLun(storage) ? " (L)" : "");
+}
+
+/**
+ * Returns the galaxy stored in the compressed localstorage number
+ * @param val
+ * @returns {number}
+ */
+function getGal(val) {
+    // +1 to go from 0-based to 1-based indexing
+    return ((val & GAL_MASK) >> GAL_SHIFT) + 1;
+}
+
+/**
+ * Returns the system stored in the compressed localstorage number
+ * @param val
+ * @returns {number}
+ */
+function getSys(val) {
+    return ((val & SYS_MASK) >> SYS_SHIFT) + 1;
+}
+
+/**
+ * Returns the planet stored in the compressed localstorage number
+ * @param val
+ * @returns {number}
+ */
+function getPln(val) {
+    return ((val & PLN_MASK) >> PLN_SHIFT) + 1;
+}
+
+/**
+ * Returns the lune stored in the compressed localstorage number
+ * @param val
+ * @returns {number}
+ */
+function getLun(val) {
+    return val & LUN_MASK;
 }
 
 /**
  * Update galaxyData player information
  * @param newName
  * @param coords
- * @param lune
  */
-function updatePlayerInfo(newName, coords, lune) {
+function updatePlayerInfo(newName, coords) {
     if (!g_galaxyData.players[newName]) {
         // No entry for this particular player, create it
         g_galaxyDataChanged = true;
@@ -4331,14 +4400,15 @@ function updatePlayerInfo(newName, coords, lune) {
         changedPlayer = true;
 
         g_galaxyDataChanged = true;
-        g_galaxyData.players[newName].push(storageFromCoords(coords, lune));
+        g_galaxyData.players[newName].push(storageFromCoords(coords));
     }
 
     // If we don't have a moon and we used to
-    var stored = g_galaxyData.players[newName][indexOfPlanet(newName, coords)];
-    if ((!lune && stored[3]) || (lune && !stored[3])) {
+    var index = indexOfPlanet(newName, coords);
+    var stored = g_galaxyData.players[newName][index];
+    if ((!coords.l && getLun(stored)) || (coords.l && !getLun(stored))) {
         g_galaxyDataChanged = true;
-        stored[3] = lune ? 1 : 0;
+        g_galaxyData.players[newName][index] = stored + (coords.l ? 1 : -1);
     }
 
     if (changedPlayer) {
@@ -5048,19 +5118,22 @@ function deleteValue(key) {
  * @param gal - the galaxy, or the entire coordinate as a string which will be parsed
  * @param sys
  * @param planet
+ * @param lune
  * @constructor
  */
-function Coordinates(gal, sys, planet) {
+function Coordinates(gal, sys, planet, lune) {
     if ((typeof(gal)).toLowerCase() === "string" && gal.indexOf(":") !== -1) {
         this.str = gal;
         this.g = parseInt(gal.substr(0, 1));
         gal = gal.substr(2);
         this.s = parseInt(gal.substr(0, gal.indexOf(":")));
         this.p = parseInt(gal.substr(gal.indexOf(":") + 1));
+        this.l = 0;
     } else {
         this.g = parseInt(gal);
         this.s = parseInt(sys);
         this.p = parseInt(planet);
+        this.l = lune ? 1 : 0;
         this.str = gal + ":" + sys + ":" + planet;
     }
 }
