@@ -187,10 +187,6 @@ setGlobalKeyboardShortcuts();
 if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
     window.addEventListener("beforeunload", function (e) {
         changeHandler(true /*forcecSave*/);
-        var confirmationMessage = "/";
-
-        e.returnValue = confirmationMessage;     // Gecko, Trident, Chrome 34+
-        return confirmationMessage;              // Gecko, WebKit, Chrome <34
     });
 }
 
@@ -1351,20 +1347,14 @@ function getGalaxyData() {
         setValue("galaxyData", JSON.stringify(storage));
     }
 
-    // Convert everything to an integer one time here for ease of use later
-    for (var player in storage.players) {
-        if (!storage.players.hasOwnProperty(player)) {
-            continue;
-        }
-
-        for (var i = 0; i < storage.players[player].length; i++) {
-            storage.players[player][i] = parseInt(storage.players[player][i]);
-        }
-    }
-
     return storage;
 }
 
+/**
+ * Converts old-style galaxy storage into the new model
+ * @param storage
+ * @returns {{}}
+ */
 function convertOldGalaxyData(storage) {
     var newStorage = {};
     var newUni = {};
@@ -3932,7 +3922,8 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
 
             var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
             writeLocationsOnMarkitTarget(newName, index);
-            createEasyTargetLocationDiv(name, newName, coords, index, rows)
+            createEasyTargetLocationDiv(name, newName, coords, index, rows);
+            changeHandler(false /*fForceSave*/);
         });
     })(newName, storedName, coords, name, replaceDiv, savedDiv);
 
@@ -3946,7 +3937,8 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
 
             var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
             writeLocationsOnMarkitTarget(newName, index);
-            createEasyTargetLocationDiv(name, newName, coords, index, rows)
+            createEasyTargetLocationDiv(name, newName, coords, index, rows);
+            changeHandler(false /*fForceSave*/);
         });
     })(newName, coords, name, saveDiv, savedDiv);
 
@@ -3960,7 +3952,8 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
 
             var index = this.id.substring(this.id.lastIndexOf("_") + 1) - 1;
             writeLocationsOnMarkitTarget(storedName, index);
-            createEasyTargetLocationDiv(name, storedName, coords, index, rows)
+            createEasyTargetLocationDiv(name, storedName, coords, index, rows);
+            changeHandler(false /*fForceSave*/);
         });
     })(coords, newName, row, name, savedDiv, saveDiv);
     replaceDiv.style.display = "none";
@@ -4224,11 +4217,11 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name) {
         } else if (oldCoords.p % 2 === 0) {
             // Otherwise fill it in with its default color
             animateBackground(rows[oldCoords.p - 1], "#111111", 200, true);
-        } else if (parseInt(oldCoords.p) !== -1) {
+        } else if (oldCoords.p !== -1) {
             animateBackground(rows[oldCoords.p - 1], { r: 17, g: 17, b: 17, a: 0.0 }, 200, true);
         }
         // Mark the next target green
-        animateBackground(rows[parseInt(newCoords.p) - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
+        animateBackground(rows[newCoords.p - 1], { r: 0, g: 100, b: 0, a: 0.8}, 200, false);
 
         return newCoords.p;
     } else {
