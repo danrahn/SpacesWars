@@ -42,6 +42,7 @@ var LUN_MASK = 0x1;     // first bit
 var GAL_SHIFT = 14;
 var SYS_SHIFT = 5;
 var PLN_SHIFT = 1;
+var UNI_OFFSET = storageFromCoords(new Coordinates(1, 1, 1));
 
 // We allow the main script to run on simulator pages so we can
 // process simulations and communicate with other outer loop processes
@@ -1314,27 +1315,18 @@ function getGalaxyData() {
         storage = JSON.parse(getValue("galaxyData"));
 
         if (!storage || !storage.universe || !storage.players) storage = {
-            'universe': {},
+            'universe': [],
             'players': {}
         };
     } catch (ex) {
         storage = {
-            'universe': {},
+            'universe': [],
             'players': {}
         };
     }
 
-    var oldData = false;
-    for (var key in storage.universe) {
-        if (storage.universe.hasOwnProperty(key)) {
-            if (key.indexOf(":") !== -1) {
-                oldData = true;
-                break;
-            }
-        }
-    }
-
-    if (oldData) {
+    if (!storage.universe.length && storage.universe.length !== 0) {
+        // The user is upgrading versions. Attempt to convert their old data
         if (confirm("It looks like your galaxy data is not in the latest format. Would you like to attempt to convert it? If not, it will be erased.")) {
             storage = convertOldGalaxyData(storage);
         } else {
@@ -1344,10 +1336,133 @@ function getGalaxyData() {
             };
         }
 
-        setValue("galaxyData", JSON.stringify(storage));
+        g_galaxyData = storage;
+        setGalaxyData();
+        return storage;
     }
 
+    console.log("Grabbing new stuff");
+    storage.universe = internalToGalaxyData(storage.universe);
     return storage;
+}
+
+/**
+ * Convert the in-memory model to one more storage-space friendly
+ */
+function setGalaxyData() {
+    setValue("galaxyData", JSON.stringify({
+        "universe" : galaxyDataToInternal(g_galaxyData.universe),
+        "players"  : g_galaxyData.players
+    }));
+}
+
+/**
+ * Converts the in-memory galaxy data to the saved format
+ * @returns {Array}
+ */
+function galaxyDataToInternal(data) {
+    /*
+     * Convert the galaxy view into a flat sparse array that combines
+     * players who have planets right next to each other, and continuous gaps
+     *
+     * { 1: "A", 2: "B", 6: "C", 7: "C", 8: "C", 10: "A", 15: "D }
+     *
+     * would be converted into ["A","B",-3,"C*2",-1,"A",-4,"D"]. While the process
+     * can take some time (30-60ms), it shouldn't be happening extremely quickly, esp
+     * if !usingOldVersion(). Honestly probably not a worthwhile endeavour, but it
+     * reduced the size of the uni17 map from 372k chars to 265k (-28.8%). Take into
+     * account the size was at 527k before any reductions (pre-2018), and that's a
+     * reduction of 49.7%, which is huge.
+     */
+    var time = window.performance.now();
+    var uni = [];
+    for (var gal in data) {
+        if (!data.hasOwnProperty(gal)) {
+            continue;
+        }
+
+        for (var sys in data[gal]) {
+            if (!data[gal].hasOwnProperty(sys)) {
+                continue;
+            }
+
+            for (var pln in data[gal][sys]) {
+                if (!data[gal][sys].hasOwnProperty(pln)) {
+                    continue;
+                }
+
+                var index = (storageFromCoords(new Coordinates(gal, sys, pln)) >> 1) - UNI_OFFSET;
+                uni[index] = data[gal][sys][pln];
+            }
+        }
+    }
+
+    var newUni = [];
+    var prevNull = 0;
+    var sameName = 0;
+    for (var i = 0; i < uni.length; i++) {
+        if (!uni[i]) {
+            prevNull++;
+            sameName = 0;
+        } else if (prevNull) {
+            newUni.push(prevNull * -1);
+            prevNull = 0;
+            newUni.push(uni[i]);
+        } else {
+            if (uni[i - 1] === uni[i]) {
+                newUni[newUni.length - 1] = uni[i] + "*" + ++sameName;
+            } else {
+                sameName = 0;
+                newUni.push(uni[i]);
+            }
+        }
+    }
+
+    console.log("Took " + (window.performance.now() - time) + "ms to convert from galaxyData to storage");
+    return newUni;
+}
+
+/**
+ * Converts the stored galaxy data to a more updateable model
+ * @param internal
+ * @returns {{}}
+ */
+function internalToGalaxyData(internal) {
+    var time = window.performance.now();
+    var data = {};
+    for (var i = 0, j = 0; i < internal.length; i++) {
+
+        var entry = internal[i];
+        var skipEntry = parseInt(entry);
+        if (!isNaN(skipEntry) && skipEntry < 0) {
+            j -= skipEntry; // skipEntry is negative, so we're adding here
+            continue;
+        }
+
+        var multiple = entry.indexOf("*");
+        if (multiple !== -1) {
+            multiple = parseInt(entry.substring(multiple + 1)) + 1;
+            entry = entry.substring(0, entry.indexOf("*"));
+        } else {
+            multiple = 1;
+        }
+
+        for (var k = 0; k < multiple; k++, j++) {
+            var coords = coordsFromStorage((j + UNI_OFFSET) << 1);
+            if (!data[coords.g]) {
+                data[coords.g] = {};
+            }
+
+            if (!data[coords.g][coords.s]) {
+                data[coords.g][coords.s] = {};
+            }
+
+            data[coords.g][coords.s][coords.p] = entry;
+        }
+    }
+
+    console.log("Took " + (window.performance.now() - time) + "ms to convert from storage to galaxyData");
+    return data;
 }
 
 /**
@@ -2696,7 +2811,7 @@ function changeHandler(forceSave) {
         if (g_galaxyDataChanged) {
             console.log("Saving galaxy data");
             g_galaxyDataChanged = false;
-            setValue("galaxyData", JSON.stringify(g_galaxyData));
+            setGalaxyData();
         }
 
         if (g_inactivesChanged) {
@@ -3966,15 +4081,24 @@ function createEasyTargetButtons(i, rows, row, name, newName, storedName, coords
 
 /**
  * Get the name of the player/bot in the given name div
- * Bots must be resolved differently than players
+ * If a player is inactive/banned/vacationing, it's
+ * processed differently
  * @param name
  * @returns {string}
  */
 function resolveName(name) {
     var newName = name.childNodes[0].nodeValue;
-    if (!newName)
+    if (!newName) {
+        // Not inactive/banned/vaca
         return name.childNodes[0].innerHTML;
+    }
 
+    var index = newName.indexOf("(");
+    if (index !== -1) {
+        return newName.substring(0, index);
+    }
+
+    // Space is appended
     return newName.substring(0, newName.length - 1);
 }
 

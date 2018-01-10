@@ -289,7 +289,6 @@ function populateConfig() {
             if (conf) {
                 setValue("galaxyData", data);
                 g_galaxyData = JSON.parse(data);
-                g_galaxyDataChanged = true;
             }
             easyTargetText.value = '';
         }
