@@ -950,7 +950,7 @@ function saveSettings() {
     }
 
     setValue("configScripts", JSON.stringify(g_config));
-    GM_setValue("infos_scripts", JSON.stringify(g_scriptInfo));
+    setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     if (f.setConfig) {
         console.log("Setting internal config");
         f.setConfig(g_config, g_scriptInfo, g_uni);
