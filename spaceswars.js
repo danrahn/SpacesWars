@@ -404,13 +404,13 @@ function getLoadMap() {
 
     canLoad.More_moonsList = {
         type : 2,
-        chat : false,
-        forum : false,
-        index : false,
-        niark : false,
-        rw : false,
-        frames : false,
-        leftmenu : false
+        chat : true,
+        forum : true,
+        index : true,
+        niark : true,
+        rw : true,
+        frames : true,
+        leftmenu : true
     };
 
     canLoad.More_convertDeut = {
@@ -437,13 +437,13 @@ function getLoadMap() {
 
     canLoad.More_arrows = {
         type : 2,
-        chat : false,
-        forum : false,
-        index : false,
-        niark : false,
-        rw : false,
-        frames : false,
-        leftmenu : false
+        chat : true,
+        forum : true,
+        index : true,
+        niark : true,
+        rw : true,
+        frames : true,
+        leftmenu : true
     };
 
     canLoad.More_returns = {
@@ -468,13 +468,13 @@ function getLoadMap() {
 
     canLoad.More_deutRow = {
         type : 2,
-        niark : false,
-        forum : false,
-        index : false,
-        chat : false,
-        rw : false,
-        frames : false,
-        leftmenu : false
+        niark : true,
+        forum : true,
+        index : true,
+        chat : true,
+        rw : true,
+        frames : true,
+        leftmenu : true
     };
 
     canLoad.empireTotal = {
@@ -484,13 +484,13 @@ function getLoadMap() {
 
     canLoad.navigatorShortcuts = {
         type : 2,
-        niark : false,
-        forum : false,
-        index : false,
-        chat : false,
-        rw : false,
-        notes : false,
-        search : false
+        niark : true,
+        forum : true,
+        index : true,
+        chat : true,
+        rw : true,
+        notes : true,
+        search : true
     };
 
     return canLoad;
@@ -3411,7 +3411,7 @@ function loadBetterEmpire() {
 
 /**
  * Determine if we're using an old version.
- * If we are, hide some thing, and show some
+ * If we are, hide some things, and show some
  * others. If this is true, the user should upgrade
  * their script version
  */
@@ -3462,7 +3462,7 @@ function hexToRgb(hex) {
  *        style to apply afterwards
  */
 function animateBackground(element, newColor, duration, deleteAfterTransition) {
-    var steps = Math.round(duration / (50/3));
+    var steps = Math.round(duration / (50/3)); // 1000/60 -> 60Hz
     var oldColorTemp = getComputedStyle(element).backgroundColor;
     var oldColor = {};
     oldColorTemp = oldColorTemp.substr(oldColorTemp.indexOf("(") + 1, oldColorTemp.indexOf(")")).split(",");
@@ -3475,9 +3475,9 @@ function animateBackground(element, newColor, duration, deleteAfterTransition) {
         oldColor.a = 1;
 
     if (typeof(newColor) === "string") {
-        if (newColor.indexOf("#") !== -1)
+        if (newColor.indexOf("#") !== -1) {
             newColor = hexToRgb(newColor);
-        else if (newColor.toLowerCase() === "transparent") {
+        } else if (newColor.toLowerCase() === "transparent") {
             newColor = JSON.parse(JSON.stringify(oldColor));
             newColor.a = 0;
         }
@@ -3548,6 +3548,7 @@ function loadEasyTargetAndMarkit() {
 
     g_targetPlanet = -1;
     var changedPlayers = [];
+    var processList = [];
 
     // attach the Markit popup window
     appendMarkitWindow(rows);
@@ -3563,7 +3564,6 @@ function loadEasyTargetAndMarkit() {
 
     // Add key listeners for spying and easytarget navigation
     addTargetPlanetKeyListener(rows);
-    var processList = [];
 
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
@@ -3571,10 +3571,10 @@ function loadEasyTargetAndMarkit() {
         var row = rows[i];
         var nameDiv = row.childNodes[11].childNodes[1];
         var coords = new Coordinates(
-            f.document.getElementById('galaxy').value,
-            f.document.getElementsByName('system')[0].value,
-            i + 1,
-            row.childNodes[7].childNodes.length > 1
+            f.document.getElementById('galaxy').value,        // galaxy
+            f.document.getElementsByName('system')[0].value,  // system
+            i + 1,                                            // planet
+            row.childNodes[7].childNodes.length > 1           // lune
         );
 
         //Name of the person previously stored at the given coord
@@ -5367,6 +5367,7 @@ function deleteValue(key) {
  * @constructor
  */
 function Coordinates(gal, sys, planet, lune) {
+// TODO: Definitely shouldn't use g/s/p/l, use gal/sys/pln/lun at least, preferably full names
     if ((typeof(gal)).toLowerCase() === "string" && gal.indexOf(":") !== -1) {
         this.str = gal;
         this.g = parseInt(gal.substr(0, 1));

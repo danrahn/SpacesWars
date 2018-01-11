@@ -982,6 +982,7 @@ function deleteAllData() {
         "fpRedirect",
         "galaxyData",
         "inactiveList",
+        "infos_scripts",
         "markitData",
         "merchantItem",
         "redirToSpy",
@@ -1007,16 +1008,9 @@ function deleteAllData() {
         }
     }
 
-    var singleKeys =
-        [
-            "infos_scripts",
-            "infos_version",
-        ];
-    for (i = 0; i < singleKeys.length; i++) {
-        try {
-            GM_deleteValue(singleKeys[i]);
-        } catch (ex) {
-            console.log(singleKeys[i] + " not found");
-        }
+    try {
+        GM_deleteValue("infos_version");
+    } catch (ex) {
+        console.log("infos_version not found");
     }
 }
