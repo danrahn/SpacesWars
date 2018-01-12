@@ -23,26 +23,10 @@
  * tasks I've created. There are some exceptions, such as rw.php, which will always load without frames.
  * Because of that, I chose to include all the necessary methods/dependencies for RConverter in InnerPage.
  */
-// TODO: I was going to try an get rid of all the jQuery dependencies, then I realized I need its tooltips
-// TODO: Ensure everything works with French language
 
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
-
-// Masks for the new storage:
-// 17 bits. Lowest order for moon (t/f), next 4 for
-// planet (0-15), next 9 for system (0-511), last 3
-// for galaxy (0-7)
-// 111 111111111 1111 1
-var GAL_MASK = 0x1C000; // bits 15-17
-var SYS_MASK = 0x3FE0;  // bits 6-14
-var PLN_MASK = 0x1E;    // bits 2-5
-var LUN_MASK = 0x1;     // first bit
-var GAL_SHIFT = 14;
-var SYS_SHIFT = 5;
-var PLN_SHIFT = 1;
-var UNI_OFFSET = storageFromCoords(new Coordinates(1, 1, 1));
 
 // We allow the main script to run on simulator pages so we can
 // process simulations and communicate with other outer loop processes
@@ -54,7 +38,19 @@ if (g_page === "simulator") {
     return;
 }
 
-var autoAttackWithSim = !!parseInt(getValue("spyForMe"));
+// Masks for the new storage:
+// 17 bits. Lowest order for moon (t/f), next 4 for
+// planet (0-15), next 9 for system (0-511), last 3
+// for galaxy (0-7)
+// 111 111111111 1111 1
+var GAL_MASK = 0x1C000; // 11100000000000000
+var SYS_MASK = 0x3FE0;  // 00011111111100000
+var PLN_MASK = 0x1E;    // 00000000000011110
+var LUN_MASK = 0x1;     // 00000000000000001
+var GAL_SHIFT = 14;
+var SYS_SHIFT = 5;
+var PLN_SHIFT = 1;
+var UNI_OFFSET = storageFromCoords(new Coordinates(1, 1, 1));
 
 var g_nbScripts = 13;
 var thisVersion = "4.1";
@@ -63,26 +59,15 @@ var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail
 var scriptsIcons = GM_ICON; // Old icon was broken
 
 var g_scriptInfo = getScriptInfo();
-var g_versionInfo;
-try {
-    g_versionInfo = JSON.parse(GM_getValue("infos_version"));
-    if (!g_versionInfo) {
-        g_versionInfo = setInfosVersion();
-    }
-} catch (ex) {
-    g_versionInfo = undefined;
-}
-
+var g_versionInfo = getVersionInfo();
 checkVersionInfo();
 
-// the variable name 'location' makes Opera bugging
 var g_lang = g_versionInfo.language;
-f = null;
-var lm; // Left Menu
+f = null;  // The window/frame with the actual game
+var lm;    // Left Menu
 
 // Language dictionary. FR and EN
-var L_ = setDictionary();
-
+var L_ = setDictionary();                   // Dictionary of either French or English strings
 var g_merchantMap = setMerchantMap();       // Maps buildings/research/fleet/def to merchant ids
 var nbUnis = g_versionInfo.nbUnis;
 
@@ -107,11 +92,6 @@ if (!usingOldVersion()) {
     g_changeCount = 1;
 }
 
-// A bit of a misnomer, as it's function changed. Determines
-// whether to selectively ignore planets when spying because old
-// reports show they have nothing of use
-var spyForMe = g_config.EasyTarget.useDoNotSpy;
-
 var g_saveIcon = "https://i.imgur.com/hiPncO0.png";
 var g_savedIcon = "https://i.imgur.com/Ldr8fWG.png";
 var g_delIcon = "https://i.imgur.com/gUAQ51d.png";
@@ -120,13 +100,14 @@ var g_targetPlanet = -1;  // Determines the current target planet in galaxy view
 
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = ["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"];
-var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo", "change_admin_rank", "changerank", "change_rank", "change_member_rank"];
+var g_invalidNameFields = ["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo",
+                           "change_admin_rank", "changerank", "change_rank", "change_member_rank"];
 
 /**
- * Dictionary of keycodes
+ * Dictionary/"enum" of keycodes
  * @type {{}}
  */
-var KEY = {
+var KEY =  {
     TAB   : 9,  SPACE : 32,
     ENTER : 13, SHIFT : 16, CTRL  : 17, ALT   : 18, ESC  : 27,
     LEFT  : 37, UP    : 38, RIGHT : 39, DOWN  : 40,
@@ -163,31 +144,17 @@ var g_defNames = [
  * Array of built up keys for key combinations
  * @type {[]}
  */
-var g_keyArray;
-
-if (window.top === window) {
-    g_keyArray = [];
-} else {
-    if (!window.top.g_keyArray) {
-        window.top.g_keyArray = [];
-    }
-
-    g_keyArray = window.top.g_keyArray;
-    if (g_page !== "leftmenu") {
-        window.top.g_keyArray.length = 0;
-    }
-}
+var g_keyArray = setKeyArray();
 
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
-var advancedAutoAttack = autoAttack; // No longer used?
+var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
 
 // Every page gets the shortcut handler
 setGlobalKeyboardShortcuts();
 
-// Prompt the user if they really want to exit, as data might not be saved
-// yet. Unnecessary?
+// Make sure to save on exit, no matter what
 if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
-    window.addEventListener("beforeunload", function (e) {
+    window.addEventListener("beforeunload", function () {
         changeHandler(true /*forcecSave*/);
     });
 }
@@ -200,11 +167,11 @@ if (g_page === "frames") {
     // noinspection JSAnnotator
     window.top.document.head.appendChild(buildNode("script", ["type"], ["text/javascript"],
         `
-            function notifyNewPage(page) {
-                console.log("New page: " + page);
-                handleNewPage(page);
-            }
-        `
+        function notifyNewPage(page) {
+            console.log("New page: " + page);
+            handleNewPage(page);
+        }
+    `
     ));
 
     // Reset the dictionary on a language change
@@ -1619,6 +1586,25 @@ function getScriptInfo() {
 }
 
 /**
+ * Retrieve the script verseion info. Don't think it's
+ * actually used anymore
+ * @returns {*}
+ */
+function getVersionInfo() {
+    var versionInfo;
+    try {
+        versionInfo = JSON.parse(GM_getValue("infos_version"));
+        if (!versionInfo) {
+            versionInfo = setInfosVersion();
+        }
+    } catch (ex) {
+        versionInfo = undefined;
+    }
+
+    return versionInfo;
+}
+
+/**
  * Sets up the necessary bits in the persistent sidebar (leftmenu)
  */
 function setupSidebar() {
@@ -1656,7 +1642,7 @@ function setupSidebar() {
     }
 
     sfmCheck.onchange = function() {
-        setValue("spyForMe", this.checked ? 1 : 0);
+        setValue("simAutoAttack", this.checked ? 1 : 0);
         autoAttackWithSim = this.checked;
         deleteValue("simBlasts");
         deleteValue("autoSimIndex");
@@ -1668,7 +1654,6 @@ function setupSidebar() {
     aaCheck.onchange = function() {
         setValue("autoAttackMasterSwitch", this.checked ? 1 : 0);
         autoAttack = this.checked && usingOldVersion();
-        advancedAutoAttack = autoAttack;
         if (!autoAttack) {
             deleteValue("autoAttackStartIndex");
             deleteValue("autoAttackWaves");
@@ -2306,6 +2291,24 @@ function fleetKeyHandler(e) {
 }
 
 /**
+ * Sets the list of keys currently pressed
+ */
+function setKeyArray() {
+    if (window.top === window) {
+        g_keyArray = [];
+    } else {
+        if (!window.top.g_keyArray) {
+            window.top.g_keyArray = [];
+        }
+
+        g_keyArray = window.top.g_keyArray;
+        if (g_page !== "leftmenu") {
+            window.top.g_keyArray.length = 0;
+        }
+    }
+}
+
+/**
  * Returns whether the given key is an alpha key
  * @param key
  * @returns {boolean}
@@ -2486,7 +2489,7 @@ function loadEasyFarm() {
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
     var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
-    var optionValues = [g_merchantMap.Blast, g_merchantMap.Supernova, g_merchantMap.Destroyer];
+    var optionValues = [g_merchantMap[L_.blast], g_merchantMap[L_.supernova], g_merchantMap[L_.destroyer]];
 
     var needsSim = [];
     var simBlasts;
@@ -2677,7 +2680,7 @@ function loadEasyFarm() {
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
-            if ((shouldAttack || needsSim[i]) && advancedAutoAttack && i >= startIndex) {
+            if ((shouldAttack || needsSim[i]) && autoAttack && i >= startIndex) {
                 if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
                 }
@@ -2754,7 +2757,7 @@ function loadEasyFarm() {
         setValue("autoAttackIndex", -1);
     }
 
-    if (messages.length > 0 && aaDeleteIndex !== -1 && autoAttack && advancedAutoAttack) {
+    if (messages.length > 0 && aaDeleteIndex !== -1 && autoAttack) {
         // Delete already-attacked message
         setValue("autoAttackIndex", -1);
         deleteValue("autoAttackBlasts");
@@ -2762,7 +2765,7 @@ function loadEasyFarm() {
         setTimeout(function() {
             f.document.getElementsByTagName("input")[5].click();
         }, Math.random() * 300 + 200);
-    } else if (attackIndex !== -1 && autoAttack && advancedAutoAttack) {
+    } else if (attackIndex !== -1 && autoAttack) {
         // Standard attack
         if (needsSim[attackIndex] && !simBlasts) {
             setValue("autoSim", 1);
@@ -2928,8 +2931,6 @@ async function setSimDefaults() {
     setValue("simBlasts", curBlast);
     setValue("redirToSpy", "1");
     f.location = "messages.php";
-
-
 }
 
 /**
@@ -3252,7 +3253,7 @@ function loadConvertClick() {
         });
     }
 
-    f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function(e) {
+    f.$('.defenses_1a, .flottes_1a, .buildings_1a, .research_1a').click(function() {
         var item = f.$(this).parents()[1].getElementsByTagName("a")[0].innerHTML;
         setValue("merchantItem", item);
         setValue("resourceRedirect", f.location.href);
@@ -3594,7 +3595,7 @@ function loadEasyTargetAndMarkit() {
             // Create save/remove/delete buttons for easyTarget
             if (g_scriptInfo.EasyTarget) {
                 if (!usingOldVersion()) {
-                    createEasyTargetButtons(rows, row, nameDiv, newName, storedName, coords);
+                    createEasyTargetButtons(rows, nameDiv, newName, storedName, coords);
                 }
                 showDefaultButton(storedName, newName, coords);
             }
@@ -3817,13 +3818,12 @@ function setHighlightColor(regMatch, item) {
  * Creates the galaxy view buttons for saving/removing/deleting
  * data from the script galaxy map
  * @param rows - all the rows
- * @param row - this particular row
  * @param nameDiv - the name div
  * @param newName - the actual (string) name of the player
  * @param storedName - the name that we think should be in this position
  * @param coords - the coordinates of this position
  */
-function createEasyTargetButtons(rows, row, nameDiv, newName, storedName, coords) {
+function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
     var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, coords.p, 1);
     var saveDiv = createGalaxyDataButton(g_saveIcon, 1, coords.p, 1);
     var savedDiv = createGalaxyDataButton(g_savedIcon, 2, coords.p, 0.5);

@@ -991,11 +991,11 @@ function deleteAllData() {
         "resourceRedirectType",
         "savedFleet",
         "scan",
+        "simAutoAttack",
         "simBlasts",
         "simVictory",
         "spacesCount",
-        "spacesGalaxy",
-        "spyForMe"
+        "spacesGalaxy"
     ];
 
     for (var i = 0; i < 19; i++) {
