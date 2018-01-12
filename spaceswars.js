@@ -1052,7 +1052,7 @@ function setConfigScripts(uni) {
         list.EasyFarm.colorCDR = "178717";
         list.EasyFarm.defMultiplier = 1;
         list.EasyFarm.granularity = 1000;
-        list.EasyFarm.simGranulatiry = 0;
+        list.EasyFarm.simGranulariry = 0;
         list.EasyFarm.simThreshold = 0;
         list.EasyFarm.simShip = 0;
 
@@ -2492,9 +2492,6 @@ function loadEasyFarm() {
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
 
-    var optionTexts = [g_fleetNames[17], g_fleetNames[14], g_fleetNames[11]];
-    var optionValues = [g_merchantMap[L_.blast], g_merchantMap[L_.supernova], g_merchantMap[L_.destroyer]];
-
     var needsSim = [];
     var simBlasts;
     var simIndex;
@@ -2728,9 +2725,11 @@ function loadEasyFarm() {
 
                 // Fleet type selector
                 var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
-                for (j = 0; j < optionTexts.length; j++) {
-                    var option = buildNode("option", ["value"], [optionValues[j]], optionTexts[j]);
-                    sel.add(option);
+                var rejectSet = new Set([0, 1, 6, 7, 8, 10, 15, 16, 18]);
+                for (j = 0; j < g_fleetNames.length; j++) {
+                    if (!rejectSet.has(j)) {
+                        sel.add(buildNode("option", ["value"], [j], g_fleetNames[j]));
+                    }
                 }
 
                 selDiv.appendChild(num);
@@ -2738,6 +2737,7 @@ function loadEasyFarm() {
                 selDiv.appendChild(submit);
                 selDiv.appendChild(simulate);
                 f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
+                f.$("#shipSelect" + i).val(g_config.EasyFarm.simShip);
             }
 
             if (parseInt(simIndex) === i && simBlasts) {
@@ -2880,20 +2880,25 @@ async function setSimDefaults() {
 
     if (!autoSim) {
         return;
+    } else if (g_config.EasyFarm.simShip === 0
+        || g_config.EasyFarm.simGranularity === 0
+        || g_config.EasyFarm.simThreshold === 0) {
+        alert("Make sure all EasyFarm options have non-zero values!");
+        return;
     }
 
     // Start of autoSim
+    var shipSelector = f.$("#att" +  g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]]);
+    var totalShip  = shipSelector.val();
+    totalShip = Math.floor(totalShip / g_config.EasyFarm.simGranularity) * g_config.EasyFarm.simGranularity;
+    var maxShip = totalShip;
+    var minShip = 0;
+    var curShip = g_config.EasyFarm.simGranularity;
+
     noShip("att");
-    var totalBlast = Math.floor(parseInt(f.$(".simu_135")[69].innerHTML.replace(/\./g, "")) / 1E9) * 1E9;
-    var maxBlast = totalBlast;
-    var minBlast = 0;
-    var curBlast = 1E9; // Start low
-    var threshold = 2E9; // Amount we can be off and consider it "good enough"
-    var blastSelector = f.$("#att219");
-    blastSelector.val(curBlast);
+    shipSelector.val(curShip);
     setValue("simVictory", -1);
     var totalVictory = false;
-
     while (!totalVictory) {
         f.$("input[value='Simulate']").click();
         await waitForSimComplete();
@@ -2902,37 +2907,37 @@ async function setSimDefaults() {
         setValue("simVictory", -1);
         if (totalVictory) {
             // Won. Try fewer blasts if we're not within tolerance
-            maxBlast = curBlast;
-            if (minBlast >= maxBlast - threshold) {
-                curBlast = maxBlast;
+            maxShip = curShip;
+            if (minShip >= maxShip - g_config.EasyFarm.simThreshold) {
+                curShip = maxShip;
                 break;
             }
 
-            curBlast = Math.ceil((curBlast + minBlast) / 2E9) * 1E9;
+            curShip = Math.ceil((curShip + minShip) / (2 * g_config.EasyFarm.simGranularity)) * g_config.EasyFarm.simGranularity;
 
             totalVictory = false;
         } else {
-            minBlast = curBlast;
-            if (minBlast >= maxBlast - threshold) {
-                if (maxBlast >= totalBlast - threshold) {
-                    // Not enough blast for total victory
-                    curBlast = -1;
+            minShip = curShip;
+            if (minShip >= maxShip - g_config.EasyFarm.simThreshold) {
+                if (maxShip >= totalShip - g_config.EasyFarm.simThreshold) {
+                    // Not enough ship for total victory
+                    curShip = -1;
                     break;
                 }
 
-                curBlast = maxBlast;
+                curShip = maxShip;
                 break;
             }
 
-            // Round to 1E9
-            curBlast = Math.floor((curBlast + maxBlast) / 2E9) * 1E9;
+            // Round to granularity
+            curShip = Math.floor((curShip + maxShip) / (2 * g_config.EasyFarm.simGranularity)) * g_config.EasyFarm.simGranularity;
         }
 
-        blastSelector.val(curBlast);
+        shipSelector.val(curShip);
     }
 
     deleteValue("autoSim");
-    setValue("simBlasts", curBlast);
+    setValue("simBlasts", curShip);
     setValue("redirToSpy", "1");
     f.location = "messages.php";
 }

@@ -276,7 +276,7 @@ function populateConfig() {
     inputs[5].value = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
     inputs[6].value = g_config.EasyFarm.simGranularity;
     inputs[7].value = g_config.EasyFarm.simThreshold;
-    f.$("#simShip option:eq(" + g_config.EasyFarm.simShip + ")").prop("selected", true);
+    f.$("#simShip").val(g_config.EasyFarm.simShip);
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -741,10 +741,14 @@ function createEasyFarmOptions() {
     createInputAndLabel("simThreshold", "Sim Threshold", result, true /*useHide*/);
 
     var simType = document.createElement("select");
+    var rejectList = [0, 1, 6, 7, 8, 10, 15, 16, 18];
     simType.id = "simShip";
     simType.appendChild(buildNode("option", ["value"], [0], "None"));
     for (var ship in g_fleetNames) {
-        simType.appendChild(buildNode("option", ["value"], [parseInt(ship) + 1], g_fleetNames[ship]));
+        ship = parseInt(ship);
+        if (rejectList.indexOf(ship) === -1) {
+            simType.appendChild(buildNode("option", ["value"], [ship], g_fleetNames[ship]));
+        }
     }
 
     if (!usingOldVersion()) {
