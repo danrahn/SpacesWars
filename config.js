@@ -34,8 +34,11 @@ function createAndLoadConfigurationPage() {
         g_config.EasyTarget = {};
     }
 
-    if (!g_config.EasyTarget.useDoNotSpy) {
+    if (g_config.EasyFarm.simShip === undefined) {
         g_config.EasyTarget.useDoNotSpy = false;
+        g_config.EasyFarm.simShip = 0;
+        g_config.EasyFarm.simGranularity = 0;
+        g_config.EasyFarm.simThreshold = 0;
     }
 
     // Needed to get new tooltips to work
@@ -271,6 +274,9 @@ function populateConfig() {
     inputs[3].value = g_config.EasyFarm.colorCDR;
     inputs[4].value = g_config.EasyFarm.defMultiplier ? g_config.EasyFarm.defMultiplier : 1;
     inputs[5].value = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
+    inputs[6].value = g_config.EasyFarm.simGranularity;
+    inputs[7].value = g_config.EasyFarm.simThreshold;
+    f.$("#simShip option:eq(" + g_config.EasyFarm.simShip + ")").prop("selected", true);
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -433,34 +439,17 @@ function createEasyTargetScript() {
     var targetContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyTargetTextArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
     ], '');
-    var imprt = buildNode('input', ['type', 'value'], ['button', L_['import']], '');
-    var exprt = buildNode('input', ['type', 'value'], ['button', L_['export']], '');
-    targetContainer.appendChild(imprt);
-    targetContainer.appendChild(exprt);
+    var importBtn = buildNode('input', ['type', 'value'], ['button', L_['import']], '');
+    var exportBtn = buildNode('input', ['type', 'value'], ['button', L_['export']], '');
+    targetContainer.appendChild(importBtn);
+    targetContainer.appendChild(exportBtn);
     targetContainer.appendChild(easyTargetTextArea);
     targetContainer.appendChild(document.createElement('br'));
 
     // Hacky stuff for usingOldVersion(). Don't remove them, just hide them. This
     // allows no change in logic when filling/retrieving setting information
-    var spyCutoff = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'spyCut'], ['spyCut']], ['', 'autoSpy Cutoff']);
-    for (var j = 0; j < spyCutoff.length; j++) {
-        if (!usingOldVersion()) {
-            spyCutoff[j].style.display = "none";
-        }
-        targetContainer.appendChild(spyCutoff[j]);
-    }
-    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
-    var spyDelay = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'spyDelay'], ['spyDelay']], ['', 'autoSpy Delay']);
-    for (j = 0; j < spyDelay.length; j++) {
-        if (!usingOldVersion()) {
-            spyDelay[j].style.display = "none";
-        }
-        targetContainer.appendChild(spyDelay[j]);
-    }
-
-    if (usingOldVersion()) targetContainer.appendChild(document.createElement("br"));
+    createInputAndLabel("spyCut", "autoSpy Cutoff", targetContainer, true /*useHide*/);
+    createInputAndLabel("spyDelay", "autoSpy Delay", targetContainer, true /*useHide*/);
 
     var useDoNotSpy = createCheckBoxItems(["Use doNotSpy"], 150)[0];
     if (!usingOldVersion()) {
@@ -649,6 +638,41 @@ function createScriptOption(types, attributes, values, contents) {
 }
 
 /**
+ * Create an input box with an attached label. Hiding if necessary
+ * @param id
+ * @param text
+ * @param parent
+ * @param useHide
+ * @param optInputOptions
+ * @param optLabelOptions
+ */
+function createInputAndLabel(id, text, parent, useHide, optInputOptions, optLabelOptions) {
+    var inputOptions = [['type', 'id'], ['text', id]];
+    var labelOptions = [['for'], [id]];
+    for (var i = 0; optInputOptions && i < optInputOptions.length; i++) {
+        inputOptions[0].push(optInputOptions[0][i]);
+        inputOptions[1].push(optInputOptions[1][i]);
+    }
+    for (i = 0; optLabelOptions && i < optLabelOptions.length; i++) {
+        labelOptions[0].push(optLabelOptions[0][i]);
+        labelOptions[1].push(optLabelOptions[1][i]);
+    }
+
+    var item = createScriptOption(['input', 'label'],
+        [inputOptions[0], labelOptions[0]], [inputOptions[1], labelOptions[1]], ['', " " + text]);
+    for (i = 0; i < item.length; i++) {
+        if (useHide && !usingOldVersion()) {
+            item[i].style.display = "none";
+        }
+
+        parent.push ? parent.push(item[i]) : parent.appendChild(item[i]);
+    }
+
+    var lineBreak = document.createElement("br");
+    parent.push ? parent.push(lineBreak) : parent.appendChild(lineBreak);
+}
+
+/**
  * Creates an array of elements that when put in a container
  * will display something of the form
  *
@@ -694,12 +718,7 @@ function createRConvOptions() {
     var result = [];
     var text = ['Intro picture', "'BOOM' picture", "'Destroyed' picture", "'Result' picture", "Retentability picture"];
     for (var i = 0; i < 5; i++) {
-        var option = createScriptOption(['input', 'label'], [['type', 'style', 'id'], ['for']], [['text', 'width:30%', 'RConvOpt_' + i], ['RConvOpt_' + i]], ['', text[i]]);
-
-        for (var j = 0; j < option.length; j++) {
-            result.push(option[j]);
-        }
-        result.push(document.createElement('br'));
+        createInputAndLabel("RConvOpt_" + i, text[i], result, false /*useHide*/, [["style"],["width:30%"]]);
     }
     return result;
 }
@@ -712,49 +731,27 @@ function createEasyFarmOptions() {
     var result = [];
     var text = ["Looting level", "Looting color", "Field ruins level", "Field ruins color"];
     for (var i = 0; i < 2; i++) {
-        var option = createScriptOption(['input', 'label', 'br', 'input', 'label'],
-            [
-                ['type', 'style', 'id'],
-                ['for'],
-                [],
-                ['style', 'id', 'class'],
-                ['for']
-            ],
-            [
-                ['text', 'width:30%', 'easyFarm_' + i],
-                ['easyFarm_' + i],
-                [],
-                ['width:30%', 'easyFarmColor_' + i, 'jscolor'],
-                ['easyFarmColor_' + i]
-            ],
-            ['', text[i * 2], '', '', text[(i*2)+1]]
-        );
-        for (var j = 0; j < option.length; j++) {
-            result.push(option[j]);
-        }
-        result.push(document.createElement('br'));
+        createInputAndLabel("easyFarm_" + i, text[i * 2], result, false /*useHide*/, [["style"],["width:30%"]]);
+        createInputAndLabel("easyFarmColor_" + i, text[(i * 2) - 1], result, false /*useHide*/, [["style", "class"],["width:30%", "jscolor"]]);
     }
 
-    var defMultiplier = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'defMult'], ['defMult']], ['', 'Defense Multiplier']);
-    for (j = 0; j < defMultiplier.length; j++) {
-        if (!usingOldVersion()) {
-            defMultiplier[j].style.display = "none";
-        }
-        result.push(defMultiplier[j]);
-    }
-    if (usingOldVersion()) {
-        result.push(document.createElement('br'));
+    createInputAndLabel("defMult", "Defense Multiplier", result, true /*useHide*/);
+    createInputAndLabel("granularity", "Granularity", result, true /*useHide*/);
+    createInputAndLabel("simGranularity", "Sim Granularity", result, true /*useHide*/);
+    createInputAndLabel("simThreshold", "Sim Threshold", result, true /*useHide*/);
+
+    var simType = document.createElement("select");
+    simType.id = "simShip";
+    simType.appendChild(buildNode("option", ["value"], [0], "None"));
+    for (var ship in g_fleetNames) {
+        simType.appendChild(buildNode("option", ["value"], [parseInt(ship) + 1], g_fleetNames[ship]));
     }
 
-    var granularity = createScriptOption(['input', 'label'],
-        [['type', 'id'], ['for']], [['text', 'granularity'], ['granularity']], ['', 'Granularity']);
-    for (j = 0; j < granularity.length; j++) {
-        if (!usingOldVersion()) {
-            granularity[j].style.display = "none";
-        }
-        result.push(granularity[j]);
+    if (!usingOldVersion()) {
+        simType.style.display = "none";
     }
+
+    result.push(simType);
 
     return result;
 }
@@ -767,14 +764,11 @@ function createMarkitOptions() {
     var result = [], i, j;
     var text = ["'Fridge' color", "'Bunker' color", "'To attack' color", "'To not attack' color"];
     for (i = 0; i < 4; i++) {
-        var option = createScriptOption(['input', 'label'], [['id', 'class', 'style'], ['for']], [['markit_' + i, 'jscolor', 'width:30%'], ['markit_' + i]], ['', text[i]]);
-        for (j = 0; j < option.length; j++) {
-            result.push(option[j]);
-        }
-        result.push(document.createElement('br'));
+        createInputAndLabel("markit_" + i, text[i], result, false /*useHide*/, [["class", "style"], ["jscolor", "width:30%"]]);
     }
     result.push(document.createElement('br'));
-    option = createScriptOption(['label', 'input'], [['for'], ['type', 'id', 'value', 'style']], [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']], ['Markit coordinates : ', '']);
+
+    var option = createScriptOption(['label', 'input'], [['for'], ['type', 'id', 'value', 'style']], [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']], ['Markit coordinates : ', '']);
     for (j = 0; j < option.length; j++) {
         result.push(option[j]);
     }
@@ -887,6 +881,9 @@ function saveSettings() {
                 g_config.EasyFarm.colorCDR = inputs[3].value;
                 g_config.EasyFarm.defMultiplier = usingOldVersion() ? parseInt(inputs[4].value) : 1;
                 g_config.EasyFarm.granularity = parseInt(inputs[5].value);
+                g_config.EasyFarm.simGranularity = parseInt(inputs[6].value);
+                g_config.EasyFarm.simThreshold = parseInt(inputs[7].value);
+                g_config.EasyFarm.simShip = parseInt(f.$("#simShip").val());
                 break;
             case "EasyTarget":
                 inputs = options[2].getElementsByTagName("input");

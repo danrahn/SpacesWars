@@ -144,7 +144,8 @@ var g_defNames = [
  * Array of built up keys for key combinations
  * @type {[]}
  */
-var g_keyArray = setKeyArray();
+var g_keyArray;
+setKeyArray();
 
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
@@ -1051,6 +1052,9 @@ function setConfigScripts(uni) {
         list.EasyFarm.colorCDR = "178717";
         list.EasyFarm.defMultiplier = 1;
         list.EasyFarm.granularity = 1000;
+        list.EasyFarm.simGranulatiry = 0;
+        list.EasyFarm.simThreshold = 0;
+        list.EasyFarm.simShip = 0;
 
         list.EasyTarget = {};
         list.EasyTarget.spyCutoff = 0;
