@@ -34,11 +34,12 @@ function createAndLoadConfigurationPage() {
         g_config.EasyTarget = {};
     }
 
-    if (g_config.EasyFarm.simShip === undefined) {
+    if (g_config.EasyFarm.botLootLevel === undefined) {
         g_config.EasyTarget.useDoNotSpy = false;
         g_config.EasyFarm.simShip = 0;
         g_config.EasyFarm.simGranularity = 0;
         g_config.EasyFarm.simThreshold = 0;
+        g_config.EasyFarm.botLootLevel = 0;
     }
 
     // Needed to get new tooltips to work
@@ -276,6 +277,7 @@ function populateConfig() {
     inputs[5].value = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
     inputs[6].value = g_config.EasyFarm.simGranularity;
     inputs[7].value = g_config.EasyFarm.simThreshold;
+    inputs[8].value = g_config.EasyFarm.botLootLevel;
     f.$("#simShip").val(g_config.EasyFarm.simShip);
 
     // EasyTarget
@@ -739,6 +741,7 @@ function createEasyFarmOptions() {
     createInputAndLabel("granularity", "Granularity", result, true /*useHide*/);
     createInputAndLabel("simGranularity", "Sim Granularity", result, true /*useHide*/);
     createInputAndLabel("simThreshold", "Sim Threshold", result, true /*useHide*/);
+    createInputAndLabel("botLimit", "Bot Looting Level", result, true /*useHide*/);
 
     var simType = document.createElement("select");
     var rejectList = [0, 1, 6, 7, 8, 10, 15, 16, 18];
@@ -887,6 +890,7 @@ function saveSettings() {
                 g_config.EasyFarm.granularity = parseInt(inputs[5].value);
                 g_config.EasyFarm.simGranularity = parseInt(inputs[6].value);
                 g_config.EasyFarm.simThreshold = parseInt(inputs[7].value);
+                g_config.EasyFarm.botLootLevel = parseInt(inputs[8].value);
                 g_config.EasyFarm.simShip = parseInt(f.$("#simShip").val());
                 break;
             case "EasyTarget":

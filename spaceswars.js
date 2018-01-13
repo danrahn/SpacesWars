@@ -1065,6 +1065,7 @@ function setConfigScripts(uni) {
         list.EasyFarm.granularity = 1000;
         list.EasyFarm.simGranulariry = 0;
         list.EasyFarm.simThreshold = 0;
+        list.EasyFarm.botLootLevel = 0;
         list.EasyFarm.simShip = 0;
 
         list.EasyTarget = {};
@@ -2539,9 +2540,17 @@ function loadEasyFarm() {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
 
+        // isBot if the colony name starts with Bot_col
+        var isBot = messages[i].children[1].children[0].childNodes[0].textContent.toLowerCase().indexOf("bot_col") !== -1;
+
+        var minPillage = g_config.EasyFarm.minPillage;
+        if (isBot) {
+            minPillage = g_config.EasyFarm.botLootLevel;
+        }
+
         // get metal crystal and deut
         var resources = getResourcesFromMessage(messages[i]);
-        if (resources.deut / 2 >= g_config.EasyFarm.minPillage) {
+        if (resources.deut / 2 >= minPillage) {
             messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
@@ -2614,14 +2623,14 @@ function loadEasyFarm() {
         // the total resources isn't greater than the defMultiplier
         var mc = Math.ceil(resources.total / 2 / 12500000);
         var allDeut = resources.total / 2;
-        if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
+        if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
         // Update doNotSpy if necessary
         if (g_config.EasyTarget.useDoNotSpy) {
             var oldValue = g_doNotSpy[coords.g][coords.s][coords.p];
-            var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
+            var newValue = allDeut < minPillage / 3;
             if (oldValue !== newValue) {
                 g_dnsChanged = true;
                 g_doNotSpy[coords.g][coords.s][coords.p] = newValue;
@@ -2634,7 +2643,7 @@ function loadEasyFarm() {
         var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
-        while (allDeut >= g_config.EasyFarm.minPillage && g_config.EasyFarm.minPillage > 0) {
+        while (allDeut >= minPillage && minPillage > 0) {
             count++;
             deutTotal += allDeut;
             allDeut /= 2;
@@ -5141,6 +5150,7 @@ function saveFleetPage() {
             if (fleetOut + attackData.waves > fleetMax || max < totalShips || !enoughAttackType) {
                 // TODO: Don't delete attack data, set bit to let messages know we failed and need to retry
                 deleteValue("attackData");
+                setValue("fleetNotSent", true);
                 setValue("autoAttackIndex", -1);
                 var div = f.document.createElement("div");
                 div.style.color = "Red";
