@@ -993,7 +993,7 @@ function deleteAllData() {
         "savedFleet",
         "scan",
         "simAutoAttack",
-        "simBlasts",
+        "simShips",
         "simVictory",
         "spacesCount",
         "spacesGalaxy"
