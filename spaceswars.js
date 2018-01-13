@@ -88,6 +88,9 @@ var g_inactivesChanged = false;             // Whether the list of inactive play
 var g_saveEveryTime = false;                // Whether to save data whenever something changes
 var g_inPlanetView = true;                  // Whether we are in planet view (unused?)
 
+var g_interval = null;
+var g_intervalCount = 1;
+
 if (!usingOldVersion()) {
     g_changeCount = 1;
 }
@@ -210,6 +213,10 @@ if (g_page === "frames") {
                 if (g_page !== "fleet" && g_page !== "floten1" && g_page !== "floten2" && g_page !== "floten3") {
                     deleteValue("attackData");
                 }
+            }
+            if (g_interval) {
+                clearInterval(g_interval);
+                g_intervalCount = 1;
             }
         }
 
@@ -2844,7 +2851,11 @@ function setSpyReportClick(waves, mc, href, message, numAlt) {
         // lose some MCs if we add them to the mix. So only attack with SNs and add more
         // if we need to make up for the loss in cargo space
         if (g_config.EasyFarm.simShip === 14) {
+            var numAltSav = numAlt;
             numAlt = Math.max(numAlt, Math.round(((mc * 12500000 / 2000000) + (granularity / 2)) / granularity) * granularity);
+            if (numAlt !== numAltSav) {
+                console.log("Increased SNs from " + numAltSav + " to " + numAlt + " to meet res requirements");
+            }
             mc = 0;
         } else {
             mc = Math.round((mc + (granularity / 2)) / granularity) * granularity;
@@ -5099,7 +5110,6 @@ function saveFleetPage() {
 
         if (attackData.waves > 0)
         {
-            console.log(attackData);
             var regx = /[a-z ]+([0-9]+)[on ]+([0-9]+)/;
             var x = regx.exec(f.document.getElementsByClassName("flotte_header_left")[0].innerHTML);
             var fleetOut = parseInt(x[1]);
@@ -5130,26 +5140,35 @@ function saveFleetPage() {
             }
             if (fleetOut + attackData.waves > fleetMax || max < totalShips || !enoughAttackType) {
                 // TODO: Don't delete attack data, set bit to let messages know we failed and need to retry
-                // TODO: Parse return fleet and use that at time to process next
-                // TODO: Clear interval when we go to a new page
                 deleteValue("attackData");
                 setValue("autoAttackIndex", -1);
                 var div = f.document.createElement("div");
                 div.style.color = "Red";
                 div.style.fontWeight = "bold";
                 div.style.fontSize = "14pt";
-                div.innerHTML = "Not enough ships or fleet slots, retrying in 30 seconds";
+                var minReturn = findMinReturn();
+                console.log(minReturn);
+                if (minReturn !== 1E12) {
+                    div.innerHTML = "Requirements not met! Next fleet back in " + minReturn + " seconds";
+                } else {
+                    div.innerHTML = "Requirements not met! Trying again in 30 seconds";
+                    minReturn = 30;
+                }
                 f.$("#main").prepend(div);
                 // Wait 30 seconds and try again
-                for (i = 1; i <= 30; i++) {
-                    setTimeout(function(i) {
-                        f.$("#main").children()[0].innerHTML = "Not enough ships or fleet slots, retrying in " + (30 - i) + " seconds";
-                        if (i === 30) {
-                            setValue("redirToSpy", "1");
-                            f.location.href = "messages.php?mode=show?messcat=0";
-                        }
-                    }, i * 1000, i);
-                }
+                g_interval = setInterval(function(minReturn) {
+                    var text = "Requirements not met! Next fleet back in " + (minReturn - g_intervalCount) + " seconds";
+                    if (minReturn === 30) {
+                        text = "Requirements not met! Trying again in " + (minReturn - g_intervalCount) + "seconds";
+                    }
+                    f.$("#main").children()[0].innerHTML = text;
+                    if (g_intervalCount++ === minReturn) {
+                        g_intervalCount = 1;
+                        clearInterval(g_interval);
+                        setValue("redirToSpy", "1");
+                        f.location.href = "messages.php?mode=show?messcat=0";
+                    }
+                }, 1000, minReturn);
                 return;
             }
 
@@ -5185,6 +5204,33 @@ function saveFleetPage() {
                 setValue("attackData", JSON.stringify(attackData));
             }
         }
+    }
+}
+
+/**
+ * Find the time to the next fleet return
+ * @returns {number}
+ */
+function findMinReturn() {
+    var min = 1E12;
+    f.$(".flotte_liste_6").each(function() {
+        min = Math.min(min, getSeconds(f.$(this).text()));
+    });
+    return min;
+}
+
+/**
+ * Parse a fleet time (xxh xxm xxs) into the number of seconds
+ * @param time
+ * @returns {number}
+ */
+function getSeconds(time) {
+    var rgx = /(\d{2})\D+(\d{2})\D+(\d{2})/;
+    var matches = rgx.exec(time);
+    if (matches && matches.length === 4) {
+        return (parseInt(matches[1]) * 60 * 60) + (parseInt(matches[2]) * 60) + parseInt(matches[3]);
+    } else {
+        return 1E12;
     }
 }
 
