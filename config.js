@@ -40,6 +40,7 @@ function createAndLoadConfigurationPage() {
         g_config.EasyFarm.simGranularity = 0;
         g_config.EasyFarm.simThreshold = 0;
         g_config.EasyFarm.botLootLevel = 0;
+        g_config.EasyFarm.botSn = false;
     }
 
     // Needed to get new tooltips to work
@@ -279,6 +280,7 @@ function populateConfig() {
     inputs[7].value = g_config.EasyFarm.simThreshold;
     inputs[8].value = g_config.EasyFarm.botLootLevel;
     f.$("#simShip").val(g_config.EasyFarm.simShip);
+    if (g_config.EasyFarm.botSn) inputs[9].checked = "checked";
 
     // EasyTarget
     inputs = options[2].getElementsByTagName('input');
@@ -760,6 +762,13 @@ function createEasyFarmOptions() {
 
     result.push(simType);
 
+    var botSns = createCheckBoxItems(["Use SN for bot fights"], 150)[0];
+
+    if (!usingOldVersion()) {
+        botSns.style.display = "none";
+    }
+    result.push(botSns);
+
     return result;
 }
 
@@ -892,6 +901,7 @@ function saveSettings() {
                 g_config.EasyFarm.simThreshold = parseInt(inputs[7].value);
                 g_config.EasyFarm.botLootLevel = parseInt(inputs[8].value);
                 g_config.EasyFarm.simShip = parseInt(f.$("#simShip").val());
+                g_config.EasyFarm.botSn = inputs[9].checked;
                 break;
             case "EasyTarget":
                 inputs = options[2].getElementsByTagName("input");

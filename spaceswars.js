@@ -1067,6 +1067,7 @@ function setConfigScripts(uni) {
         list.EasyFarm.simThreshold = 0;
         list.EasyFarm.botLootLevel = 0;
         list.EasyFarm.simShip = 0;
+        list.EasyFarm.botSn = false;
 
         list.EasyTarget = {};
         list.EasyTarget.spyCutoff = 0;
@@ -2536,15 +2537,16 @@ function loadEasyFarm() {
         aaDeleteIndex = -1;
 
     var regNb = /\s([0-9,.]+)/;
+    var isBot = [];
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
 
         // isBot if the colony name starts with Bot_col
-        var isBot = messages[i].children[1].children[0].childNodes[0].textContent.toLowerCase().indexOf("bot_col") !== -1;
+        isBot[i] = messages[i].children[1].children[0].childNodes[0].textContent.toLowerCase().indexOf("bot_col") !== -1;
 
         var minPillage = g_config.EasyFarm.minPillage;
-        if (isBot) {
+        if (isBot[i]) {
             minPillage = g_config.EasyFarm.botLootLevel;
         }
 
@@ -2670,7 +2672,7 @@ function loadEasyFarm() {
         // Definitely not a bot... I don't know what you're talking about
         if (autoAttack) {
             var href = messages[i].getElementsByTagName("a")[2].href;
-            setSpyReportClick(count, mc, href, messages[i], simShips);
+            setSpyReportClick(count, mc, href, messages[i], simShips, isBot[i] ? 14 : g_config.EasyFarm.simShip);
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
@@ -2765,6 +2767,7 @@ function loadEasyFarm() {
     } else if (attackIndex !== -1 && autoAttack) {
         // Standard attack
         if (needsSim[attackIndex] && !simShips) {
+            setValue("botSim", isBot[attackIndex]);
             setValue("autoSim", 1);
             setValue("autoSimIndex", attackIndex);
             f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
@@ -2848,8 +2851,9 @@ function getResourcesFromMessage(message) {
  * @param href
  * @param message
  * @param numAlt
+ * @param shipAlt
  */
-function setSpyReportClick(waves, mc, href, message, numAlt) {
+function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
     f.$(message.getElementsByTagName("a")[2]).click(function() {
         // If an attack is made, set all the necessary info so it can be
         // filled in on the fleet page
@@ -2859,7 +2863,7 @@ function setSpyReportClick(waves, mc, href, message, numAlt) {
         // we're going up against some decent defenses (e.g. attacking bots), and will
         // lose some MCs if we add them to the mix. So only attack with SNs and add more
         // if we need to make up for the loss in cargo space
-        if (g_config.EasyFarm.simShip === 14) {
+        if (shipAlt === 14) {
             var numAltSav = numAlt;
             numAlt = Math.max(numAlt, Math.round(((mc * 12500000 / 2000000) + (granularity / 2)) / granularity) * granularity);
             if (numAlt !== numAltSav) {
@@ -2870,7 +2874,7 @@ function setSpyReportClick(waves, mc, href, message, numAlt) {
             mc = Math.round((mc + (granularity / 2)) / granularity) * granularity;
         }
         var attackData = {
-            type  : numAlt ? g_config.EasyFarm.simShip : -1,
+            type  : numAlt ? shipAlt : -1,
             val   : numAlt ? numAlt : 0,
             mc    : mc,
             waves : waves
@@ -2977,7 +2981,14 @@ async function setSimDefaults() {
     }
 
     // Start of autoSim
-    var shipSelector = f.$("#att" +  g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]]);
+    var fleetId;
+    if (getValue("botSim")) {
+        fleetId = 216;
+    } else {
+        fleetId = g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]]
+    }
+
+    var shipSelector = f.$("#att" +  fleetId);
     var totalShip  = shipSelector.val();
     totalShip = Math.floor(totalShip / g_config.EasyFarm.simGranularity) * g_config.EasyFarm.simGranularity;
     var maxShip = totalShip;
