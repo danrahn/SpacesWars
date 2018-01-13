@@ -2499,18 +2499,7 @@ function loadEasyFarm() {
     var needsSim = [];
     var simIndex;
     var simShips = getValue("simShips");
-    var startIndex = 0;
-    if (autoAttack && autoAttackWithSim) {
-        // Start the autoAttack search from a different index
-        // if we've autoSimed the first n and we don't have
-        // enough ships for a total victory
-        var storedIndex = getValue("autoAttackStartIndex");
-        if (!storedIndex) {
-            startIndex = 0;
-        } else {
-            startIndex = parseInt(storedIndex);
-        }
-    }
+    var startIndex = getMessageStartIndex();
 
     // Increment the start index if we determined
     // we can't win the current fight
@@ -2531,23 +2520,21 @@ function loadEasyFarm() {
     }
 
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
-    getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"], "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "));
+    appendMessagesTooltipBase();
     var attackIndex = -1;
     var aaDeleteIndex = parseInt(getValue("autoAttackIndex"));
 
     if (isNaN(aaDeleteIndex))
         aaDeleteIndex = -1;
 
+    var regNb = /\s([0-9,.]+)/;
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
-        var regNb = /\s([0-9,.]+)/;
 
         // get metal crystal and deut
-        var metal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
-        var crystal = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
-        var deut = getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
-        if ((metal / 4 + crystal / 2 + deut) / 2 >= g_config.EasyFarm.minPillage) {
+        var resources = getResourcesFromMessage(messages[i]);
+        if (resources.deut / 2 >= g_config.EasyFarm.minPillage) {
             messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
             messages[i].getElementsByClassName("checkbox")[0].checked = false;
             candidate = true;
@@ -2555,9 +2542,9 @@ function loadEasyFarm() {
 
         // Set tooltip info
         var html = "<div><span style='color:#FFCC33'>" + L_["EasyFarm_looting"] + " :</span><ul style='margin-top:0'>";
-        html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 10000000)));
-        html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 2000000)));
-        html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil(((metal + crystal + deut) / 2 / 8000))) + "</ul>";
+        html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 10000000)));
+        html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 2000000)));
+        html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 8000))) + "</ul>";
 
         // Get the total number of ships and calculate the ruins field
         var classRank = 4;
@@ -2618,24 +2605,26 @@ function loadEasyFarm() {
 
         // Delete a message if we're autoAttacking, the planet has defenses, and
         // the total resources isn't greater than the defMultiplier
-        var res = Math.ceil((metal + crystal + deut) / 2 / 12500000);
-        var allDeut = (metal / 4 + crystal / 2 + deut) / 2;
+        var mc = Math.ceil(resources.total / 2 / 12500000);
+        var allDeut = resources.total / 2;
         if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * g_config.EasyFarm.minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
         // Update doNotSpy if necessary
-        var oldValue = g_doNotSpy[coords.g][coords.s][coords.p];
-        var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
-        if (g_config.EasyTarget.useDoNotSpy && oldValue !== newValue) {
-            g_dnsChanged = true;
-            g_doNotSpy[coords.g][coords.s][coords.p] = newValue;
+        if (g_config.EasyTarget.useDoNotSpy) {
+            var oldValue = g_doNotSpy[coords.g][coords.s][coords.p];
+            var newValue = allDeut < g_config.EasyFarm.minPillage / 3;
+            if (oldValue !== newValue) {
+                g_dnsChanged = true;
+                g_doNotSpy[coords.g][coords.s][coords.p] = newValue;
+            }
         }
 
         // Determine the number of mc/waves necessary
         var deutTotal = allDeut;
         var snb = getSlashedNb;
-        var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(res) + "</span><br />Deut : " + snb(allDeut);
+        var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
         allDeut /= 2;
         var count = 1;
         while (allDeut >= g_config.EasyFarm.minPillage && g_config.EasyFarm.minPillage > 0) {
@@ -2665,25 +2654,7 @@ function loadEasyFarm() {
         // Definitely not a bot... I don't know what you're talking about
         if (autoAttack) {
             var href = messages[i].getElementsByTagName("a")[2].href;
-            (function(count, res, href) {
-                f.$(messages[i].getElementsByTagName("a")[2]).click(function() {
-                    // If an attack is made, set all the necessary info so it can be
-                    // filled in on the fleet page
-                    var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
-                    res = Math.round((res + (granularity / 2)) / granularity) * granularity;
-                    var attackData = {
-                        type  : simShips ? g_config.EasyFarm.simShip : -1,
-                        val   : simShips ? simShips : 0,
-                        mc    : res,
-                        waves : count
-                    };
-                    setValue("attackData", JSON.stringify(attackData));
-                    if (simShips) {
-                        deleteValue("simShips");
-                    }
-                    f.location = href;
-                });
-            })(count, res, href);
+            setSpyReportClick(count, mc, href, messages[i], simShips);
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
@@ -2798,6 +2769,98 @@ function loadEasyFarm() {
         console.log("DNS data changed");
         changeHandler(false /*forceSave*/);
     }
+}
+
+/**
+ * Start the autoAttack search from a different index
+ * if we've autoSimed the first n and we don't have
+ * enough ships for a total victory
+ *
+ * @returns {number}
+ */
+function getMessageStartIndex() {
+    var startIndex = 0;
+    if (autoAttack && autoAttackWithSim) {
+        var storedIndex = getValue("autoAttackStartIndex");
+        if (!storedIndex) {
+            startIndex = 0;
+        } else {
+            startIndex = parseInt(storedIndex);
+        }
+    }
+
+    return startIndex;
+}
+
+/**
+ * Appends the tooltip base to the body
+ *
+ * Should only be called from easyFarm setup
+ */
+function appendMessagesTooltipBase() {
+    getDomXpath("//body", f.document, 0).appendChild(
+        buildNode("script", ["type"], ["text/javascript"],
+            "$(document).ready(function(){\nsetTimeout(function(){\n" +
+            "$('.tooltip').tooltip(" +
+            "{width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'}" +
+            ");\n}, 10);\n" +
+            "}); "
+        )
+    );
+}
+
+/**
+ * Determine how many resources are on a planet from a spy report
+ * @param message
+ * @returns {{total: number, deut: number}}
+ */
+function getResourcesFromMessage(message) {
+    var regNb = /\s([0-9,.]+)/;
+    var metal = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
+    var crystal = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
+    var deut = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
+    return {
+        total : metal + crystal + deut,
+        deut  : (metal / 4) + (crystal / 2) + deut
+    }
+}
+
+/**
+ * Set the click handler for spy reports
+ * @param waves
+ * @param mc
+ * @param href
+ * @param message
+ * @param numAlt
+ */
+function setSpyReportClick(waves, mc, href, message, numAlt) {
+    f.$(message.getElementsByTagName("a")[2]).click(function() {
+        // If an attack is made, set all the necessary info so it can be
+        // filled in on the fleet page
+        var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
+
+        // More of a quick fix, but if we're attacking with SN, there's a good chance
+        // we're going up against some decent defenses (e.g. attacking bots), and will
+        // lose some MCs if we add them to the mix. So only attack with SNs and add more
+        // if we need to make up for the loss in cargo space
+        if (g_config.EasyFarm.simShip === 14) {
+            numAlt = Math.max(numAlt, Math.round(((mc * 12500000 / 2000000) + (granularity / 2)) / granularity) * granularity);
+            mc = 0;
+        } else {
+            mc = Math.round((mc + (granularity / 2)) / granularity) * granularity;
+        }
+        var attackData = {
+            type  : numAlt ? g_config.EasyFarm.simShip : -1,
+            val   : numAlt ? numAlt : 0,
+            mc    : mc,
+            waves : waves
+        };
+        setValue("attackData", JSON.stringify(attackData));
+        if (numAlt) {
+            deleteValue("simShips");
+        }
+        f.location = href;
+    });
 }
 
 /**
@@ -5066,6 +5129,9 @@ function saveFleetPage() {
                 console.log("Total Ship Needed: " + totalAttShip);
             }
             if (fleetOut + attackData.waves > fleetMax || max < totalShips || !enoughAttackType) {
+                // TODO: Don't delete attack data, set bit to let messages know we failed and need to retry
+                // TODO: Parse return fleet and use that at time to process next
+                // TODO: Clear interval when we go to a new page
                 deleteValue("attackData");
                 setValue("autoAttackIndex", -1);
                 var div = f.document.createElement("div");
