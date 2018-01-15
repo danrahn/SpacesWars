@@ -158,6 +158,9 @@ setKeyArray();
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
 
+var divide = autoAttack ? fastDivide : slowDivide;
+var add = autoAttack ? fastAdd : slowAdd;
+
 // Every page gets the shortcut handler
 setGlobalKeyboardShortcuts();
 
@@ -512,6 +515,9 @@ function getSlashedNb(nStr) {
         nStr =  Math.ceil(nStr);
     }
     nStr = nStr.toString();
+    if (nStr.lastIndexOf("e") !== -1) {
+        return nStr;
+    }
 
     var rgx = /(\d+)(\d{3})/;
     while (rgx.test(nStr)) {
@@ -1693,6 +1699,9 @@ function setupSidebar() {
         deleteValue("attackData");
         deleteValue("autoSpyLength");
         deleteValue("fullGalaxySpy");
+
+        divide = autoAttack ? fastDivide : slowDivide;
+        add = autoAttack ? fastAdd : slowAdd;
     };
 
     if (usingOldVersion()) {
@@ -2515,6 +2524,8 @@ function checkEasyFarmRedirect() {
 /**
  * Highlights spy reports that have lots of resources/fleet,
  * among other things
+ *
+ * TODO: If AutoAttacking, we can skip some processing (tooltip, wave data insertion)
  */
 function loadEasyFarm() {
     checkEasyFarmRedirect();
@@ -2917,6 +2928,7 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
  * @param mc
  * @param minPillage
  * @param message
+ * @param index
  * @param toolTip
  * @returns {number}
  */
@@ -3429,7 +3441,7 @@ function loadDeutRow() {
     var m = (header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
     var c = (header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
     var d = (header[2].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
-    var aid = longAdd(longAdd(longDivide(m, 4), longDivide(c, 2)), d);
+    var aid = add(add(divide(m, 4), divide(c, 2)), d);
     var outer = buildNode('div', ['class'], ['default_1c3'], "");
     var picHolder = buildNode('div', ['class', 'style'], ['curvedtot', 'float:left;background-color:#333;width:40px;padding:1px'], "");
     var pic = buildNode('div', ['class', 'style'], ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
@@ -3471,7 +3483,7 @@ function loadDeutRow() {
  * @param n1
  * @returns {string}
  */
-function longDivide(n2, n1) {
+function slowDivide(n2, n1) {
     // TODO: Setting to have exact values displayed. ("this may slow down the script")
     //     var divide = setting ? longDivide : fastDivide;
 
@@ -3494,6 +3506,10 @@ function longDivide(n2, n1) {
     return solution;
 }
 
+function fastDivide(n2, n1) {
+    return n2 / n1;
+}
+
 /**
  * Add two numbers, keeping all precision. Ensures
  * numbers don't turn into "4.XXXeYY"
@@ -3502,7 +3518,7 @@ function longDivide(n2, n1) {
  * @param n2
  * @returns {string}
  */
-function longAdd(n1, n2) {
+function slowAdd(n1, n2) {
     var carry = 0;
     var result = "";
     var i1 = n1.length - 1;
@@ -3532,6 +3548,10 @@ function longAdd(n1, n2) {
     }
 
     return result;
+}
+
+function fastAdd(n1, n2) {
+    return parseFloat(n1) + parseFloat(n2);
 }
 
 /**
@@ -3863,21 +3883,24 @@ function loadEasyTargetAndMarkit() {
     var changedPlayers = [];
     var processList = [];
     var sfmSettings = getSfmSettings();
+    var spying = getIsSpying();
 
-    // attach the Markit popup window
-    appendMarkitWindow(rows);
-    checkRedir();
+    if (!spying) {
+        // attach the Markit popup window
+        appendMarkitWindow(rows);
+        checkRedir();
 
-    // Don't add non-digit characters to galaxySelector
-    f.$('#galaxy')[0].addEventListener("keydown", function(e) {
-        var key = e.keyCode ? e.keyCode : e.which;
-        if (isAlphaKey(key) && !e.ctrlKey) {
-            e.preventDefault();
-        }
-    });
+        // Don't add non-digit characters to galaxySelector
+        f.$('#galaxy')[0].addEventListener("keydown", function(e) {
+            var key = e.keyCode ? e.keyCode : e.which;
+            if (isAlphaKey(key) && !e.ctrlKey) {
+                e.preventDefault();
+            }
+        });
 
-    // Add key listeners for spying and easytarget navigation
-    addTargetPlanetKeyListener(rows);
+        // Add key listeners for spying and easytarget navigation
+        addTargetPlanetKeyListener(rows);
+    }
 
     // THE loop. Iterates over each row and sets up everything related
     // to Markit and EasyFarm
@@ -3894,19 +3917,23 @@ function loadEasyTargetAndMarkit() {
         //Name of the person previously stored at the given coord
         var storedName = getPlayerAtLocation(coords);
 
-        // See if we should mark the player via Markit
-        markIfNeeded(row, coords, !!nameDiv);
+        if (!spying) {
+            // See if we should mark the player via Markit
+            markIfNeeded(row, coords, !!nameDiv);
+        }
 
         // There's a player here
         if (nameDiv) {
             var newName = getNameInGalaxy(nameDiv);
             var rank = processRankAndInactiveData(nameDiv, newName);
 
-            // Highlight the planet/moon if there's been recent activity
-            highlightIfActive(row);
+            if (!spying) {
+                // Highlight the planet/moon if there's been recent activity
+                highlightIfActive(row);
+            }
 
             // Create save/remove/delete buttons for easyTarget
-            if (g_scriptInfo.EasyTarget) {
+            if (g_scriptInfo.EasyTarget && !spying) {
                 if (!usingOldVersion()) {
                     createEasyTargetButtons(rows, nameDiv, newName, storedName, coords);
                 }
@@ -3928,7 +3955,7 @@ function loadEasyTargetAndMarkit() {
             deleteIfNeeded(row, storedName, coords);
         }
 
-        if ((g_scriptInfo.EasyTarget || g_scriptInfo.Markit) && nameDiv) {
+        if ((g_scriptInfo.EasyTarget || g_scriptInfo.Markit) && nameDiv && !spying) {
             if (g_scriptInfo.EasyTarget) {
                 appendEasyTargetTooltipToWindow(newName, i);
                 createEasyTargetLocationDiv(nameDiv, newName, coords, i, rows);
@@ -4016,6 +4043,15 @@ function getSfmSettings() {
 }
 
 /**
+ * Determine if we're currently autospying
+ * @returns {boolean}
+ */
+function getIsSpying() {
+    var spying = getValue("autoSpyLength");
+    return !isNaN(spying) && spying >= 0;
+}
+
+/**
  * Mark a planet in the galaxy view if we need to
  *
  * Also deletes the markit record if there's data stored
@@ -4055,10 +4091,13 @@ function processRankAndInactiveData(nameDiv, name) {
     var rank = f.document.getElementById(id).childNodes[1].innerHTML;
     rank = parseInt(rank.substring(rank.indexOf(":") + 2));
     span.innerHTML = '(' + rank + ')';
+    var spying = getIsSpying();
 
     // Change the color of the rank according to the values set in GalaxyRanks
     if (nameDiv.className.indexOf('inactive') === -1 || g_config.GalaxyRanks.inactives) {
-        setRankColor(span, rank);
+        if (!spying) {
+            setRankColor(span, rank);
+        }
 
         // Remove them from the inactives list if they're active again
         if (g_inactiveList[name] !== undefined && nameDiv.className.indexOf('inactive') === -1) {
@@ -4072,7 +4111,7 @@ function processRankAndInactiveData(nameDiv, name) {
 
         // Set the rank color to the correct inactive
         // color iff we aren't coloring them
-        if (!g_config.GalaxyRanks.inactives)
+        if (!g_config.GalaxyRanks.inactives && !spying)
             span.style.color = f.getComputedStyle(nameDiv).color;
 
         // Kinda hacky. Set the inactive/longinactive flag to
@@ -4085,7 +4124,7 @@ function processRankAndInactiveData(nameDiv, name) {
         }
     }
 
-    if (g_scriptInfo.GalaxyRanks)
+    if (g_scriptInfo.GalaxyRanks && !spying)
         nameDiv.parentNode.appendChild(span);
 
     return rank;
@@ -5167,52 +5206,28 @@ function autoCompleteSelected(p) {
 }
 
 /**
- * Show how much research/buildings cost in al deut
+ * Show how much research/buildings cost in all deut
  */
 function loadAllinDeut() {
     var xpathPages = {
         "buildings": "//div[@class='buildings_1b']/div[@class='buildings_1b1'][3]",
         "research": "//div[@class='research_1b']/div[@class='research_1b1'][3]"
     };
-    var regMetalPages = {
-        "buildings": new RegExp(L_.AllinDeut_metal +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
-        "research": new RegExp(L_.AllinDeut_metal +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>")
-    };
-    var regCrystalPages = {
-        "buildings": new RegExp(L_.AllinDeut_crystal +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
-        "research": new RegExp(L_.AllinDeut_crystal +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>")
-    };
-    var regDeutPages = {
-        "buildings": new RegExp(L_.AllinDeut_deuterium +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>"),
-        "research": new RegExp(L_.AllinDeut_deuterium +
-            "\\s:\\s<font\\s.{15}>([^<]*)</font>")
-    };
-    var separatorPages = {
-        "buildings": ".",
-        "research": "."
-    };
 
+    var strings = [L_.AllinDeut_metal, L_.AllinDeut_crystal, L_.AllinDeut_deuterium];
     var doms = getDomXpath(xpathPages[g_page], f.document, -1);
     var inDeut = 0;
     for (var i = 0; i < doms.length; i++) {
         inDeut = 0;
-        if (regMetalPages[g_page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regMetalPages[g_page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[g_page])) / 4;
-        if (regCrystalPages[g_page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regCrystalPages[g_page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[g_page])) / 2;
-        if (regDeutPages[g_page].test(doms[i].innerHTML)) inDeut +=
-            getNbFromStringtab(regDeutPages[g_page].exec(doms[i].innerHTML)[1].split(
-                separatorPages[g_page]));
+        for (var j = 0; j < 3; j++) {
+            var match = new RegExp(strings[j] + "\\s:\\s<font\\s.{15}>([^<]*)</font>").exec(doms[i].innerHTML);
+            if (match && match.length) {
+                inDeut = add(inDeut, divide(match[1].replace(/\./g, ""), 4));
+            }
+        }
+
         doms[i].appendChild(buildNode("div", [], [],
-            "<font color='lime'>AllinDeut</font> : " + getSlashedNb("" +
-            parseFloat(inDeut))));
+            "<font color='lime'>AllinDeut</font> : " + getSlashedNb(inDeut)));
     }
 
 }
