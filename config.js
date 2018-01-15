@@ -763,6 +763,7 @@ function createEasyFarmOptions() {
     result.push(simType);
 
     var botSns = createCheckBoxItems(["Use SN for bot fights"], 150)[0];
+    botSns.style.float = "";
 
     if (!usingOldVersion()) {
         botSns.style.display = "none";
@@ -983,11 +984,8 @@ function deleteAllData() {
     // Keys stored per universe
     var uniKeys = [
         "attackData",
-        "autoAttackBlasts",
         "autoAttackIndex",
         "autoAttackMasterSwitch",
-        "autoAttackMC",
-        "autoAttackWaves",
         "autoSim",
         "autoSimIndex",
         "autoSpyLength",

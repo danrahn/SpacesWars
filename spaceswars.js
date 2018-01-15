@@ -87,6 +87,7 @@ var g_galaxyDataChanged = false;            // Whether the galaxy data has chang
 var g_inactivesChanged = false;             // Whether the list of inactive players has changed
 var g_saveEveryTime = false;                // Whether to save data whenever something changes
 var g_inPlanetView = true;                  // Whether we are in planet view (unused?)
+var g_savedAttackData = null;
 
 var g_interval = null;
 var g_intervalCount = 1;
@@ -214,9 +215,13 @@ if (g_page === "frames") {
                     deleteValue("attackData");
                 }
             }
+
             if (g_interval) {
                 clearInterval(g_interval);
                 g_intervalCount = 1;
+                if (!autoAttack) {
+                    setValue("fleetNotSent", false);
+                }
             }
         }
 
@@ -247,6 +252,11 @@ if (g_page === "frames") {
             lm.document.body.appendChild(shortcutDiv);
         }
 
+        // Load deutRow first to get it in as soon as possible, as it shifts the content down
+        if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
+            loadDeutRow();
+        }
+
         if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
             loadClickNGo()
         }
@@ -258,10 +268,6 @@ if (g_page === "frames") {
         // Shows who's inactive in the statistics page
         if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
             loadInactiveStatsAndFleetPoints();
-        }
-
-        if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
-            loadDeutRow();
         }
 
         if (canLoadInPage('More_deutRow') && g_scriptInfo.More && g_config.More.convertClick) {
@@ -502,7 +508,11 @@ function canLoadInPage(script) {
  * @returns {string|*}
  */
 function getSlashedNb(nStr) {
-    nStr =  Math.ceil(nStr).toString();
+    if (nStr.indexOf && nStr.indexOf(".") !== -1) {
+        nStr =  Math.ceil(nStr);
+    }
+    nStr = nStr.toString();
+
     var rgx = /(\d+)(\d{3})/;
     while (rgx.test(nStr)) {
         nStr = nStr.replace(rgx, "$1" + "." + "$2");
@@ -976,7 +986,7 @@ function setMerchantMap() {
     m[L_.rl] = 401;
     m[L_.ll] = 402;
     m[L_.hl] = 403;
-    m[L_.gl] = 404;
+    m[L_.gc] = 404;
     m[L_.ic] = 405;
     m[L_.pt] = 406;
     m[L_.ssd] = 407;
@@ -1486,7 +1496,7 @@ function convertOldGalaxyData(storage) {
         newPlayers[key] = [];
         for (var i = 0; i < planets.length; i++) {
             var coords = new Coordinates(planets[i]);
-            newPlayers[key].push(storageFromCoords(coords) | (players[key][1].indexOf(coords.str) !== -1 ? 1 : 0));
+            newPlayers[key].push(storageFromCoords(coords) | (players[key][1] ? (players[key][1].indexOf(coords.str) !== -1 ? 1 : 0) : 0));
         }
     }
 
@@ -2226,6 +2236,7 @@ function messagePageKeyHandler(key) {
         case KEY.Z:
             if (usingOldVersion() && active.className.toLowerCase() === "message_space0 curvedtot") {
                 setValue("autoSim", 1);
+                setValue("botSim", g_config.EasyFarm.botSn && active.children[1].children[0].childNodes[0].textContent.toLowerCase().indexOf("bot_col") !== -1);
                 setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
             }
@@ -2368,6 +2379,10 @@ function globalKeypressHandler(e) {
  * @returns {boolean}
  */
 function isTextInputActive() {
+    if (!f || !f.document) {
+        return false;
+    }
+
     var active = f.document.activeElement;
     // if the element is not null and the element has a
     // restricted id or name, return true
@@ -2504,7 +2519,6 @@ function checkEasyFarmRedirect() {
 function loadEasyFarm() {
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
-
     var needsSim = [];
     var simIndex;
     var simShips = getValue("simShips");
@@ -2528,16 +2542,22 @@ function loadEasyFarm() {
         tabs[t].tabIndex = t + 1;
     }
 
-    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
-    appendMessagesTooltipBase();
     var attackIndex = -1;
+    var simNotNeeded = false;
     var aaDeleteIndex = parseInt(getValue("autoAttackIndex"));
+    if (aaDeleteIndex && aaDeleteIndex !== -1 && getValue("fleetNotSent")) {
+        attackIndex = aaDeleteIndex;
+        aaDeleteIndex = -1;
+        simNotNeeded = true;
+        deleteValue("fleetNotSent");
+    }
 
     if (isNaN(aaDeleteIndex))
         aaDeleteIndex = -1;
 
-    var regNb = /\s([0-9,.]+)/;
     var isBot = [];
+    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
+    appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
@@ -2552,48 +2572,29 @@ function loadEasyFarm() {
 
         // get metal crystal and deut
         var resources = getResourcesFromMessage(messages[i]);
-        if (resources.deut / 2 >= minPillage) {
-            messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
-            messages[i].getElementsByClassName("checkbox")[0].checked = false;
-            candidate = true;
-        }
-
-        // Set tooltip info
-        var html = "<div><span style='color:#FFCC33'>" + L_["EasyFarm_looting"] + " :</span><ul style='margin-top:0'>";
-        html += "<li>" + L_["massive_cargo"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 10000000)));
-        html += "<li>" + L_["supernova"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 2000000)));
-        html += "<li>" + L_["blast"] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / 8000))) + "</ul>";
 
         // Get the total number of ships and calculate the ruins field
-        var classRank = 4;
-        var total = 0;
-        var hasShips = false;
-        for (var j = 0; j < g_fleetNames.length; j++)
-            if (messages[i].innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
-                // get deut value of ship j
-                if (g_fleetNames[j] !== L_["solar_satellite"])
-                    hasShips = true;
-                total += getNbFromStringtab(regNb.exec(messages[i].getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
-                classRank++;
-            }
-        if (total * 0.6 >= g_config.EasyFarm.minCDR) {
-            messages[i].setAttribute("style", "background-color:#" + g_config.EasyFarm.colorCDR);
-            messages[i].getElementsByClassName("checkbox")[0].checked = false;
-        }
+        var shipDeut = getFleetDataFromMessage(messages[i], fleetDeut);
+        var hasShips = shipDeut !== 0;
+
+        candidate = uncheckMessageIfNeeded(resources, shipDeut, minPillage, messages[i]);
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
 
         // Determine the number of defenses present
+
         var defenses = messages[i].children[1];
         if (defenses.children.length > 5) {
             defenses = defenses.children[5].children;
-            for (j = 0; j < defenses.length; j++) {
+            for (var j = 0; j < defenses.length; j++) {
                 var def = defenses[j].innerText.substring(0, defenses[j].innerText.indexOf(" :"));
                 var n = getNbFromStringtab(defenses[j].innerText.substr(defenses[j].innerText.indexOf(": ") + 2).split(","));
                 if (def === L_.ug) {
                     shouldAttack = shouldAttack && n <= 100;
-                } else if (def !== L_.abm && def !== L_.ipm) {
+                }
+
+                if (def !== L_.abm && def !== L_.ipm) {
                     totDef += n;
                 }
             }
@@ -2603,19 +2604,13 @@ function loadEasyFarm() {
         }
 
         shouldAttack = shouldAttack && totDef < 500000;
-        needsSim[i] = autoAttackWithSim && candidate && !shouldAttack && parseInt(g_uni) === 17;
+        needsSim[i] = autoAttackWithSim && candidate && ((!shouldAttack && parseInt(g_uni) === 17) || (totDef !== 0 && parseInt(g_uni) !== 17));
         if (parseInt(g_uni) !== 17 && totDef > 0) {
             shouldAttack = false; // No guesswork if we're not on uni17. And even on uni17 this isn't perfect
         }
 
-        // Add defense info to the tooltip
-        html += "<div><span style='color:#7BE654'>" + L_["EasyFarm_ruinsField"] + " :</span> " + getSlashedNb(Math.floor(total * 0.6)) + " " + L_["EasyFarm_deuterium"] + "</div>";
-        if (messages[i].innerHTML.indexOf(L_["EasyFarm_defenses"]) !== -1) {
-            html += "<br/><div><span style='color:#55BBFF'>" + L_["EasyFarm_defenses"] + " :</span>";
-            for (j = 0; j < messages[i].getElementsByClassName("message_space0")[2].getElementsByClassName("half_left").length; j++)
-                html += "<br/>" + messages[i].getElementsByClassName("message_space0")[2].getElementsByClassName("half_left")[j].innerHTML;
-            html += "</div>";
-        }
+        // Set tooltip info
+        var toolTip = buildTooltip(resources, messages[i], shipDeut);
 
         // Determine planet position (for doNotSpy info)
         var text = messages[i].childNodes[1].childNodes[7].innerHTML;
@@ -2640,39 +2635,12 @@ function loadEasyFarm() {
         }
 
         // Determine the number of mc/waves necessary
-        var deutTotal = allDeut;
-        var snb = getSlashedNb;
-        var content = L_.massive_cargo + " : " + "<span id=res" + i + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
-        allDeut /= 2;
-        var count = 1;
-        while (allDeut >= minPillage && minPillage > 0) {
-            count++;
-            deutTotal += allDeut;
-            allDeut /= 2;
-        }
-
-        // Add the mc/wave info to the bottom of the report
-        var waves = (count === 1) ? " wave : " : " waves : ";
-        content += "<br />" + count + waves + snb(deutTotal) + " Deut";
-        var div = buildNode("div", [], [], content);
-        messages[i].getElementsByClassName("message_space0")[0].parentNode.appendChild(div);
-        div = buildNode("div", ["style", "id"], ["display:none", "divToolTip"], "");
-        f.document.getElementsByTagName("body")[0].appendChild(div);
-        div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" + i], html);
-        f.document.getElementsByTagName("body")[0].appendChild(div);
-
-        // Append the tooltip
-        var xpath = f.document.evaluate("//a[text()='" + L_.EasyFarm_attack + "']",
-            f.document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-        xpath = xpath.snapshotItem(i);
-        div = buildNode("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + i, xpath.href, "float:right; width:0;"],
-            "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
-        messages[i].getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
+        var waves = addAttackInfoToMessage(allDeut, mc, minPillage, messages[i], i, toolTip);
 
         // Definitely not a bot... I don't know what you're talking about
         if (autoAttack) {
             var href = messages[i].getElementsByTagName("a")[2].href;
-            setSpyReportClick(count, mc, href, messages[i], simShips, isBot[i] ? 14 : g_config.EasyFarm.simShip);
+            setSpyReportClick(waves, mc, href, messages[i], simShips, (isBot[i] && g_config.EasyFarm.botSn) ? 14 : g_config.EasyFarm.simShip);
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
@@ -2683,69 +2651,19 @@ function loadEasyFarm() {
             }
         } else {
             if (usingOldVersion()) {
-                // If we're not autoAttacking, create the alternate attack config, allowing
-                // auto simulation, and attacking with a preset number of blast/destroyer/sn
-                var selDiv = buildNode("div", ["id"], ["attackOptions" + i], "");
+                var num = appendAltMessageInterface(i, messages[i]);
 
-                // Text input field
-                var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + i, "supFleet"], "", "keydown", function(e) {
-                    if (e.keyCode === KEY.ENTER) {
-                        // Attack on [ENTER]
-                        e.preventDefault();
-                        var id = this.id.substring(8);
-                        f.$("#attack" + id).click();
-                    }
-                });
-
-                // Attack button
-                var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + i, "padding: 3px"], "", "click", function() {
-                    var id = parseInt(this.id.substring(6));
-                    var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
-                    mc = Math.round((parseInt(mc) + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
-                    var data = {
-                        type  : f.$("#shipSelect" + id)[0].value,
-                        val   : f.$("#fleetNum" + id)[0].value,
-                        mc    : mc,
-                        waves : -1
-                    };
-                    setValue("attackData", JSON.stringify(data));
-                    f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
-                });
-
-                // Simulate button
-                var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + i, "padding: 3px"], "", "click", function() {
-                    setValue("autoSim", 1);
-                    setValue("autoSimIndex", this.id.substring(3));
-                    f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
-                });
-
-                // Fleet type selector
-                var sel = buildNode("select", ["id"], ["shipSelect" + i], "");
-                var rejectSet = new Set([0, 1, 6, 7, 8, 10, 15, 16, 18]);
-                for (j = 0; j < g_fleetNames.length; j++) {
-                    if (!rejectSet.has(j)) {
-                        sel.add(buildNode("option", ["value"], [j], g_fleetNames[j]));
-                    }
+                if (parseInt(simIndex) === i && simShips) {
+                    // If we just finished a simulation, scroll the message
+                    // into view, expand it, and fill the attack field with
+                    // the correct number of ships
+                    deleteValue("simShips");
+                    deleteValue("autoSimIndex");
+                    f.$(num).val(simShips);
+                    f.$(num).parent().parent().parent()[0].childNodes[1].click();
+                    f.$(num).focus();
+                    num.scrollIntoView()
                 }
-
-                selDiv.appendChild(num);
-                selDiv.appendChild(sel);
-                selDiv.appendChild(submit);
-                selDiv.appendChild(simulate);
-                f.$(messages[i]).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
-                f.$("#shipSelect" + i).val(g_config.EasyFarm.simShip);
-            }
-
-            if (parseInt(simIndex) === i && simShips) {
-                // If we just finished a simulation, scroll the message
-                // into view, expand it, and fill the attack field with
-                // the correct number of ships
-                deleteValue("simShips");
-                deleteValue("autoSimIndex");
-                f.$(num).val(simShips);
-                f.$(num).parent().parent().parent()[0].childNodes[1].click();
-                f.$(num).focus();
-                num.scrollIntoView()
             }
         }
     }
@@ -2767,7 +2685,15 @@ function loadEasyFarm() {
     } else if (attackIndex !== -1 && autoAttack) {
         // Standard attack
         if (needsSim[attackIndex] && !simShips) {
-            setValue("botSim", isBot[attackIndex]);
+            if (simNotNeeded) {
+                // We've already done the sim
+                g_savedAttackData = JSON.parse(getValue("attackData"));
+                setValue("autoAttackIndex", attackIndex);
+                setTimeout(function() {
+                    f.$(messages[attackIndex].getElementsByTagName("a")[2]).click();
+                }, Math.random() * 400 + 200);
+            }
+            setValue("botSim", isBot[attackIndex] && g_config.EasyFarm.botSn);
             setValue("autoSim", 1);
             setValue("autoSimIndex", attackIndex);
             f.$(messages[attackIndex]).find("a:contains('Simule')")[0].click();
@@ -2845,6 +2771,96 @@ function getResourcesFromMessage(message) {
 }
 
 /**
+ * Determine the deut value of a fleet in the given message
+ * @param message
+ * @param fleetDeut
+ * @returns {number}
+ */
+function getFleetDataFromMessage(message, fleetDeut) {
+    var classRank = 4;
+    var shipDeut = 0;
+    var regNb = /\s([0-9,.]+)/;
+    for (var j = 0; j < g_fleetNames.length; j++) {
+        if (message.innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
+            // get deut value of ship j
+            shipDeut += getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
+            classRank++;
+        }
+    }
+
+    return shipDeut
+}
+
+/**
+ * Uncheck a message if it meets our requirements.
+ *
+ * Return whether we chould consider it for AA
+ * @param resources
+ * @param shipDeut
+ * @param minPillage
+ * @param message
+ * @returns {boolean}
+ */
+function uncheckMessageIfNeeded(resources, shipDeut, minPillage, message) {
+    var candidate = false;
+    if (resources.deut / 2 >= minPillage) {
+        message.setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
+        message.getElementsByClassName("checkbox")[0].checked = false;
+        candidate = true;
+    }
+
+    if (shipDeut * 0.6 >= g_config.EasyFarm.minCDR) {
+        message.setAttribute("style", "background-color:#" + g_config.EasyFarm.colorCDR);
+        message.getElementsByClassName("checkbox")[0].checked = false;
+    }
+
+    return candidate;
+}
+
+/**
+ * Creates a tooltip for a given message, indicating loot and ruin field levels
+ * @param resources
+ * @param message
+ * @param totalDeut
+ * @returns {Element}
+ */
+function buildTooltip(resources, message, totalDeut) {
+    var outDiv = document.createElement("div");
+    var colorSpan = buildNode("span", ["style"], ["color:#FFCC33"], L_.EasyFarm_looting);
+    var ul = buildNode("ul", ["style"], ["margin-top:0"], "");
+    var ships = [L_.massive_cargo, L_.supernova, L_.blast];
+    var capacities = [12500000, 2000000, 8000];
+    for (var i = 0; i < 3; i++) {
+        ul.appendChild(buildNode("li", [], [], ships[i] + " : " + getSlashedNb(Math.ceil((resources.total / 2 / capacities[i])))));
+    }
+
+    outDiv.appendChild(colorSpan);
+    outDiv.appendChild(ul);
+
+    var defDiv = document.createElement("div");
+    var innerSpan = buildNode("span", ["style"], ["color:#FFCC33"], L_.EasyFarm_ruinsField + " :");
+    var innerText = buildNode("span", [], [], getSlashedNb(Math.floor(totalDeut * 0.6)) + " " + L_.EasyFarm_deuterium);
+    defDiv.appendChild(innerSpan);
+    defDiv.append(innerText);
+    outDiv.appendChild(defDiv);
+
+    if (message.innerHTML.indexOf(L_.EasyFarm_defenses) !== -1) {
+        outDiv.appendChild(document.createElement("br"));
+        var collectDiv = document.createElement("div");
+        collectDiv.appendChild(buildNode("span", ["style"], ["color:#55BBFF"], L_.EasyFarm_defenses + " :"));
+        var items = message.getElementsByClassName("message_space0")[2].getElementsByClassName("half_left");
+        for (i = 0; i < items.length; i++) {
+            collectDiv.appendChild(document.createElement("br"));
+            collectDiv.appendChild(buildNode("span", [], [], items[i].innerHTML));
+        }
+
+        outDiv.appendChild(collectDiv);
+    }
+
+    return outDiv;
+}
+
+/**
  * Set the click handler for spy reports
  * @param waves
  * @param mc
@@ -2858,6 +2874,13 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
         // If an attack is made, set all the necessary info so it can be
         // filled in on the fleet page
         var granularity = g_config.EasyFarm.granularity ? g_config.EasyFarm.granularity : 100000;
+        if (g_savedAttackData) {
+            waves = g_savedAttackData.waves;
+            mc = g_savedAttackData.mc;
+            numAlt = g_savedAttackData.val;
+            shipAlt = g_savedAttackData.type;
+            g_savedAttackData = null;
+        }
 
         // More of a quick fix, but if we're attacking with SN, there's a good chance
         // we're going up against some decent defenses (e.g. attacking bots), and will
@@ -2885,6 +2908,111 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
         }
         f.location = href;
     });
+}
+
+/**
+ * Add information to the attack report about deut/waves.
+ * Return the number of waves to send while still receiving minPillage
+ * @param allDeut
+ * @param mc
+ * @param minPillage
+ * @param message
+ * @param toolTip
+ * @returns {number}
+ */
+function addAttackInfoToMessage(allDeut, mc, minPillage, message, index, toolTip) {
+    var deutTotal = allDeut;
+    var snb = getSlashedNb;
+    var content = L_.massive_cargo + " : " + "<span id=res" + index + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
+    allDeut /= 2;
+    var waves = 1;
+    while (allDeut >= minPillage && minPillage > 0) {
+        waves++;
+        deutTotal += allDeut;
+        allDeut /= 2;
+    }
+
+    // Add the mc/wave info to the bottom of the report
+    var waveText = (waves === 1) ? " wave : " : " waves : ";
+    content += "<br />" + waves + waveText + snb(deutTotal) + " Deut";
+    var div = buildNode("div", [], [], content);
+    message.getElementsByClassName("message_space0")[0].parentNode.appendChild(div);
+    div = buildNode("div", ["style", "id"], ["display:none", "divToolTip"], "");
+    f.document.getElementsByTagName("body")[0].appendChild(div);
+    div = buildNode("div", ["style", "id"], ["display:none", "data_tooltip_" + index], toolTip.innerHTML);
+    f.document.getElementsByTagName("body")[0].appendChild(div);
+
+    // Append the tooltip
+    var xpath = f.document.evaluate("//a[text()='" + L_.EasyFarm_attack + "']",
+        f.document, null, XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
+    xpath = xpath.snapshotItem(index);
+    div = buildNode("a", ["class", "id", "href", "style"], ["tooltip", "tooltip_" + index, xpath.href, "float:right; width:0;"],
+        "<img src='http://i.imgur.com/OMvyXdo.gif' width='20px' alt='p'/>");
+    message.getElementsByClassName("donthide")[0].getElementsByTagName("div")[0].appendChild(div);
+
+    return waves;
+}
+
+/**
+ * Append the alternate attack interface to messages
+ * @param index
+ * @param message
+ */
+function appendAltMessageInterface(index, message) {
+
+    // If we're not autoAttacking, create the alternate attack config, allowing
+    // auto simulation, and attacking with a preset number of blast/destroyer/sn
+    var selDiv = buildNode("div", ["id"], ["attackOptions" + index], "");
+
+    // Text input field
+    var num = buildNode("input", ["type", "id", "class"], ["text", "fleetNum" + index, "supFleet"], "", "keydown", function(e) {
+        if (e.keyCode === KEY.ENTER) {
+            // Attack on [ENTER]
+            e.preventDefault();
+            var id = this.id.substring(8);
+            f.$("#attack" + id).click();
+        }
+    });
+
+    // Attack button
+    var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + index, "padding: 3px"], "", "click", function() {
+        var id = parseInt(this.id.substring(6));
+        var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
+        mc = Math.round((parseInt(mc) + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+        var data = {
+            type  : f.$("#shipSelect" + id)[0].value,
+            val   : f.$("#fleetNum" + id)[0].value,
+            mc    : mc,
+            waves : -1
+        };
+        setValue("attackData", JSON.stringify(data));
+        f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
+    });
+
+    // Simulate button
+    var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + index, "padding: 3px"], "", "click", function() {
+        setValue("autoSim", 1);
+        setValue("autoSimIndex", this.id.substring(3));
+        f.$(this.parentNode.parentNode).find("a:contains('Simule')")[0].click();
+    });
+
+    // Fleet type selector
+    var sel = buildNode("select", ["id"], ["shipSelect" + index], "");
+    var rejectSet = new Set([0, 1, 6, 7, 8, 10, 15, 16, 18]);
+    for (var j = 0; j < g_fleetNames.length; j++) {
+        if (!rejectSet.has(j)) {
+            sel.add(buildNode("option", ["value"], [j], g_fleetNames[j]));
+        }
+    }
+
+    selDiv.appendChild(num);
+    selDiv.appendChild(sel);
+    selDiv.appendChild(submit);
+    selDiv.appendChild(simulate);
+    f.$(message).find("a:contains('" + L_.mAttack + "')")[0].parentNode.appendChild(selDiv);
+    f.$("#shipSelect" + index).val(g_config.EasyFarm.simShip);
+
+    return num;
 }
 
 /**
@@ -2993,7 +3121,7 @@ async function setSimDefaults() {
     totalShip = Math.floor(totalShip / g_config.EasyFarm.simGranularity) * g_config.EasyFarm.simGranularity;
     var maxShip = totalShip;
     var minShip = 0;
-    var curShip = g_config.EasyFarm.simGranularity;
+    var curShip = g_config.EasyFarm.simGranularity + getValue("botSim") ? (g_config.EasyFarm.simThreshold * 2) : 0;
 
     noShip("att");
     shipSelector.val(curShip);
@@ -3002,6 +3130,7 @@ async function setSimDefaults() {
     while (!totalVictory) {
         f.$("input[value='Simulate']").click();
         await waitForSimComplete();
+        await sleep(500);
         // await waitFor(1000); // Don't do things super quickly
         totalVictory = getValue("simVictory") === 1;
         setValue("simVictory", -1);
@@ -3056,6 +3185,10 @@ function waitForSimComplete() {
             }
         })();
     })
+}
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /***
@@ -3293,10 +3426,10 @@ function loadInactiveStatsAndFleetPoints() {
  */
 function loadDeutRow() {
     var header = f.$('.default_1c1b');
-    var m = parseInt((header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
-    var c = parseInt((header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
-    var d = parseInt((header[2].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
-    var aid = parseInt(m / 4 + c / 2 + d);
+    var m = (header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
+    var c = (header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
+    var d = (header[2].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
+    var aid = longAdd(longAdd(longDivide(m, 4), longDivide(c, 2)), d);
     var outer = buildNode('div', ['class'], ['default_1c3'], "");
     var picHolder = buildNode('div', ['class', 'style'], ['curvedtot', 'float:left;background-color:#333;width:40px;padding:1px'], "");
     var pic = buildNode('div', ['class', 'style'], ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
@@ -3329,6 +3462,76 @@ function loadDeutRow() {
         });
     };
     aligner_ressources();
+}
+
+/**
+ * Divide two numbers, keeping all precision. Much more
+ * inefficient, but gets rid of "+e23" and the like
+ * @param n2
+ * @param n1
+ * @returns {string}
+ */
+function longDivide(n2, n1) {
+    // TODO: Setting to have exact values displayed. ("this may slow down the script")
+    //     var divide = setting ? longDivide : fastDivide;
+
+    // Assume n1 is an integer and n2 is a string
+    n1 = parseInt(n1);
+    n2 = n2.toString();
+    var currentIndex = 0;
+    var solution = "";
+    var currentTest = parseInt(n2.charAt(0));
+    while (currentIndex < n2.length) {
+        if (currentTest / n1 >= 1) {
+            solution += Math.floor(currentTest / n1);
+            currentTest = (currentTest % n1) + n2.charAt(++currentIndex);
+        } else {
+            if (solution.length) solution += "0";
+            currentTest += n2.charAt(++currentIndex);
+        }
+    }
+
+    return solution;
+}
+
+/**
+ * Add two numbers, keeping all precision. Ensures
+ * numbers don't turn into "4.XXXeYY"
+ *
+ * @param n1
+ * @param n2
+ * @returns {string}
+ */
+function longAdd(n1, n2) {
+    var carry = 0;
+    var result = "";
+    var i1 = n1.length - 1;
+    var i2 = n2.length - 1;
+    while (i1 >= 0 || i2 >= 0) {
+        var res = carry;
+        if (i1 >= 0) {
+            res += parseInt(n1.charAt(i1--));
+        }
+
+        if (i2 >= 0) {
+            res += parseInt(n2.charAt(i2--));
+        }
+
+        if (res >= 10) {
+            carry = 1;
+            res -= 10;
+        } else {
+            carry = 0;
+        }
+
+        result = res + result;
+    }
+
+    if (carry) {
+        result = carry + result;
+    }
+
+    return result;
 }
 
 /**
@@ -4479,11 +4682,22 @@ function appendGoBox() {
     for (var i = 0; i < names.length; i++) {
         var div = buildNode("div", ["style"], ["width:100px;display:inline"], "");
         var check = buildNode("input", ["type", "name", "id"], ["checkbox", names[i] + "_check", names[i] + "_check"], "");
+        check.style.display = "none";
+        var styleCheck = buildNode("label", ["for", "style"], [names[i] + "_check", "width:20px;height:20px;min-height:1px;margin:2px;background-color:#444;border:1px solid #999"], "&nbsp&nbsp&nbsp&nbsp", "click", function() {
+            if (this.style.backgroundColor === "rgb(68, 68, 68)") {
+                this.style.backgroundColor ="#111";
+            } else {
+                this.style.backgroundColor = "#444";
+            }
+            console.log(this.style.backgroundColor);
+        });
         if (i === 0) {
             f.$(check).prop("checked", true);
+            styleCheck.style.backgroundColor = "#111";
         }
-        var label = buildNode("label", ["for"], [names[i] + "_check"], names[i]);
+        var label = buildNode("label", ["for", "style"], [names[i] + "_check", ["padding-right:5px"]], names[i]);
         div.appendChild(check);
+        div.append(styleCheck);
         div.appendChild(label);
         checks.push(div);
     }
@@ -4508,6 +4722,7 @@ function appendGoBox() {
     newDiv.append(document.createElement("br"));
     newDiv.append(len);
     newDiv.append(goBox);
+    div.appendChild(document.createElement("br"));
     f.$("#main").prepend(newDiv);
 }
 
@@ -5156,19 +5371,16 @@ function saveFleetPage() {
                     futureAttShip = Math.ceil((futureAttShip * 0.7) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
                 }
                 enoughAttackType = maxAttack >= totalAttShip;
-                console.log("Total Ship Needed: " + totalAttShip);
             }
             if (fleetOut + attackData.waves > fleetMax || max < totalShips || !enoughAttackType) {
-                // TODO: Don't delete attack data, set bit to let messages know we failed and need to retry
                 deleteValue("attackData");
-                setValue("fleetNotSent", true);
-                setValue("autoAttackIndex", -1);
+                deleteValue("autoAttackIndex");
+                // setValue("fleetNotSent", true);
                 var div = f.document.createElement("div");
                 div.style.color = "Red";
                 div.style.fontWeight = "bold";
                 div.style.fontSize = "14pt";
                 var minReturn = findMinReturn();
-                console.log(minReturn);
                 if (minReturn !== 1E12) {
                     div.innerHTML = "Requirements not met! Next fleet back in " + minReturn + " seconds";
                 } else {
