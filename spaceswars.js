@@ -158,6 +158,7 @@ setKeyArray();
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
 
+var multiply = autoAttack ? fastMult : slowMult;
 var divide = autoAttack ? fastDivide : slowDivide;
 var add = autoAttack ? fastAdd : slowAdd;
 
@@ -2568,7 +2569,9 @@ function loadEasyFarm() {
 
     var isBot = [];
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
-    appendMessagesTooltipBase();
+    if (!autoAttack) {
+        appendMessagesTooltipBase();
+    }
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
@@ -2630,8 +2633,8 @@ function loadEasyFarm() {
         // Delete a message if we're autoAttacking, the planet has defenses, and
         // the total resources isn't greater than the defMultiplier
         var mc = Math.ceil(resources.total / 2 / 12500000);
-        var allDeut = resources.total / 2;
-        if (usingOldVersion() && allDeut < g_config.EasyFarm.defMultiplier * minPillage && totDef > 500000 && !hasShips) {
+        var allDeut = divide(resources.deut, 2);
+        if (usingOldVersion() && parseFloat(allDeut) < g_config.EasyFarm.defMultiplier * minPillage && totDef > 500000 && !hasShips) {
             messages[i].getElementsByClassName("checkbox")[0].checked = true;
         }
 
@@ -2772,12 +2775,12 @@ function appendMessagesTooltipBase() {
  */
 function getResourcesFromMessage(message) {
     var regNb = /\s([0-9,.]+)/;
-    var metal = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[0].innerHTML)[1].split("."));
-    var crystal = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[1].innerHTML)[1].split("."));
-    var deut = getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[2].innerHTML)[1].split("."));
+    var metal = regNb.exec(message.getElementsByClassName("half_left")[0].innerHTML)[1].replace(/\./g, "");
+    var crystal = regNb.exec(message.getElementsByClassName("half_left")[1].innerHTML)[1].replace(/\./g, "");
+    var deut = regNb.exec(message.getElementsByClassName("half_left")[2].innerHTML)[1].replace(/\./g, "");
     return {
-        total : metal + crystal + deut,
-        deut  : (metal / 4) + (crystal / 2) + deut
+        total : add(add(metal, crystal), deut),
+        deut  : add(add(divide(metal, 4), divide(crystal, 2)), deut)
     }
 }
 
@@ -2794,12 +2797,12 @@ function getFleetDataFromMessage(message, fleetDeut) {
     for (var j = 0; j < g_fleetNames.length; j++) {
         if (message.innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
             // get deut value of ship j
-            shipDeut += getNbFromStringtab(regNb.exec(message.getElementsByClassName("half_left")[classRank].innerHTML)[1].split(",")) * fleetDeut[j];
+            shipDeut = add(shipDeut, multiply(regNb.exec(message.getElementsByClassName("half_left")[classRank].innerHTML)[1].replace(/,/g, ""), fleetDeut[j]));
             classRank++;
         }
     }
 
-    return shipDeut
+    return shipDeut;
 }
 
 /**
@@ -2936,12 +2939,12 @@ function addAttackInfoToMessage(allDeut, mc, minPillage, message, index, toolTip
     var deutTotal = allDeut;
     var snb = getSlashedNb;
     var content = L_.massive_cargo + " : " + "<span id=res" + index + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
-    allDeut /= 2;
+    allDeut = divide(allDeut, 2);
     var waves = 1;
-    while (allDeut >= minPillage && minPillage > 0) {
+    while (parseFloat(allDeut) >= minPillage && minPillage > 0) {
         waves++;
-        deutTotal += allDeut;
-        allDeut /= 2;
+        deutTotal = add(deutTotal, allDeut);
+        allDeut = divide(allDeut, 2);
     }
 
     // Add the mc/wave info to the bottom of the report
@@ -3477,8 +3480,69 @@ function loadDeutRow() {
 }
 
 /**
+ * Like in elementary school:
+ *   1234
+ * x   34
+ * ------
+ *   4936
+ *  37020
+ * ------
+ *  41956
+ *
+ * @param n1
+ * @param n2
+ * @returns {string}
+ */
+function slowMult(n1, n2) {
+    n2 = parseInt(n2);
+    var tally = [];
+    var pos = -1;
+    var carry = 0;
+    while (n2 !== 0) {
+        var digit = n2 % 10;
+        pos++;
+        n2 = Math.floor(n2 / 10);
+        if (digit === 0) {
+            continue;
+        }
+        var res = 0;
+        var total = "";
+        for (var i = 0; i < pos; i++) {
+            total += "0";
+        }
+
+        for (i = n1.length - 1; i >= 0; i--) {
+            res = carry + (digit * n1.charAt(i));
+            total = (res % 10) + total;
+            carry = Math.floor(res / 10);
+        }
+
+        tally.push(total);
+    }
+
+    var result = "";
+    for (var j = 0; j < tally.length; j++) {
+        result = add(result, tally[j]);
+    }
+
+    return result;
+}
+
+function fastMult(n1, n2) {
+    return n1 * n2;
+}
+
+/**
  * Divide two numbers, keeping all precision. Much more
  * inefficient, but gets rid of "+e23" and the like
+ *
+ * Again like elementary school:
+ *      _____
+ *   12 | 132
+ *
+ * 12 goes into 1 0 times, 13 1 times, carry the 1, 12 goes into 12 1 time
+ * for the anser of 011, or 11
+ *
  * @param n2
  * @param n1
  * @returns {string}
