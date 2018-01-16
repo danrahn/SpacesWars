@@ -2569,9 +2569,8 @@ function loadEasyFarm() {
 
     var isBot = [];
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
-    if (!autoAttack) {
-        appendMessagesTooltipBase();
-    }
+
+    appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
         var candidate = false;
@@ -4112,7 +4111,7 @@ function getSfmSettings() {
  */
 function getIsSpying() {
     var spying = getValue("autoSpyLength");
-    return !isNaN(spying) && spying >= 0;
+    return spying && !isNaN(spying) && spying >= 0;
 }
 
 /**
@@ -5279,6 +5278,7 @@ function loadAllinDeut() {
     };
 
     var strings = [L_.AllinDeut_metal, L_.AllinDeut_crystal, L_.AllinDeut_deuterium];
+    var ratios = [4, 2, 1];
     var doms = getDomXpath(xpathPages[g_page], f.document, -1);
     var inDeut = 0;
     for (var i = 0; i < doms.length; i++) {
@@ -5286,7 +5286,7 @@ function loadAllinDeut() {
         for (var j = 0; j < 3; j++) {
             var match = new RegExp(strings[j] + "\\s:\\s<font\\s.{15}>([^<]*)</font>").exec(doms[i].innerHTML);
             if (match && match.length) {
-                inDeut = add(inDeut, divide(match[1].replace(/\./g, ""), 4));
+                inDeut = add(inDeut, divide(match[1].replace(/\./g, ""), ratios[j]));
             }
         }
 
@@ -5809,7 +5809,22 @@ function processSim() {
     var winString = "The attacker has won the battle!";
     var nextRoundForm = $("#formulaireID");
     var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
-    var lostUnits = parseInt($(".space0").find("div:contains('Attacker has lost')")[1].childNodes[1].innerHTML.replace(/\./g, ''));
+    // Things get wonky with very high values and it'll tell us we lost units when we haven't.
+    // M/C/D seems to be correct though, so make sure those are all 0.
+    var regex = new RegExp(/<font color="#7BE654">([\d.E+]+)<\/font>/);
+    var sel = $(".rc_contain.curvedtot");
+    var text = sel[sel.length - 1].children[0].innerHTML;
+    regex.exec(text);
+    var lostUnits = 0;
+    for (var i = 0; i < 3; i++) {
+        var amount = regex.exec(text)[1];
+        if (amount.indexOf("E") !== -1) {
+            lostUnits += parseFloat(amount);
+        } else {
+            lostUnits += parseInt(amount.replace(/\./g, ""));
+        }
+    }
+
     setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
     if (getValue("autoSim")) {
         close();
