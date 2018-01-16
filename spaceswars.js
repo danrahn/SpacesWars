@@ -161,6 +161,7 @@ var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
 var multiply = autoAttack ? fastMult : slowMult;
 var divide = autoAttack ? fastDivide : slowDivide;
 var add = autoAttack ? fastAdd : slowAdd;
+var subtract = autoAttack ? fastSubtract : slowSubtract;
 
 // Every page gets the shortcut handler
 setGlobalKeyboardShortcuts();
@@ -1701,8 +1702,10 @@ function setupSidebar() {
         deleteValue("autoSpyLength");
         deleteValue("fullGalaxySpy");
 
+        multiply = autoAttack ? fastMult : slowMult;
         divide = autoAttack ? fastDivide : slowDivide;
         add = autoAttack ? fastAdd : slowAdd;
+        subtract = autoAttack ? fastSubtract : slowSubtract;
     };
 
     if (usingOldVersion()) {
@@ -3290,7 +3293,10 @@ function loadInactiveStatsAndFleetPoints() {
                     if (players[i].childNodes[5].childNodes.length === 2) player = players[i].childNodes[5].childNodes[1].childNodes[0];
                     else player = players[i].childNodes[5].childNodes[0];
                     player = player.innerHTML;
-                    var score = parseInt(players[i].childNodes[ind].innerHTML.replace(/\./g, ''));
+                    var score = players[i].childNodes[ind].innerHTML.replace(/\./g, '');
+                    if (type === "3") {
+                        score = score.substring(0, score.indexOf("-") - 1);
+                    }
 
                     // Setup a new person if they don't have an entry
                     if (!g_fleetPoints[who][player]){
@@ -3326,20 +3332,21 @@ function loadInactiveStatsAndFleetPoints() {
             var arr = [];
             for (var k in g_fleetPoints[who]) {
                 if (g_fleetPoints[who].hasOwnProperty(k)) {
-                    arr.push([k, g_fleetPoints[who][k]['1'][0] - g_fleetPoints[who][k]['3'][0] - g_fleetPoints[who][k]['4'][0] - g_fleetPoints[who][k]['5'][0]]);
+                    // We want to always be precise. Always use slowSubtract
+                    arr.push([k, slowSubtract(slowSubtract(slowSubtract(g_fleetPoints[who][k]['1'][0], g_fleetPoints[who][k]['3'][0]), g_fleetPoints[who][k]['4'][0]), g_fleetPoints[who][k]['5'][0])]);
                 }
             }
 
             // Sort by fleetPoints
             arr.sort(function(a, b) {
-                return b[1] - a[1]
+                return slowSubtract(b[1], a[1]);
             });
 
             for (i = 0; i < arr.length; i++) {
                 var container = buildNode('div', ['class'], [((i % 2 === 0) ? 'space1' : 'space') + ' curvedtot'], '');
                 var place = buildNode('div', ['class'], ['stats_player_1'], i + 1);
                 var playr = buildNode('div', ['class', 'id'], ['stats_player_2', 'player_' + i], arr[i][0]);
-                var point = buildNode('div', ['class'], ['stats_player_2'], getSlashedNb(arr[i][1]));
+                var point = buildNode('div', ['class', 'style'], ['stats_player_2', 'width:250px;text-align:right'], getSlashedNb(arr[i][1]));
                 var notUpdated = '&nbsp;';
                 for (var j = 1; j < 5; j++) {
                     if (j !== 2) {
@@ -3615,6 +3622,107 @@ function slowAdd(n1, n2) {
 
 function fastAdd(n1, n2) {
     return parseFloat(n1) + parseFloat(n2);
+}
+
+/**
+ * Subtract two strings, keeping all precision
+ *
+ * Many edge cases that must be considered, mainly due to
+ * the irregularity of fleetPoints data
+ * @param n1
+ * @param n2
+ */
+function slowSubtract(n1, n2) {
+
+    // If we're given null values or 0, set to "0"
+    if (!n1) {
+        n1 = "0";
+    }
+
+    if (!n2) {
+        n2 = "0";
+    }
+
+    n1 = n1.toString();
+    n2 = n2.toString();
+
+    // Cases where either number is negative
+    if (n1.charAt(0) === "-") {
+        if (n2.charAt(0) !== "-") {
+            // -1 - 4 = -(1 + 4)
+            return "-" + slowAdd(n1.substring(1), n2);
+        } else {
+            // -10 - -2 = -10 + 2 = 2 - 10
+            n2 = n2.substring(1);
+            n1 = n1.substring(1);
+            var temp = n1;
+            n1 = n2;
+            n2 = temp;
+        }
+    } else if (n2.charAt(0) === "-") {
+        // Only case left is 1 - -2 = 1 + 2
+        return slowAdd(n1, n2.substring(1));
+    }
+
+    // Check if the answer will be negative. Potentially
+    // lots of extra processing if the numbers are very
+    // close, as the only guaranteed way is to check each
+    // digit until we find a difference
+    var neg = false;
+    if (n1.length < n2.length) {
+        neg = true;
+    } else if (n1.length === n2.length) {
+        for (var j = 0; j < n1.length; j++) {
+            if (n1.charAt(j) > n2.charAt(j)) {
+                break;
+            } else if (n1.charAt(j) < n2.charAt(j)) {
+                neg = true;
+                break;
+            }
+        }
+
+        // Every digit is the same, return 0
+        if (j === n1.length) {
+            return 0;
+        }
+    }
+
+    if (neg) {
+        temp = n1;
+        n1 = n2;
+        n2 = temp;
+    }
+
+    var borrow = 0;
+    var result = "";
+
+    // Append leading 0s to the smaller number to make our lives easier
+    var diff = n1.length - n2.length;
+    for (var i = 0; i < diff; i++) {
+        n2 = "0" + n2;
+    }
+
+    // The actual subtraction
+    for (i = n2.length - 1; i >= 0; i--) {
+        var res = parseInt(n1.charAt(i)) - borrow - parseInt(n2.charAt(i));
+        if (res < 0) {
+            res += 10;
+            borrow = 1;
+        } else {
+            borrow = 0;
+        }
+
+        result = res + result;
+    }
+
+    // Leading 0s might be added. Remove them
+    for (i = 0; result.charAt(i) === "0"; i++);
+    result = result.substring(i);
+    return (neg ? "-" : "") + result;
+}
+
+function fastSubtract(n1, n2) {
+    return n1 - n2;
 }
 
 /**
@@ -4791,7 +4899,6 @@ function appendGoBox() {
             } else {
                 this.style.backgroundColor = "#444";
             }
-            console.log(this.style.backgroundColor);
         });
         if (i === 0) {
             f.$(check).prop("checked", true);
