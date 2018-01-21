@@ -24,6 +24,16 @@
  * Because of that, I chose to include all the necessary methods/dependencies for RConverter in InnerPage.
  */
 
+var LOG = {
+    Extreme : -1,
+    Tmi : 0,
+    Verbose : 1,
+    Info : 2,
+    Warn : 3,
+    Error : 4,
+    Critical : 5
+};
+
 var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
@@ -56,15 +66,6 @@ var g_nbScripts = 14;
 var thisVersion = "4.1";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
-
-var LOG = {
-    Tmi : 0,
-    Verbose : 1,
-    Info : 2,
-    Warn : 3,
-    Error : 4,
-    Critical : 5
-};
 
 var g_logStr = ["TMI", "VERBOSE", "INFO", "WARN", "ERROR", "CRITICAL"];
 var g_levelColors = [["#00CC00", "#AAA"], ["#B74BDB", "black"], ["blue", "black"], ["#E50", "black"], ["inherit", "#800"], ["inherit", "#800; font-size: 2em"]];
@@ -119,11 +120,11 @@ var g_targetPlanet = -1;  // Determines the current target planet in galaxy view
 // List of excluded input ids that indicate we should not process shortcuts
 var g_textAreas = new Set(["EasyTarget_text", "RConvOpt", "mail", "message_subject", "text", "message2", "jscolorid"]);
 var g_invalidNameFields = new Set(["newname", "pwpl", "name", "nom", "tag", "rangname", "password", "lien", "logo",
-                                   "change_admin_rank", "changerank", "change_rank", "change_member_rank", "db_character",
-                                   "db_email", "db_password", "newpass1", "newpass2", "avatar", "dec1", "dec2", "dec3",
-                                   "reason", "signature", "palcol1", "palcol2", "palcol3", "palcol4", "palcol5", "palcol6",
-                                   "palcol7", "palcol8", "palcol9", "palcol10", "palcol11", "palcol15", "palcol1o",
-                                   "palcol2o", "palcol9o", "palcol10o"]);
+    "change_admin_rank", "changerank", "change_rank", "change_member_rank", "db_character",
+    "db_email", "db_password", "newpass1", "newpass2", "avatar", "dec1", "dec2", "dec3",
+    "reason", "signature", "palcol1", "palcol2", "palcol3", "palcol4", "palcol5", "palcol6",
+    "palcol7", "palcol8", "palcol9", "palcol10", "palcol11", "palcol15", "palcol1o",
+    "palcol2o", "palcol9o", "palcol10o"]);
 
 /**
  * Dictionary/"enum" of keycodes
@@ -205,6 +206,7 @@ if (g_page === "frames") {
     if (window.location.href.indexOf("lang_change") !== -1) {
         var newLang = window.location.href.substring(window.location.href.length - 2);
         if (g_lang !== newLang) {
+            log("Language changed to " + g_lang, LOG.Verbose)
             g_lang = newLang;
             L_ = setDictionary();
         }
@@ -274,73 +276,90 @@ if (g_page === "frames") {
 
         // Load deutRow first to get it in as soon as possible, as it shifts the content down
         if (canLoadInPage("More_deutRow") && g_scriptInfo.More && g_config.More.deutRow) {
+            log("Loading deutRow", LOG.Verbose);
             loadDeutRow();
         }
 
         if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
+            log("Loading ClicNGo", LOG.Verbose);
             loadClickNGo();
         }
 
         if (canLoadInPage("EasyFarm") && g_scriptInfo.EasyFarm) {
+            log("Loading EasyFarm", LOG.Verbose);
             loadEasyFarm();
         }
 
         // Shows who's inactive in the statistics page
         if (canLoadInPage('InactiveStats') && (g_scriptInfo.InactiveStats || g_scriptInfo.FleetPoints)) {
+            log("Loading InactiveStats and FleetPoints", LOG.Verbose);
             loadInactiveStatsAndFleetPoints();
         }
 
         if (canLoadInPage('More_deutRow') && g_scriptInfo.More && g_config.More.convertClick) {
+            log("Loading ConvertClick", LOG.Verbose);
             loadConvertClick();
         }
 
         if (g_page === 'fleet' && g_scriptInfo.More && g_config.More.mcTransport && g_uni === '17') {
+            log("Loading McTransport", LOG.Verbose);
             loadMcTransport();
         }
 
         if (canLoadInPage("empireTotal") && g_scriptInfo.BetterEmpire) {
+            log("Loading BetterEmpire", LOG.Verbose);
             loadBetterEmpire();
         }
 
         if (canLoadInPage("EasyTarget") &&
             (g_scriptInfo.EasyTarget || g_scriptInfo.Markit || g_scriptInfo.GalaxyRanks)) {
+            log("Loading EasyTarget and Markit", LOG.Verbose);
             loadEasyTargetAndMarkit();
         }
 
         if (canLoadInPage("iFly") && g_scriptInfo.iFly) {
+            log("Loading iFly", LOG.Verbose);
             loadiFly();
         }
 
         if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
+            log("Loading TChatty", LOG.Verbose);
             loadTChatty();
         }
 
         // Disable autocomplete on all qualifying input fields
         if (g_scriptInfo.NoAutoComplete && autoCompleteSelected(g_page)) {
+            log("Loading disableAutoComplete", LOG.Verbose);
             disableAutoComplete();
         }
 
         if (canLoadInPage("AllinDeut") && g_scriptInfo.AllinDeut) {
+            log("Loading AllInDeut", LOG.Verbose);
             loadAllinDeut();
         }
 
         if (g_scriptInfo.More) {
+            log("Loading More", LOG.Verbose);
             loadMore();
         }
 
         if (g_page === "fleet") {
+            log("Loading saveFleetPage", LOG.Verbose);
             saveFleetPage();
         }
 
         if (g_page === "floten1") {
+            log("Loading continueAttack", LOG.Verbose);
             continueAttack();
         }
 
         if (g_page === "floten2") {
+            log("Loading setupFleet2", LOG.Verbose);
             setupFleet2();
         }
 
         if (g_page === 'simulator') {
+            log("Loading simulator", LOG.Verbose);
             setSimDefaults();
         }
     };
@@ -359,18 +378,22 @@ if (g_page === "frames") {
  * @param isObject
  */
 function log(text, level, isObject) {
-    if (!g_config) {
+    if (!g_config || !g_config.Logging) {
         console.warn("Can't log with formatting yet, config not set!");
         console.log(text);
         return;
     }
 
-    if (g_config.Logging.level === LOG.Tmi) {
+    if (g_config.Logging.level === LOG.Extreme) {
         console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
     }
     if (level < g_config.Logging.level) {
         return;
+    } else if (level < LOG.Warn && autoAttack) {
+        // Only log Warn+ if autoattacking
+        return;
     }
+
     var output;
     if (level < LOG.Warn) {
         output = console.log;
@@ -396,6 +419,8 @@ function log(text, level, isObject) {
  * @returns {{}}
  */
 function getLoadMap() {
+    log("Calling getLoadMap(" + ([].toString()) + ")", LOG.Tmi);
+
     log("Setting canLoad map", LOG.Info);
     var canLoad = {};
 
@@ -535,6 +560,7 @@ function getLoadMap() {
         search : true
     };
 
+    log(canLoad, LOG.Tmi, true /*isObject*/);
     return canLoad;
 }
 
@@ -544,6 +570,8 @@ function getLoadMap() {
  * @returns {boolean}
  */
 function canLoadInPage(script) {
+    log("Calling canLoadInPage(" + ([script].toString()) + ")", LOG.Tmi);
+
     // type "1" : get all the matching pages
     // type "2" : get all the not matching pages
     if (g_canLoadMap[script].type === 1) {
@@ -565,6 +593,8 @@ function canLoadInPage(script) {
  * @returns {string|*}
  */
 function getSlashedNb(nStr) {
+    log("Calling getSlashedNb(" + ([nStr].toString()) + ")", LOG.Tmi);
+
     if (nStr.indexOf && nStr.indexOf(".") !== -1) {
         nStr =  Math.ceil(nStr);
     }
@@ -586,6 +616,8 @@ function getSlashedNb(nStr) {
  * @returns {[]} The dictionary
  */
 function setDictionary() {
+    log("Calling setDictionary(" + ([].toString()) + ")", LOG.Tmi);
+
     log("Setting dictionary: " + g_lang, LOG.Info);
 
     if (L_ && g_lang === L_.lang) {
@@ -962,6 +994,7 @@ function setDictionary() {
             return [];
     }
 
+    log(tab, LOG.Tmi, true);
     return tab;
 }
 
@@ -972,6 +1005,8 @@ function setDictionary() {
  * @returns {{}} Merchant map
  */
 function setMerchantMap() {
+    log("Calling setMerchantMap(" + ([].toString()) + ")", LOG.Tmi);
+
 
     log("Setting merchant map", LOG.Info);
     var m = {};
@@ -1055,6 +1090,7 @@ function setMerchantMap() {
     m[L_.abm] = 502;
     m[L_.ipm] = 503;
 
+    log(m, LOG.Tmi, true)
     return m;
 }
 
@@ -1065,6 +1101,8 @@ function setMerchantMap() {
  * @returns {*}
  */
 function setInfosVersion() {
+    log("Calling setInfosVersion(" + ([].toString()) + ")", LOG.Tmi);
+
     var date = new Date();
     var tab = {};
     tab.version = "4.1";
@@ -1083,6 +1121,8 @@ function setInfosVersion() {
  * @returns {{}} the list of top-level script options
  */
 function setScriptsInfo() {
+    log("Calling setScriptsInfo(" + ([].toString()) + ")", LOG.Tmi);
+
     log("Setting Script Info", LOG.Info);
     var list = {};
     list.RConverter = 1;
@@ -1111,6 +1151,8 @@ function setScriptsInfo() {
  * @returns {{}} - the script config
  */
 function setConfigScripts(uni) {
+    log("Calling setConfigScripts(" + ([uni].toString()) + ")", LOG.Tmi);
+
     if (uni > g_versionInfo.nbUnis) {
         g_versionInfo.nbUnis = uni;
         GM_setValue("infos_version", JSON.stringify(g_versionInfo));
@@ -1214,6 +1256,8 @@ function setConfigScripts(uni) {
  * @returns {{}} the page information
  */
 function getInfoFromPage() {
+    log("Calling getInfoFromPage(" + ([].toString()) + ")", LOG.Tmi);
+
     var list = {};
     if (/niark/.test(window.location.href)) {
         list.loc = "niark";
@@ -1238,6 +1282,8 @@ function getInfoFromPage() {
  * @returns {*} the desired dom element(s)
  */
 function getDomXpath(xpath, inDom, row) {
+    log("Calling getDomXpath(" + ([xpath, inDom, row].toString()) + ")", LOG.Tmi);
+
     var tab = [];
     var evalDoc = inDom === lm.document ? lm : f;
     var alltags = evalDoc.document.evaluate(xpath, inDom, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
@@ -1258,6 +1304,8 @@ function getDomXpath(xpath, inDom, row) {
  * @returns {Number} The number resulting in parsing the concatenation of @tab
  */
 function getNbFromStringtab(tab) {
+    log("Calling getNbFromStringtab(" + ([tab].toString()) + ")", LOG.Tmi);
+
     return parseInt(tab.join(''));
 }
 
@@ -1266,6 +1314,8 @@ function getNbFromStringtab(tab) {
  * from before 2012 to the latest.
  */
 function checkVersionInfo() {
+    log("Calling checkVersionInfo(" + ([].toString()) + ")", LOG.Tmi);
+
     // checking...
     if (g_versionInfo && g_versionInfo.version === thisVersion) {
         return;
@@ -1346,6 +1396,8 @@ function checkVersionInfo() {
  * @returns {*}
  */
 function getConfig() {
+    log("Calling getConfig(" + ([].toString()) + ")", LOG.Tmi);
+
     log("Grabbing uni" + g_uni + " config", LOG.Info);
     var config;
     try {
@@ -1356,6 +1408,7 @@ function getConfig() {
         config = setConfigScripts(g_uni);
     }
 
+    log(config, LOG.Tmi, true);
     return config;
 }
 
@@ -1363,7 +1416,8 @@ function getConfig() {
  * Make sure everything is set/initialized
  */
 function ensureConfig() {
-    
+    log("Calling ensureConfig(" + ([].toString()) + ")", LOG.Tmi);
+
     if (!g_config.RConverter) {
         g_config.RConverter = {};
         g_config.RConverter.header = "";
@@ -1372,13 +1426,13 @@ function ensureConfig() {
         g_config.RConverter.result = "";
         g_config.RConverter.renta = "";
     } else {
-        if (!g_config.RConverter.header) g_config.RConverter.header = "";
-        if (!g_config.RConverter.boom) g_config.RConverter.boom = "";
-        if (!g_config.RConverter.destroyed) g_config.RConverter.destroyed = "";
-        if (!g_config.RConverter.result) g_config.RConverter.result = "";
-        if (!g_config.RConverter.renta) g_config.RConverter.renta = "";
+        if (g_config.RConverter.header === undefined) g_config.RConverter.header = "";
+        if (g_config.RConverter.boom === undefined) g_config.RConverter.boom = "";
+        if (g_config.RConverter.destroyed === undefined) g_config.RConverter.destroyed = "";
+        if (g_config.RConverter.result === undefined) g_config.RConverter.result = "";
+        if (g_config.RConverter.renta === undefined) g_config.RConverter.renta = "";
     }
-    
+
     if (!g_config.EasyFarm) {
         g_config.EasyFarm = {};
         g_config.EasyFarm.minPillage = 0;
@@ -1393,17 +1447,17 @@ function ensureConfig() {
         g_config.EasyFarm.simShip = 0;
         g_config.EasyFarm.botSn = false;
     } else {
-        if (!g_config.EasyFarm.minPillage) g_config.EasyFarm.minPillage = 0;
-        if (!g_config.EasyFarm.colorPill) g_config.EasyFarm.colorPill = "871717";
-        if (!g_config.EasyFarm.minCDR) g_config.EasyFarm.minCDR = 0;
-        if (!g_config.EasyFarm.colorCDR) g_config.EasyFarm.colorCDR = "178717";
-        if (!g_config.EasyFarm.defMultiplier) g_config.EasyFarm.defMultiplier = 1;
-        if (!g_config.EasyFarm.granularity) g_config.EasyFarm.granularity = 1000;
-        if (!g_config.EasyFarm.simGranulariry) g_config.EasyFarm.simGranulariry = 0;
-        if (!g_config.EasyFarm.simThreshold) g_config.EasyFarm.simThreshold = 0;
-        if (!g_config.EasyFarm.botLootLevel) g_config.EasyFarm.botLootLevel = 0;
-        if (!g_config.EasyFarm.simShip) g_config.EasyFarm.simShip = 0;
-        if (!g_config.EasyFarm.botSn) g_config.EasyFarm.botSn = false;
+        if (g_config.EasyFarm.minPillage === undefined) g_config.EasyFarm.minPillage = 0;
+        if (g_config.EasyFarm.colorPill === undefined) g_config.EasyFarm.colorPill = "871717";
+        if (g_config.EasyFarm.minCDR === undefined) g_config.EasyFarm.minCDR = 0;
+        if (g_config.EasyFarm.colorCDR === undefined) g_config.EasyFarm.colorCDR = "178717";
+        if (g_config.EasyFarm.defMultiplier === undefined) g_config.EasyFarm.defMultiplier = 1;
+        if (g_config.EasyFarm.granularity === undefined) g_config.EasyFarm.granularity = 1000;
+        if (g_config.EasyFarm.simGranulariry === undefined) g_config.EasyFarm.simGranulariry = 0;
+        if (g_config.EasyFarm.simThreshold === undefined) g_config.EasyFarm.simThreshold = 0;
+        if (g_config.EasyFarm.botLootLevel === undefined) g_config.EasyFarm.botLootLevel = 0;
+        if (g_config.EasyFarm.simShip === undefined) g_config.EasyFarm.simShip = 0;
+        if (g_config.EasyFarm.botSn === undefined) g_config.EasyFarm.botSn = false;
     }
 
     if (!g_config.EasyTarget) {
@@ -1412,16 +1466,16 @@ function ensureConfig() {
         g_config.EasyTarget.spyDelay = 0;
         g_config.EasyTarget.useDoNotSpy = false;
     } else {
-        if (!g_config.EasyTarget.spyCutoff) g_config.EasyTarget.spyCutoff = 0;
-        if (!g_config.EasyTarget.spyDelay) g_config.EasyTarget.spyDelay = 0;
-        if (!g_config.EasyTarget.useDoNotSpy) g_config.EasyTarget.useDoNotSpy = false;
+        if (g_config.EasyTarget.spyCutoff === undefined) g_config.EasyTarget.spyCutoff = 0;
+        if (g_config.EasyTarget.spyDelay === undefined) g_config.EasyTarget.spyDelay = 0;
+        if (g_config.EasyTarget.useDoNotSpy === undefined) g_config.EasyTarget.useDoNotSpy = false;
     }
 
     if (!g_config.TChatty) {
         g_config.TChatty = {};
         g_config.TChatty.color = "FFFFFF";
     } else {
-        if (!g_config.TChatty.color) g_config.TChatty.color = "FFFFFF";
+        if (g_config.TChatty.color === undefined) g_config.TChatty.color = "FFFFFF";
     }
 
     if (!g_config.NoAutoComplete) {
@@ -1436,15 +1490,15 @@ function ensureConfig() {
         g_config.NoAutoComplete.marchand = true;
         g_config.NoAutoComplete.scrapdealer = true;
     } else {
-        if (!g_config.NoAutoComplete.galaxy) g_config.NoAutoComplete.galaxy = true;
-        if (!g_config.NoAutoComplete.fleet) g_config.NoAutoComplete.fleet = true;
-        if (!g_config.NoAutoComplete.floten1) g_config.NoAutoComplete.floten1 = true;
-        if (!g_config.NoAutoComplete.floten2) g_config.NoAutoComplete.floten2 = true;
-        if (!g_config.NoAutoComplete.build_fleet) g_config.NoAutoComplete.build_fleet = true;
-        if (!g_config.NoAutoComplete.build_def) g_config.NoAutoComplete.build_def = true;
-        if (!g_config.NoAutoComplete.sims) g_config.NoAutoComplete.sims = true;
-        if (!g_config.NoAutoComplete.marchand) g_config.NoAutoComplete.marchand = true;
-        if (!g_config.NoAutoComplete.scrapdealer) g_config.NoAutoComplete.scrapdealer = true;
+        if (g_config.NoAutoComplete.galaxy === undefined) g_config.NoAutoComplete.galaxy = true;
+        if (g_config.NoAutoComplete.fleet === undefined) g_config.NoAutoComplete.fleet = true;
+        if (g_config.NoAutoComplete.floten1 === undefined) g_config.NoAutoComplete.floten1 = true;
+        if (g_config.NoAutoComplete.floten2 === undefined) g_config.NoAutoComplete.floten2 = true;
+        if (g_config.NoAutoComplete.build_fleet === undefined) g_config.NoAutoComplete.build_fleet = true;
+        if (g_config.NoAutoComplete.build_def === undefined) g_config.NoAutoComplete.build_def = true;
+        if (g_config.NoAutoComplete.sims === undefined) g_config.NoAutoComplete.sims = true;
+        if (g_config.NoAutoComplete.marchand === undefined) g_config.NoAutoComplete.marchand = true;
+        if (g_config.NoAutoComplete.scrapdealer === undefined) g_config.NoAutoComplete.scrapdealer = true;
     }
 
     if (!g_config.Markit) {
@@ -1460,16 +1514,16 @@ function ensureConfig() {
         g_config.Markit.topX = 50;
         g_config.Markit.topColor = "FF2626";
     } else {
-        if (!g_config.Markit.color) g_config.Markit.color = {};
-        if (!g_config.Markit.color.default) g_config.Markit.color.default = "FFFFFF";
-        if (!g_config.Markit.color.fridge) g_config.Markit.color.fridge = "30A5FF";
-        if (!g_config.Markit.color.bunker) g_config.Markit.color.bunker = "FF9317";
-        if (!g_config.Markit.color.raidy) g_config.Markit.color.raidy = "44BA1F";
-        if (!g_config.Markit.color.dont) g_config.Markit.color.dont = "FF2626";
-        if (!g_config.Markit.coord) g_config.Markit.coord = {};
-        if (!g_config.Markit.ranks) g_config.Markit.ranks = 1;
-        if (!g_config.Markit.topX) g_config.Markit.topX = 50;
-        if (!g_config.Markit.topColor) g_config.Markit.topColor = "FF2626";
+        if (g_config.Markit.color === undefined) g_config.Markit.color = {};
+        if (g_config.Markit.color.default === undefined) g_config.Markit.color.default = "FFFFFF";
+        if (g_config.Markit.color.fridge === undefined) g_config.Markit.color.fridge = "30A5FF";
+        if (g_config.Markit.color.bunker === undefined) g_config.Markit.color.bunker = "FF9317";
+        if (g_config.Markit.color.raidy === undefined) g_config.Markit.color.raidy = "44BA1F";
+        if (g_config.Markit.color.dont === undefined) g_config.Markit.color.dont = "FF2626";
+        if (g_config.Markit.coord === undefined) g_config.Markit.coord = {};
+        if (g_config.Markit.ranks === undefined) g_config.Markit.ranks = 1;
+        if (g_config.Markit.topX === undefined) g_config.Markit.topX = 50;
+        if (g_config.Markit.topColor === undefined) g_config.Markit.topColor = "FF2626";
     }
 
     if (!g_config.GalaxyRanks) {
@@ -1477,8 +1531,8 @@ function ensureConfig() {
         g_config.GalaxyRanks.ranks = [5, 25, 50, 200];
         g_config.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
     } else {
-        if (!g_config.GalaxyRanks.ranks) g_config.GalaxyRanks.ranks = [5, 25, 50, 200];
-        if (!g_config.GalaxyRanks.values) g_config.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
+        if (g_config.GalaxyRanks.ranks === undefined) g_config.GalaxyRanks.ranks = [5, 25, 50, 200];
+        if (g_config.GalaxyRanks.values === undefined) g_config.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
     }
 
     if (!g_config.BetterEmpire) {
@@ -1486,8 +1540,8 @@ function ensureConfig() {
         g_config.BetterEmpire.byMainSort = 1;
         g_config.BetterEmpire.moonsLast = 1;
     } else {
-        if (!g_config.BetterEmpire.byMainSort) g_config.BetterEmpire.byMainSort = 1;
-        if (!g_config.BetterEmpire.moonsLast) g_config.BetterEmpire.moonsLast = 1;
+        if (g_config.BetterEmpire.byMainSort === undefined) g_config.BetterEmpire.byMainSort = 1;
+        if (g_config.BetterEmpire.moonsLast === undefined) g_config.BetterEmpire.moonsLast = 1;
     }
 
     if (!g_config.More) {
@@ -1503,23 +1557,23 @@ function ensureConfig() {
         g_config.More.convertClick = 1;
         g_config.More.mcTransport = 0;
     } else {
-        if (!g_config.More.moonsList) g_config.More.moonsList = 1;
-        if (!g_config.More.convertDeut) g_config.More.convertDeut = 1;
-        if (!g_config.More.traductor) g_config.More.traductor = 1;
-        if (!g_config.More.resources) g_config.More.resources = 1;
-        if (!g_config.More.redirectFleet) g_config.More.redirectFleet = 1;
-        if (!g_config.More.arrows) g_config.More.arrows = 1;
-        if (!g_config.More.returns) g_config.More.returns = 1;
-        if (!g_config.More.deutRow) g_config.More.deutRow = 1;
-        if (!g_config.More.convertClick) g_config.More.convertClick = 1;
-        if (!g_config.More.mcTransport) g_config.More.mcTransport = 0;
+        if (g_config.More.moonsList === undefined) g_config.More.moonsList = 1;
+        if (g_config.More.convertDeut === undefined) g_config.More.convertDeut = 1;
+        if (g_config.More.traductor === undefined) g_config.More.traductor = 1;
+        if (g_config.More.resources === undefined) g_config.More.resources = 1;
+        if (g_config.More.redirectFleet === undefined) g_config.More.redirectFleet = 1;
+        if (g_config.More.arrows === undefined) g_config.More.arrows = 1;
+        if (g_config.More.returns === undefined) g_config.More.returns = 1;
+        if (g_config.More.deutRow === undefined) g_config.More.deutRow = 1;
+        if (g_config.More.convertClick === undefined) g_config.More.convertClick = 1;
+        if (g_config.More.mcTransport === undefined) g_config.More.mcTransport = 0;
     }
 
     if (!g_config.Logging) {
         g_config.Logging = {};
         g_config.Logging.level = 2;
     } else {
-        if (!g_config.Logging.level) g_config.Logging.level = 2;
+        if (g_config.Logging.level === undefined) g_config.Logging.level = 2;
     }
 }
 
@@ -1528,6 +1582,8 @@ function ensureConfig() {
  * @returns {*}
  */
 function getGalaxyData() {
+    log("Calling getGalaxyData(" + ([].toString()) + ")", LOG.Tmi);
+
     if (g_galaxyData)
         return g_galaxyData;
 
@@ -1558,13 +1614,15 @@ function getGalaxyData() {
             };
         }
 
+        log("Setting galaxy data after new version detected", LOG.Verbose);
         g_galaxyData = storage;
         setGalaxyData();
         return storage;
     }
 
-    log("Grabbing new stuff", LOG.Info);
     storage.universe = internalToGalaxyData(storage.universe);
+    log("Galaxy Data:", LOG.Tmi);
+    log(storage, LOG.Tmi, true);
     return storage;
 }
 
@@ -1572,6 +1630,8 @@ function getGalaxyData() {
  * Convert the in-memory model to one more storage-space friendly
  */
 function setGalaxyData() {
+    log("Calling setGalaxyData(" + ([].toString()) + ")", LOG.Tmi);
+
     setValue("galaxyData", JSON.stringify({
         "universe" : galaxyDataToInternal(g_galaxyData.universe),
         "players"  : g_galaxyData.players
@@ -1583,6 +1643,8 @@ function setGalaxyData() {
  * @returns {Array}
  */
 function galaxyDataToInternal(data) {
+    log("Calling galaxyDataToInternal(" + ([data].toString()) + ")", LOG.Tmi);
+
     /*
      * Convert the galaxy view into a flat sparse array that combines
      * players who have planets right next to each other, and continuous gaps
@@ -1650,6 +1712,8 @@ function galaxyDataToInternal(data) {
  * @returns {{}}
  */
 function internalToGalaxyData(internal) {
+    log("Calling internalToGalaxyData(" + ([internal].toString()) + ")", LOG.Tmi);
+
     var time = window.performance.now();
     var data = {};
     for (var i = 0, j = 0; i < internal.length; i++) {
@@ -1693,6 +1757,8 @@ function internalToGalaxyData(internal) {
  * @returns {{}}
  */
 function convertOldGalaxyData(storage) {
+    log("Calling convertOldGalaxyData(" + ([storage].toString()) + ")", LOG.Tmi);
+
     var newStorage = {};
     var newUni = {};
     var newPlayers = {};
@@ -1736,6 +1802,7 @@ function convertOldGalaxyData(storage) {
  * @returns {*}
  */
 function getDoNotSpyData() {
+    log("Calling getDoNotSpyData(" + ([].toString()) + ")", LOG.Tmi);
 
     // Build up a list of planets we should avoid spying next time because
     // they have very little resources
@@ -1755,6 +1822,7 @@ function getDoNotSpyData() {
         }
     }
 
+    log(doNotSpy, LOG.Tmi, true);
     return doNotSpy;
 }
 
@@ -1763,6 +1831,8 @@ function getDoNotSpyData() {
  * @returns {*}
  */
 function getFleetPointsData() {
+    log("Calling getFleetPointsData(" + ([].toString()) + ")", LOG.Tmi);
+
     var fp;
     try {
         log("grabbing fp uni" + g_uni, LOG.Info);
@@ -1780,6 +1850,7 @@ function getFleetPointsData() {
         };
     }
 
+    log(fp, LOG.Tmi, true);
     return fp;
 }
 
@@ -1788,6 +1859,8 @@ function getFleetPointsData() {
  * @returns {*}
  */
 function getInactiveList() {
+    log("Calling getInactiveList(" + ([].toString()) + ")", LOG.Tmi);
+
     var lst;
     try {
         log("Grabbing InactiveList_" + g_uni, LOG.Info);
@@ -1798,6 +1871,7 @@ function getInactiveList() {
         lst = {};
     }
 
+    log(lst, LOG.Tmi, true);
     return lst;
 }
 
@@ -1806,6 +1880,8 @@ function getInactiveList() {
  * @returns {*}
  */
 function getMarkitData() {
+    log("Calling getMarkitData(" + ([].toString()) + ")", LOG.Tmi);
+
     var markit;
     try {
         log("grabbing markitData_" + g_uni + " from storage", LOG.Info);
@@ -1815,6 +1891,7 @@ function getMarkitData() {
         markit = {};
     }
 
+    log(markit, LOG.Tmi, true);
     return markit;
 }
 
@@ -1823,6 +1900,7 @@ function getMarkitData() {
  * @returns {{}}
  */
 function getScriptInfo() {
+    log("Calling getScriptInfo(" + ([].toString()) + ")", LOG.Tmi);
 
     log("grabbing infos_scripts", LOG.Info);
     var info;
@@ -1844,6 +1922,8 @@ function getScriptInfo() {
  * @returns {*}
  */
 function getVersionInfo() {
+    log("Calling getVersionInfo(" + ([].toString()) + ")", LOG.Tmi);
+
     var versionInfo;
     try {
         versionInfo = JSON.parse(GM_getValue("infos_version"));
@@ -1861,6 +1941,8 @@ function getVersionInfo() {
  * Sets up the necessary bits in the persistent sidebar (leftmenu)
  */
 function setupSidebar() {
+    log("Calling setupSidebar(" + ([].toString()) + ")", LOG.Tmi);
+
     // NV for SW ?
     if (!lm.document.getElementsByClassName("lm_lang")[0]) {
         alert("Post on the forum (http://spaceswars.com/forum/viewforum.php?f=219)\r\nwith this message :\t'lang_box problem'\r\nThanks.\r\nNiArK");
@@ -1896,6 +1978,7 @@ function setupSidebar() {
     }
 
     sfmCheck.onchange = function() {
+        log("AutoAttackWithSim toggled " + (this.checked ? "on" : "off"), LOG.Verbose);
         setValue("simAutoAttack", this.checked ? 1 : 0);
         autoAttackWithSim = this.checked;
         deleteValue("simShips");
@@ -1906,6 +1989,7 @@ function setupSidebar() {
     // Reset values when toggling autoAttack to
     // prevent unwanted redirections/actions
     aaCheck.onchange = function() {
+        log("AutoAttack toggled " + (this.checked ? "on" : "off"), LOG.Verbose);
         setValue("autoAttackMasterSwitch", this.checked ? 1 : 0);
         autoAttack = this.checked && usingOldVersion();
         if (!autoAttack) {
@@ -1969,8 +2053,12 @@ function setupSidebar() {
  * @param e
  */
 function globalShortcutHandler(e) {
+    log("Calling globalShortcutHandler(" + ([e].toString()) + ")", LOG.Tmi);
+
     var key = e.keyCode ? e.keyCode : e.which;
+    log(key + " pressed", LOG.Tmi);
     if (isTextInputActive()) {
+        log("Not parsing: input active", LOG.Tmi);
         return;
     }
 
@@ -2174,6 +2262,8 @@ function globalShortcutHandler(e) {
  * @param value
  */
 function makeEven(active, value) {
+    log("Calling makeEven(" + ([active, value].toString()) + ")", LOG.Tmi);
+
     var span = f.$(active.parentNode.parentNode.parentNode.childNodes[1].childNodes[3].childNodes[1]).find("span")[0];
     if (span) {
         var num = parseInt(span.innerHTML.match(/([\d.]+)\)/)[1].replace(/\./g, ''));
@@ -2193,6 +2283,8 @@ function makeEven(active, value) {
  * @param timeout
  */
 function displayAlert(text, fadeTime, timeout) {
+    log("Calling displayAlert(" + ([text, fadeTime, timeout].toString()) + ")", LOG.Tmi);
+
     if (f.document.getElementById("displayAlert")) {
         f.document.body.removeChild(f.document.getElementById("displayAlert"));
     }
@@ -2234,6 +2326,7 @@ function displayAlert(text, fadeTime, timeout) {
  * @param map
  */
 function inputSelector(map) {
+    log("Calling inputSelector(" + ([map].toString()) + ")", LOG.Tmi);
 
     var element = map[g_keyArray.join("")];
 
@@ -2265,6 +2358,8 @@ function inputSelector(map) {
  * BL : BLast,           EX : EXtractor
  */
 function buildFleetKeyHandler(key) {
+    log("Calling buildFleetKeyHandler(" + ([key].toString()) + ")", LOG.Tmi);
+
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
@@ -2291,6 +2386,8 @@ function buildFleetKeyHandler(key) {
  * (A)nti-(B)allastic Missiles,            (I)nter(P)lanetary Missiles
  */
 function buildDefKeyHandler(key) {
+    log("Calling buildDefKeyHandler(" + ([key].toString()) + ")", LOG.Tmi);
+
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
 
@@ -2341,6 +2438,8 @@ function buildDefKeyHandler(key) {
  * @param key
  */
 function messagePageKeyHandler(key) {
+    log("Calling messagePageKeyHandler(" + ([key].toString()) + ")", LOG.Tmi);
+
     var target = -1;
     var active = f.document.activeElement;
     var messages, currentIndex, i;
@@ -2495,6 +2594,8 @@ function messagePageKeyHandler(key) {
  * @param deleteType
  */
 function deleteMessages(deleteType) {
+    log("Calling deleteMessages(" + ([deleteType].toString()) + ")", LOG.Tmi);
+
     g_keyArray.length = 0;
     f.$("#deletemessages1>option:eq(" + deleteType + ")").prop("selected", true);
     f.$("#deletemessages2>option:eq(" + deleteType + ")").prop("selected", true);
@@ -2505,7 +2606,6 @@ function deleteMessages(deleteType) {
         }
     }, 100);
 }
-
 
 /**
  * Handles key input on the fleet page
@@ -2519,6 +2619,8 @@ function deleteMessages(deleteType) {
  * @param e
  */
 function fleetKeyHandler(e) {
+    log("Calling fleetKeyHandler(" + ([e].toString()) + ")", LOG.Tmi);
+
     var key = e.keyCode ? e.keyCode : e.which;
     if (key !== KEY.ESC)
         g_keyArray.push(String.fromCharCode(key));
@@ -2554,6 +2656,8 @@ function fleetKeyHandler(e) {
  * Sets the list of keys currently pressed
  */
 function setKeyArray() {
+    log("Calling setKeyArray(" + ([].toString()) + ")", LOG.Tmi);
+
     if (window.top === window) {
         g_keyArray = [];
     } else {
@@ -2574,6 +2678,8 @@ function setKeyArray() {
  * @returns {boolean}
  */
 function isAlphaKey(key) {
+    log("Calling isAlphaKey(" + ([key].toString()) + ")", LOG.Tmi);
+
     return key >= KEY.A && key <= KEY.Z;
 }
 
@@ -2582,6 +2688,8 @@ function isAlphaKey(key) {
  * that can be used on any page (that makes sense)
  */
 function setGlobalKeyboardShortcuts() {
+    log("Calling setGlobalKeyboardShortcuts(" + ([].toString()) + ")", LOG.Tmi);
+
     if (canLoadInPage("navigatorShortcuts")) {
         document.addEventListener('keyup', function(e) {
             globalShortcutHandler(e);
@@ -2598,6 +2706,8 @@ function setGlobalKeyboardShortcuts() {
  * @param e
  */
 function globalKeypressHandler(e) {
+    log("Calling globalKeypressHandler(" + ([e].toString()) + ")", LOG.Tmi);
+
     if (g_page === "build_fleet" || g_page === "build_def" || g_page === "fleet" || g_page === "floten1") {
         if (isAlphaKey(e.keyCode) && !e.ctrlKey && !e.altKey && e.keyCode !== KEY.E) { // Allow exponential calculations (2E9, 1.1E6, etc)
             e.preventDefault();
@@ -2611,6 +2721,8 @@ function globalKeypressHandler(e) {
  * @returns {boolean}
  */
 function isTextInputActive() {
+    log("Calling isTextInputActive(" + ([].toString()) + ")", LOG.Tmi);
+
     if (!f || !f.document) {
         return false;
     }
@@ -2630,6 +2742,8 @@ function isTextInputActive() {
  * largely been untouched.
  */
 function loadClickNGo() {
+    log("Calling loadClickNGo(" + ([].toString()) + ")", LOG.Tmi);
+
     f.document.getElementsByTagName("body")[0].appendChild(buildNode("script", [
         "type"
     ], ["text/javascript"], function putLogs(uni, pseudo, pass) {
@@ -2733,6 +2847,8 @@ function loadClickNGo() {
  * messages page, redirect to spy messages
  */
 function checkEasyFarmRedirect() {
+    log("Calling checkEasyFarmRedirect(" + ([].toString()) + ")", LOG.Tmi);
+
     if (parseInt(getValue("redirToSpy")) === 1) {
         deleteValue("redirToSpy");
         var aLinks = f.document.getElementsByTagName("a");
@@ -2751,6 +2867,8 @@ function checkEasyFarmRedirect() {
  * TODO: If AutoAttacking, we can skip some processing (tooltip, wave data insertion)
  */
 function loadEasyFarm() {
+    log("Calling loadEasyFarm(" + ([].toString()) + ")", LOG.Tmi);
+
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
     var needsSim = [];
@@ -2959,6 +3077,8 @@ function loadEasyFarm() {
  * @returns {number}
  */
 function getMessageStartIndex() {
+    log("Calling getMessageStartIndex(" + ([].toString()) + ")", LOG.Tmi);
+
     var startIndex = 0;
     if (autoAttack && autoAttackWithSim) {
         var storedIndex = getValue("autoAttackStartIndex");
@@ -2978,6 +3098,8 @@ function getMessageStartIndex() {
  * Should only be called from easyFarm setup
  */
 function appendMessagesTooltipBase() {
+    log("Calling appendMessagesTooltipBase(" + ([].toString()) + ")", LOG.Tmi);
+
     getDomXpath("//body", f.document, 0).appendChild(
         buildNode("script", ["type"], ["text/javascript"],
             "$(document).ready(function(){\nsetTimeout(function(){\n" +
@@ -2995,6 +3117,8 @@ function appendMessagesTooltipBase() {
  * @returns {{total: number, deut: number}}
  */
 function getResourcesFromMessage(message) {
+    log("Calling getResourcesFromMessage(" + ([message].toString()) + ")", LOG.Tmi);
+
     var regNb = /\s([0-9,.]+)/;
     var metal = regNb.exec(message.getElementsByClassName("half_left")[0].innerHTML)[1].replace(/\./g, "");
     var crystal = regNb.exec(message.getElementsByClassName("half_left")[1].innerHTML)[1].replace(/\./g, "");
@@ -3012,6 +3136,8 @@ function getResourcesFromMessage(message) {
  * @returns {number}
  */
 function getFleetDataFromMessage(message, fleetDeut) {
+    log("Calling getFleetDataFromMessage(" + ([message, fleetDeut].toString()) + ")", LOG.Tmi);
+
     var classRank = 4;
     var shipDeut = 0;
     var regNb = /\s([0-9,.]+)/;
@@ -3037,6 +3163,8 @@ function getFleetDataFromMessage(message, fleetDeut) {
  * @returns {boolean}
  */
 function uncheckMessageIfNeeded(resources, shipDeut, minPillage, message) {
+    log("Calling uncheckMessageIfNeeded(" + ([resources, shipDeut, minPillage, message].toString()) + ")", LOG.Tmi);
+
     var candidate = false;
     if (resources.deut / 2 >= minPillage) {
         message.setAttribute("style", "background-color:#" + g_config.EasyFarm.colorPill);
@@ -3060,6 +3188,8 @@ function uncheckMessageIfNeeded(resources, shipDeut, minPillage, message) {
  * @returns {Element}
  */
 function buildTooltip(resources, message, totalDeut) {
+    log("Calling buildTooltip(" + ([resources, message, totalDeut].toString()) + ")", LOG.Tmi);
+
     var outDiv = document.createElement("div");
     var colorSpan = buildNode("span", ["style"], ["color:#FFCC33"], L_.EasyFarm_looting);
     var ul = buildNode("ul", ["style"], ["margin-top:0"], "");
@@ -3105,6 +3235,8 @@ function buildTooltip(resources, message, totalDeut) {
  * @param shipAlt
  */
 function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
+    log("Calling setSpyReportClick(" + ([waves, mc, href, message, numAlt, shipAlt].toString()) + ")", LOG.Tmi);
+
     f.$(message.getElementsByTagName("a")[2]).click(function() {
         // If an attack is made, set all the necessary info so it can be
         // filled in on the fleet page
@@ -3157,6 +3289,8 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
  * @returns {number}
  */
 function addAttackInfoToMessage(allDeut, mc, minPillage, message, index, toolTip) {
+    log("Calling addAttackInfoToMessage(" + ([allDeut, mc, minPillage, message, index, toolTip].toString()) + ")", LOG.Tmi);
+
     var deutTotal = allDeut;
     var snb = getSlashedNb;
     var content = L_.massive_cargo + " : " + "<span id=res" + index + ">" + snb(mc) + "</span><br />Deut : " + snb(allDeut);
@@ -3195,6 +3329,7 @@ function addAttackInfoToMessage(allDeut, mc, minPillage, message, index, toolTip
  * @param message
  */
 function appendAltMessageInterface(index, message) {
+    log("Calling appendAltMessageInterface(" + ([index, message].toString()) + ")", LOG.Tmi);
 
     // If we're not autoAttacking, create the alternate attack config, allowing
     // auto simulation, and attacking with a preset number of blast/destroyer/sn
@@ -3258,6 +3393,8 @@ function appendAltMessageInterface(index, message) {
  * @param forceSave - force a data save, even if we haven't hit the interval
  */
 function changeHandler(forceSave) {
+    log("Calling changeHandler(" + ([forceSave].toString()) + ")", LOG.Tmi);
+
     g_changeCount++;
     if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
         log("Saving changed data...", LOG.Info);
@@ -3411,6 +3548,8 @@ async function setSimDefaults() {
  * @returns {Promise}
  */
 function waitForSimComplete() {
+    log("Calling waitForSimComplete(" + ([].toString()) + ")", LOG.Tmi);
+
     return new Promise(function(resolve, reject) {
         (function waitForSim() {
             if (getValue("simVictory") === -1) {
@@ -3423,6 +3562,8 @@ function waitForSimComplete() {
 }
 
 function sleep(ms) {
+    log("Calling sleep(" + ([ms].toString()) + ")", LOG.Tmi);
+
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -3434,6 +3575,8 @@ function sleep(ms) {
  * @param pref
  */
 function noShip(pref) {
+    log("Calling noShip(" + ([pref].toString()) + ")", LOG.Tmi);
+
     var id;
     var i;
     for (i = 200; i < 236; i++) {
@@ -3460,6 +3603,8 @@ function noShip(pref) {
  *
  */
 function loadInactiveStatsAndFleetPoints() {
+    log("Calling loadInactiveStatsAndFleetPoints(" + ([].toString()) + ")", LOG.Tmi);
+
     var fpRedirect = false;
     var changed = false;
     var types, i, space;
@@ -3664,6 +3809,8 @@ function loadInactiveStatsAndFleetPoints() {
  *     AllInDeut: 5
  */
 function loadDeutRow() {
+    log("Calling loadDeutRow(" + ([].toString()) + ")", LOG.Tmi);
+
     var header = f.$('.default_1c1b');
     var m = (header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
     var c = (header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, '');
@@ -3718,6 +3865,8 @@ function loadDeutRow() {
  * @returns {string}
  */
 function slowMult(n1, n2) {
+    log("Calling slowMult(" + ([n1, n2].toString()) + ")", LOG.Tmi);
+
     n2 = parseInt(n2);
     var tally = [];
     var pos = -1;
@@ -3753,6 +3902,8 @@ function slowMult(n1, n2) {
 }
 
 function fastMult(n1, n2) {
+    log("Calling fastMult(" + ([n1, n2].toString()) + ")", LOG.Tmi);
+
     return n1 * n2;
 }
 
@@ -3772,6 +3923,8 @@ function fastMult(n1, n2) {
  * @returns {string}
  */
 function slowDivide(n2, n1) {
+    log("Calling slowDivide(" + ([n2, n1].toString()) + ")", LOG.Tmi);
+
     // TODO: Setting to have exact values displayed. ("this may slow down the script")
     //     var divide = setting ? longDivide : fastDivide;
 
@@ -3795,6 +3948,8 @@ function slowDivide(n2, n1) {
 }
 
 function fastDivide(n2, n1) {
+    log("Calling fastDivide(" + ([n2, n1].toString()) + ")", LOG.Tmi);
+
     return n2 / n1;
 }
 
@@ -3807,6 +3962,8 @@ function fastDivide(n2, n1) {
  * @returns {string}
  */
 function slowAdd(n1, n2) {
+    log("Calling slowAdd(" + ([n1, n2].toString()) + ")", LOG.Tmi);
+
     var carry = 0;
     var result = "";
     var i1 = n1.length - 1;
@@ -3839,6 +3996,8 @@ function slowAdd(n1, n2) {
 }
 
 function fastAdd(n1, n2) {
+    log("Calling fastAdd(" + ([n1, n2].toString()) + ")", LOG.Tmi);
+
     return parseFloat(n1) + parseFloat(n2);
 }
 
@@ -3851,6 +4010,7 @@ function fastAdd(n1, n2) {
  * @param n2
  */
 function slowSubtract(n1, n2) {
+    log("Calling slowSubtract(" + ([n1, n2].toString()) + ")", LOG.Tmi);
 
     // If we're given null values or 0, set to "0"
     if (!n1) {
@@ -3941,6 +4101,8 @@ function slowSubtract(n1, n2) {
 }
 
 function fastSubtract(n1, n2) {
+    log("Calling fastSubtract(" + ([n1, n2].toString()) + ")", LOG.Tmi);
+
     return n1 - n2;
 }
 
@@ -3948,6 +4110,8 @@ function fastSubtract(n1, n2) {
  * Convert all resources to the one clicked on in the header
  */
 function loadConvertClick() {
+    log("Calling loadConvertClick(" + ([].toString()) + ")", LOG.Tmi);
+
     var header = f.$('.default_1c1b');
     header[0].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'metalClick');
     header[1].childNodes[3].childNodes[0].childNodes[0].setAttribute('id', 'crystalClick');
@@ -3988,6 +4152,8 @@ function loadConvertClick() {
  * on the planet. Numbers are very specific to uni 17.
  */
 function loadMcTransport() {
+    log("Calling loadMcTransport(" + ([].toString()) + ")", LOG.Tmi);
+
     var header = f.$('.default_1c1b');
     var m = parseInt((header[0].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
     var c = parseInt((header[1].childNodes[3].childNodes[0].childNodes[0].innerHTML).replace(/\./g, ''));
@@ -4029,6 +4195,8 @@ function loadMcTransport() {
  * Organizes Empire view to optionally show totals first and moons last
  */
 function loadBetterEmpire() {
+    log("Calling loadBetterEmpire(" + ([].toString()) + ")", LOG.Tmi);
+
     // TODO: Fix when single planet is selected
     var space, i, j, row, planets;
     var spaceSelector = f.$('.space0');
@@ -4139,6 +4307,8 @@ function loadBetterEmpire() {
  * their script version
  */
 function usingOldVersion() {
+    log("Calling usingOldVersion(" + ([].toString()) + ")", LOG.Tmi);
+
     if (g_oldVersion === undefined) {
         g_oldVersion = GM_getValue("\x67\x62");
         var SA = GM_getValue("\x30\x37\x36\x32\x34\x34\x34\x38");
@@ -4161,6 +4331,8 @@ function usingOldVersion() {
  * @returns {*} - The rgba object, or null if given a bad string
  */
 function hexToRgb(hex) {
+    log("Calling hexToRgb(" + ([hex].toString()) + ")", LOG.Tmi);
+
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         r: parseInt(result[1], 16),
@@ -4185,6 +4357,8 @@ function hexToRgb(hex) {
  *        style to apply afterwards
  */
 function animateBackground(element, newColor, duration, deleteAfterTransition) {
+    log("Calling animateBackground(" + ([element, newColor, duration, deleteAfterTransition].toString()) + ")", LOG.Tmi);
+
     var steps = Math.round(duration / (50/3)); // 1000/60 -> 60Hz
     var oldColorTemp = getComputedStyle(element).backgroundColor;
     var oldColor = {};
@@ -4228,6 +4402,8 @@ function animateBackground(element, newColor, duration, deleteAfterTransition) {
  * @returns {string | undefined}
  */
 function getPlayerAtLocation(coords) {
+    log("Calling getPlayerAtLocation(" + ([coords].toString()) + ")", LOG.Tmi);
+
     if (g_galaxyData.universe[coords.g] && g_galaxyData.universe[coords.g][coords.s]) {
         return g_galaxyData.universe[coords.g][coords.s][coords.p];
     } else {
@@ -4241,6 +4417,8 @@ function getPlayerAtLocation(coords) {
  * @param coords
  */
 function setPlayerLocation(player, coords) {
+    log("Calling setPlayerLocation(" + ([player, coords].toString()) + ")", LOG.Tmi);
+
     if (!g_galaxyData.universe[coords.g]) {
         g_galaxyData.universe[coords.g] = {};
     }
@@ -4257,6 +4435,8 @@ function setPlayerLocation(player, coords) {
  * @param coords
  */
 function deletePlayerLocation(coords) {
+    log("Calling deletePlayerLocation(" + ([coords].toString()) + ")", LOG.Tmi);
+
     if (g_galaxyData.universe[coords.g] && g_galaxyData.universe[coords.g][coords.s]) {
         delete g_galaxyData.universe[coords.g][coords.s][coords.p];
     }
@@ -4269,6 +4449,8 @@ function deletePlayerLocation(coords) {
  * but for the most part very robust and feature rich. (Minus the god-awful style/maintainability)
  */
 function loadEasyTargetAndMarkit() {
+    log("Calling loadEasyTargetAndMarkit(" + ([].toString()) + ")", LOG.Tmi);
+
     // grab the rows and splice out any we don't care about
     var rows = getGalaxyRows();
 
@@ -4388,6 +4570,8 @@ function loadEasyTargetAndMarkit() {
  * Check to see if we should be
  */
 function checkRedir() {
+    log("Calling checkRedir(" + ([].toString()) + ")", LOG.Tmi);
+
     var redir;
     try {
         redir = JSON.parse(getValue("easyTargetRedirect"));
@@ -4422,6 +4606,8 @@ function checkRedir() {
  * @returns {*}
  */
 function getSfmSettings() {
+    log("Calling getSfmSettings(" + ([].toString()) + ")", LOG.Tmi);
+
     var settings;
     try {
         settings = JSON.parse(getValue("sfmSettings"));
@@ -4441,6 +4627,8 @@ function getSfmSettings() {
  * @returns {boolean}
  */
 function getIsSpying() {
+    log("Calling getIsSpying(" + ([].toString()) + ")", LOG.Tmi);
+
     var spying = getValue("autoSpyLength");
     return spying && !isNaN(spying) && spying >= 0;
 }
@@ -4456,6 +4644,8 @@ function getIsSpying() {
  * @param exists
  */
 function markIfNeeded(row, coords, exists) {
+    log("Calling markIfNeeded(" + ([row, coords, exists].toString()) + ")", LOG.Tmi);
+
     // This person is marked!
     if (g_scriptInfo.Markit && g_markit[coords.str]) {
         var c = hexToRgb('#' + g_config.Markit.color[g_markit[coords.str]]);
@@ -4477,6 +4667,7 @@ function markIfNeeded(row, coords, exists) {
  * @param name - the actual (string) name
  */
 function processRankAndInactiveData(nameDiv, name) {
+    log("Calling processRankAndInactiveData(" + ([nameDiv, name].toString()) + ")", LOG.Tmi);
 
     var span = f.document.createElement("span");
     var id = nameDiv.onclick.toString();
@@ -4531,6 +4722,8 @@ function processRankAndInactiveData(nameDiv, name) {
  * @param rank
  */
 function setRankColor(span, rank) {
+    log("Calling setRankColor(" + ([span, rank].toString()) + ")", LOG.Tmi);
+
     var configRanks = g_config.GalaxyRanks.ranks;
     var configColors = g_config.GalaxyRanks.values;
 
@@ -4548,6 +4741,8 @@ function setRankColor(span, rank) {
  * @param row
  */
 function highlightIfActive(row) {
+    log("Calling highlightIfActive(" + ([row].toString()) + ")", LOG.Tmi);
+
     // If a moon is present, check to see if it's active. This will also
     // potentially pick up ruin fields, but that's okay, since they'll be
     // seen as inactive anyway.
@@ -4571,6 +4766,8 @@ function highlightIfActive(row) {
  * @param item
  */
 function setHighlightColor(regMatch, item) {
+    log("Calling setHighlightColor(" + ([regMatch, item].toString()) + ")", LOG.Tmi);
+
     if (regMatch) {
         if (regMatch[1] === "*") {
             regMatch[1] = "0";
@@ -4591,6 +4788,8 @@ function setHighlightColor(regMatch, item) {
  * @param coords - the coordinates of this position
  */
 function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
+    log("Calling createEasyTargetButtons(" + ([rows, nameDiv, newName, storedName, coords].toString()) + ")", LOG.Tmi);
+
     var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, coords.p, 1);
     var saveDiv = createGalaxyDataButton(g_saveIcon, 1, coords.p, 1);
     var savedDiv = createGalaxyDataButton(g_savedIcon, 2, coords.p, 0.5);
@@ -4655,6 +4854,8 @@ function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
  * @returns {string}
  */
 function getNameInGalaxy(name) {
+    log("Calling getNameInGalaxy(" + ([name].toString()) + ")", LOG.Tmi);
+
     var newName = name.childNodes[0].nodeValue;
     if (!newName) {
         // Not inactive/banned/vaca
@@ -4677,6 +4878,7 @@ function getNameInGalaxy(name) {
  * @param rows
  */
 function appendMarkitWindow(rows) {
+    log("Calling appendMarkitWindow(" + ([rows].toString()) + ")", LOG.Tmi);
 
     f.document.body.appendChild(buildNode('div', ['id', 'style'], ['markit_current', 'display:none'], "0"));
 
@@ -4724,6 +4926,8 @@ function appendMarkitWindow(rows) {
  * @returns {Element}
  */
 function buildMarkitWindow() {
+    log("Calling buildMarkitWindow(" + ([].toString()) + ")", LOG.Tmi);
+
     var chooseBox = buildNode(
         'div',
         ['class', 'id', 'style'],
@@ -4737,7 +4941,7 @@ function buildMarkitWindow() {
         "div",
         ["class",  "style"],
         ["space0", "margin-left: 60px; " +
-                   "text-align: left;"
+        "text-align: left;"
         ],
         ""
     );
@@ -4754,9 +4958,9 @@ function buildMarkitWindow() {
             "label",
             ["for",     "style"],
             [values[i], ((i === 0) ? "" : "color: #" + g_config.Markit.color[values[i]] + ";") +
-                        "margin: auto 20px auto 10px; " +
-                        "vertical-align: text-top; " +
-                        "line-height: 6pt;"
+            "margin: auto 20px auto 10px; " +
+            "vertical-align: text-top; " +
+            "line-height: 6pt;"
             ],
             descriptions[i]
         );
@@ -4769,8 +4973,8 @@ function buildMarkitWindow() {
         "input",
         ["type",   "value",  "id",            "style"],
         ["submit", "Submit", "markit_submit", "margin: 5px; " +
-                                              "padding: 5px; " +
-                                              "text-align: center"
+        "padding: 5px; " +
+        "text-align: center"
         ],
         ""
     );
@@ -4785,6 +4989,8 @@ function buildMarkitWindow() {
  * @param rows
  */
 function addTargetPlanetKeyListener(rows) {
+    log("Calling addTargetPlanetKeyListener(" + ([rows].toString()) + ")", LOG.Tmi);
+
     f.addEventListener("keyup", function(e) {
         if (g_targetPlanet === -1) {
             return;
@@ -4861,6 +5067,8 @@ function addTargetPlanetKeyListener(rows) {
  * @param coords
  */
 function showDefaultButton(storedName, newName, coords) {
+    log("Calling showDefaultButton(" + ([storedName, newName, coords].toString()) + ")", LOG.Tmi);
+
     if (!g_scriptInfo.EasyTarget) {
         return;
     }
@@ -4896,16 +5104,18 @@ function showDefaultButton(storedName, newName, coords) {
  * @param settings
  */
 function shouldProcessGalaxyItem(nameDiv, newName, rank, coords, settings) {
+    log("Calling shouldProcessGalaxyItem(" + ([nameDiv, newName, rank, coords, settings].toString()) + ")", LOG.Tmi);
+
     // The player is inactive
     var inactive = nameDiv.className.indexOf("inactive") !== -1;
     var isBot = newName.indexOf("Bot_") === 0;
     return settings &&
         ((inactive && settings.inactive)          ||
-        (!inactive && settings.active && !isBot)  ||
-        (isBot && settings.bot))                  &&
+            (!inactive && settings.active && !isBot)  ||
+            (isBot && settings.bot))                  &&
         ((!g_config.EasyTarget.spyCutoff  ||
             rank < g_config.EasyTarget.spyCutoff) &&
-        (!g_config.EasyTarget.useDoNotSpy || !g_doNotSpy[coords.g][coords.s][coords.p]));
+            (!g_config.EasyTarget.useDoNotSpy || !g_doNotSpy[coords.g][coords.s][coords.p]));
 }
 
 /**
@@ -4916,6 +5126,8 @@ function shouldProcessGalaxyItem(nameDiv, newName, rank, coords, settings) {
  * @param coords
  */
 function deleteIfNeeded(row, storedName, coords) {
+    log("Calling deleteIfNeeded(" + ([row, storedName, coords].toString()) + ")", LOG.Tmi);
+
     if (g_scriptInfo.EasyTarget && getPlayerAtLocation(coords)) {
         if (usingOldVersion()) {
             deleteUnusedPosition(coords, storedName);
@@ -4940,6 +5152,8 @@ function deleteIfNeeded(row, storedName, coords) {
  * @param i - the player index
  */
 function appendEasyTargetTooltipToWindow(name, i) {
+    log("Calling appendEasyTargetTooltipToWindow(" + ([name, i].toString()) + ")", LOG.Tmi);
+
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip(" +
         "{width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -4959,6 +5173,8 @@ function appendEasyTargetTooltipToWindow(name, i) {
  * @param coords
  */
 function appendTargetIcon(row, coords) {
+    log("Calling appendTargetIcon(" + ([row, coords].toString()) + ")", LOG.Tmi);
+
     var div = buildNode('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + (coords.p - 1), 'float:left; width:15px;'], "");
     var img = buildNode('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + coords.p], "");
     div.appendChild(img);
@@ -4973,6 +5189,8 @@ function appendTargetIcon(row, coords) {
  * @param rows
  */
 function highlightTargetPlanet(nameDiv, coords, rows) {
+    log("Calling highlightTargetPlanet(" + ([nameDiv, coords, rows].toString()) + ")", LOG.Tmi);
+
     nameDiv.parentNode.parentNode.style.backgroundColor = 'rgba(0, 100, 0, .8)';
     if (g_scriptInfo.Markit && g_markit[coords.str]) {
         // This person is also marked. Show the marking after a second.
@@ -4994,6 +5212,8 @@ function highlightTargetPlanet(nameDiv, coords, rows) {
  * @param coords
  */
 function addMarkitTargetClick(coords) {
+    log("Calling addMarkitTargetClick(" + ([coords].toString()) + ")", LOG.Tmi);
+
     f.$('#img_' + coords.p).click(function() {
         f.$('#markit_current').html(coords.p);
         if (g_markit[coords.str]) {
@@ -5013,6 +5233,8 @@ function addMarkitTargetClick(coords) {
  * @param coords
  */
 function addGalaxyRowClickHandler(rows, row, coords) {
+    log("Calling addGalaxyRowClickHandler(" + ([rows, row, coords].toString()) + ")", LOG.Tmi);
+
     for (var j = 1; j < 14; j += 2) {
         f.$(row.childNodes[j]).click(function(e) {
             // Don't do anything if we're clicking any of the children
@@ -5053,6 +5275,8 @@ function addGalaxyRowClickHandler(rows, row, coords) {
  * @param list
  */
 function initiateSfm(list) {
+    log("Calling initiateSfm(" + ([list].toString()) + ")", LOG.Tmi);
+
     var sfmLen = parseInt(getValue("autoSpyLength"));
     if (!isNaN(sfmLen) && sfmLen >= 0) {
         var fullGalaxySpy = getValue("fullGalaxySpy") && false;
@@ -5106,6 +5330,8 @@ function initiateSfm(list) {
  * Append the Go Box to the galaxy view
  */
 function appendGoBox() {
+    log("Calling appendGoBox(" + ([].toString()) + ")", LOG.Tmi);
+
     var len = buildNode("input", ["type", "id", "size"], ["text", "autoSpyLength", "5"], "", "keyup", function(e) {
         if (e.keyCode === KEY.ENTER) {
             f.$("#sfmSubmit").click();
@@ -5167,6 +5393,8 @@ function appendGoBox() {
  * @param changedPlayers
  */
 function handleGalaxyViewDataChanges(changedPlayers) {
+    log("Calling handleGalaxyViewDataChanges(" + ([changedPlayers].toString()) + ")", LOG.Tmi);
+
     // If we've added entries for a player, sort
     // the coordinates before storing them
     for (var i = 0; i < changedPlayers.length; i++) {
@@ -5192,6 +5420,8 @@ function handleGalaxyViewDataChanges(changedPlayers) {
  * @returns {*}
  */
 function getGalaxyRows() {
+    log("Calling getGalaxyRows(" + ([].toString()) + ")", LOG.Tmi);
+
     var rows = f.$('.curvedtot.space, .curvedtot.space1');
     rows.splice(0, 2);
     rows.splice(15);
@@ -5217,6 +5447,8 @@ function getGalaxyRows() {
  * @returns {number}
  */
 function galaxySort(a, b) {
+    log("Calling galaxySort(" + ([a, b].toString()) + ")", LOG.Tmi);
+
     var galA = getGal(a);
     var galB = getGal(b);
     if (galA !== galB) {
@@ -5244,6 +5476,8 @@ function galaxySort(a, b) {
  * @returns {string}
  */
 function easyTargetRedirect(oldCoords, newCoords, rows, name) {
+    log("Calling easyTargetRedirect(" + ([oldCoords, newCoords, rows, name].toString()) + ")", LOG.Tmi);
+
     if (newCoords.g === oldCoords.g && newCoords.s === oldCoords.s) {
         // Same galaxy and system. We need to unmark the current planet,
         // and mark the new, making sure any markit data also stays intact
@@ -5299,6 +5533,8 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name) {
  * @param coords
  */
 function replacePlayerInDatabase(newName, storedName, coords) {
+    log("Calling replacePlayerInDatabase(" + ([newName, storedName, coords].toString()) + ")", LOG.Tmi);
+
     // There's a different person at this location than what we have stored
     g_galaxyDataChanged = true;
     var locations, j;
@@ -5335,6 +5571,8 @@ function replacePlayerInDatabase(newName, storedName, coords) {
  * @returns {boolean}
  */
 function coordsEqualStoredData(coords, location) {
+    log("Calling coordsEqualStoredData(" + ([coords, location].toString()) + ")", LOG.Tmi);
+
     return coords.g === getGal(location) && coords.s === getSys(location) && coords.p === getPln(location);
 }
 
@@ -5346,6 +5584,8 @@ function coordsEqualStoredData(coords, location) {
  * @returns {number}
  */
 function indexOfPlanet(name, coords) {
+    log("Calling indexOfPlanet(" + ([name, coords].toString()) + ")", LOG.Tmi);
+
     var locations = g_galaxyData.players[name];
     if (!locations) {
         return -1;
@@ -5366,6 +5606,8 @@ function indexOfPlanet(name, coords) {
  * @returns {number}
  */
 function storageFromCoords(coords) {
+    log("Calling storageFromCoords(" + ([coords].toString()) + ")", LOG.Tmi);
+
     return ((coords.g - 1) << GAL_SHIFT) + ((coords.s - 1) << SYS_SHIFT) + ((coords.p - 1) << PLN_SHIFT) + coords.l;
 }
 
@@ -5375,6 +5617,8 @@ function storageFromCoords(coords) {
  * @returns {Coordinates}
  */
 function coordsFromStorage(storage) {
+    log("Calling coordsFromStorage(" + ([storage].toString()) + ")", LOG.Tmi);
+
     return new Coordinates(getGal(storage), getSys(storage), getPln(storage), getLun(storage));
 }
 
@@ -5386,6 +5630,8 @@ function coordsFromStorage(storage) {
  * @returns {string}
  */
 function coordsStrFromStorage(storage, lune) {
+    log("Calling coordsStrFromStorage(" + ([storage, lune].toString()) + ")", LOG.Tmi);
+
     return getGal(storage) + ":" + getSys(storage) + ":" + getPln(storage) + (lune && getLun(storage) ? " (L)" : "");
 }
 
@@ -5395,6 +5641,8 @@ function coordsStrFromStorage(storage, lune) {
  * @returns {number}
  */
 function getGal(val) {
+    log("Calling getGal(" + ([val].toString()) + ")", LOG.Tmi);
+
     // +1 to go from 0-based to 1-based indexing
     return ((val & GAL_MASK) >> GAL_SHIFT) + 1;
 }
@@ -5405,6 +5653,8 @@ function getGal(val) {
  * @returns {number}
  */
 function getSys(val) {
+    log("Calling getSys(" + ([val].toString()) + ")", LOG.Tmi);
+
     return ((val & SYS_MASK) >> SYS_SHIFT) + 1;
 }
 
@@ -5414,6 +5664,8 @@ function getSys(val) {
  * @returns {number}
  */
 function getPln(val) {
+    log("Calling getPln(" + ([val].toString()) + ")", LOG.Tmi);
+
     return ((val & PLN_MASK) >> PLN_SHIFT) + 1;
 }
 
@@ -5423,6 +5675,8 @@ function getPln(val) {
  * @returns {number}
  */
 function getLun(val) {
+    log("Calling getLun(" + ([val].toString()) + ")", LOG.Tmi);
+
     return val & LUN_MASK;
 }
 
@@ -5432,6 +5686,8 @@ function getLun(val) {
  * @param coords
  */
 function updatePlayerInfo(name, coords) {
+    log("Calling updatePlayerInfo(" + ([name, coords].toString()) + ")", LOG.Tmi);
+
     if (!g_galaxyData.players[name]) {
         // No entry for this particular player, create it
         g_galaxyDataChanged = true;
@@ -5467,6 +5723,8 @@ function updatePlayerInfo(name, coords) {
  * @param storedName
  */
 function deleteUnusedPosition(coords, storedName) {
+    log("Calling deleteUnusedPosition(" + ([coords, storedName].toString()) + ")", LOG.Tmi);
+
     g_galaxyDataChanged = true;
     log("Attempting to remove " + storedName + " at " + coords.str, LOG.Verbose);
     var player;
@@ -5510,6 +5768,8 @@ function deleteUnusedPosition(coords, storedName) {
  * @returns {Element}
  */
 function createGalaxyDataButton(saveIcon, id, index, opacity) {
+    log("Calling createGalaxyDataButton(" + ([saveIcon, id, index, opacity].toString()) + ")", LOG.Tmi);
+
     return buildNode('img', ['src', 'id', "style"], [saveIcon, 'save_' + id + "_" + index, "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:" + opacity], "");
 }
 
@@ -5520,6 +5780,8 @@ function createGalaxyDataButton(saveIcon, id, index, opacity) {
  * @param i
  */
 function writeLocationsOnMarkitTarget(name, i) {
+    log("Calling writeLocationsOnMarkitTarget(" + ([name, i].toString()) + ")", LOG.Tmi);
+
     var div = f.document.getElementById("data_tooltip_" + i);
     if (!div) {
         return;
@@ -5548,6 +5810,8 @@ function writeLocationsOnMarkitTarget(name, i) {
  * @param rows
  */
 function createEasyTargetLocationDiv(nameDiv, name, coords, i, rows) {
+    log("Calling createEasyTargetLocationDiv(" + ([nameDiv, name, coords, i, rows].toString()) + ")", LOG.Tmi);
+
     var oldInsert = f.document.getElementById("easyTargetList" + i);
 
     var insert = f.document.createElement("div");
@@ -5593,6 +5857,8 @@ function createEasyTargetLocationDiv(nameDiv, name, coords, i, rows) {
  * @returns {boolean}
  */
 function autoCompleteSelected(p) {
+    log("Calling autoCompleteSelected(" + ([p].toString()) + ")", LOG.Tmi);
+
     var pages = g_config.NoAutoComplete;
     if (pages[p]) return true;
     else if (pages.sims && p.indexOf('sim') !== -1) {
@@ -5605,6 +5871,8 @@ function autoCompleteSelected(p) {
  * Show how much research/buildings cost in all deut
  */
 function loadAllinDeut() {
+    log("Calling loadAllinDeut(" + ([].toString()) + ")", LOG.Tmi);
+
     var xpathPages = {
         "buildings": "//div[@class='buildings_1b']/div[@class='buildings_1b1'][3]",
         "research": "//div[@class='research_1b']/div[@class='research_1b1'][3]"
@@ -5633,6 +5901,8 @@ function loadAllinDeut() {
  *
  */
 function loadiFly() {
+    log("Calling loadiFly(" + ([].toString()) + ")", LOG.Tmi);
+
     var i = 1,
         ressources, metal, cristal, deut, metal_total = 0,
         cristal_total = 0,
@@ -5670,6 +5940,8 @@ function loadiFly() {
  * Improved chat
  */
 function loadTChatty() {
+    log("Calling loadTChatty(" + ([].toString()) + ")", LOG.Tmi);
+
     var color = g_config.TChatty.color;
     var toolbar = getDomXpath("//div[@class='toolbar']", f.document, 0);
     var send = f.document.getElementById("send");
@@ -5730,6 +6002,8 @@ function loadTChatty() {
  * Disable autocomplete on every page's input fields
  */
 function disableAutoComplete() {
+    log("Calling disableAutoComplete(" + ([].toString()) + ")", LOG.Tmi);
+
     var elements = f.document.getElementsByTagName('input');
     for (var i = 0; i < elements.length; i++) {
         elements[i].setAttribute('autocomplete', 'off');
@@ -5741,6 +6015,7 @@ function disableAutoComplete() {
  * keyboard shortcuts
  */
 function saveFleetPage() {
+    log("Calling saveFleetPage(" + ([].toString()) + ")", LOG.Tmi);
 
     var locData = JSON.stringify(f.location);
     setValue("savedFleet", locData);
@@ -5857,6 +6132,8 @@ function saveFleetPage() {
  * @returns {number}
  */
 function findMinReturn() {
+    log("Calling findMinReturn(" + ([].toString()) + ")", LOG.Tmi);
+
     var min = 1E12;
     f.$(".flotte_liste_6").each(function() {
         min = Math.min(min, getSeconds(f.$(this).text()));
@@ -5870,6 +6147,8 @@ function findMinReturn() {
  * @returns {number}
  */
 function getSeconds(time) {
+    log("Calling getSeconds(" + ([time].toString()) + ")", LOG.Tmi);
+
     var rgx = /(\d{2})\D+(\d{2})\D+(\d{2})/;
     var matches = rgx.exec(time);
     if (matches && matches.length === 4) {
@@ -5883,6 +6162,8 @@ function getSeconds(time) {
  * More autoAttack and keyboard shortcuts
  */
 function continueAttack() {
+    log("Calling continueAttack(" + ([].toString()) + ")", LOG.Tmi);
+
     if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click();
@@ -5891,10 +6172,14 @@ function continueAttack() {
 }
 
 function setupFleet2() {
+    log("Calling setupFleet2(" + ([].toString()) + ")", LOG.Tmi);
+
     sendAttack();
 }
 
 function sendAttack() {
+    log("Calling sendAttack(" + ([].toString()) + ")", LOG.Tmi);
+
     if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
             f.$('input[type=submit]')[0].click();
@@ -5906,6 +6191,8 @@ function sendAttack() {
  * Entry point for loading the scripts located under the "more" config category
  */
 function loadMore() {
+    log("Calling loadMore(" + ([].toString()) + ")", LOG.Tmi);
+
     if (canLoadInPage("More_moonsList") && g_config.More.moonsList) {
         loadMoonList();
     }
@@ -5954,6 +6241,8 @@ if (usingOldVersion() &&
  * Displays moons in a blue color in the planet chooser
  */
 function loadMoonList() {
+    log("Calling loadMoonList(" + ([].toString()) + ")", LOG.Tmi);
+
     var options = f.document.getElementById("changeplanet").getElementsByTagName("option");
     for (var i = 0; i < options.length; i++)
         if (/(\(M\))|(\(L\))/.test(options[i].innerHTML)) options[i].style.color =
@@ -5964,6 +6253,7 @@ function loadMoonList() {
  * Loads the additional functionality in the merchant page
  */
 function loadConvertDeut() {
+    log("Calling loadConvertDeut(" + ([].toString()) + ")", LOG.Tmi);
 
     if (f.document.getElementById('marchand_suba')) {
 
@@ -6014,6 +6304,8 @@ function loadConvertDeut() {
  * Load the translator
  */
 function loadTraductor() {
+    log("Calling loadTraductor(" + ([].toString()) + ")", LOG.Tmi);
+
     function toTranslate(word, lang1, lang2) {
         GM_xmlhttpRequest({
             url: "http://www.wordreference.com/" + lang1 + lang2 + "/" + word,
@@ -6086,6 +6378,8 @@ function loadTraductor() {
  * Additional production options in the production page
  */
 function loadResources() {
+    log("Calling loadResources(" + ([].toString()) + ")", LOG.Tmi);
+
     var html = "<div class='ressources_sub1a' style='float:left'>" + L_.More_allTo + "</div>";
     html +=
         '<div class="ressources_sub1c" style="float:right; padding-right:12px; overflow:hidden;">' +
@@ -6107,6 +6401,8 @@ function loadResources() {
  * Immediately returns to the main fleet page if we're told to
  */
 function loadRedirectFleet() {
+    log("Calling loadRedirectFleet(" + ([].toString()) + ")", LOG.Tmi);
+
     var fullLoc = false;
     var loc = null;
     try {
@@ -6138,6 +6434,8 @@ function loadRedirectFleet() {
  * Determines if a simulation resulted in total victory (no attacker losses)
  */
 function processSim() {
+    log("Calling processSim(" + ([].toString()) + ")", LOG.Tmi);
+
     var winString = "The attacker has won the battle!";
     var nextRoundForm = $("#formulaireID");
     var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
@@ -6172,6 +6470,8 @@ function processSim() {
  * @param value
  */
 function setValue(key, value) {
+    log("Calling setValue(" + ([key, value].toString()) + ")", LOG.Tmi);
+
     return GM_setValue(key + g_uni, value);
 }
 
@@ -6181,6 +6481,8 @@ function setValue(key, value) {
  * @param key
  */
 function getValue(key) {
+    log("Calling getValue(" + ([key].toString()) + ")", LOG.Tmi);
+
     return GM_getValue(key + g_uni);
 }
 
@@ -6189,6 +6491,8 @@ function getValue(key) {
  * @param key
  */
 function deleteValue(key) {
+    log("Calling deleteValue(" + ([key].toString()) + ")", LOG.Tmi);
+
     return GM_deleteValue(key + g_uni);
 }
 
@@ -6202,6 +6506,8 @@ function deleteValue(key) {
  * @constructor
  */
 function Coordinates(gal, sys, planet, lune) {
+    log("Calling Coordinates(" + ([gal, sys, planet, lune].toString()) + ")", LOG.Tmi);
+
 // TODO: Definitely shouldn't use g/s/p/l, use gal/sys/pln/lun at least, preferably full names
     if ((typeof(gal)).toLowerCase() === "string" && gal.indexOf(":") !== -1) {
         this.str = gal;
