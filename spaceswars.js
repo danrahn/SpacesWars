@@ -39,14 +39,14 @@ if (g_page === "simulator") {
 }
 
 // Masks for the new storage:
-// 17 bits. Lowest order for moon (t/f), next 4 for
-// planet (0-15), next 9 for system (0-511), last 3
-// for galaxy (0-7)
-// 111 111111111 1111 1
-var GAL_MASK = 0x1C000; // 11100000000000000
-var SYS_MASK = 0x3FE0;  // 00011111111100000
-var PLN_MASK = 0x1E;    // 00000000000011110
-var LUN_MASK = 0x1;     // 00000000000000001
+// 18 bits. Lowest order for moon (t/f), next 4 for
+// planet (0-15), next 9 for system (0-511), last 4
+// for galaxy (0-15)
+// 1111 111111111 1111 1
+var GAL_MASK = 0x3C000; // 111100000000000000
+var SYS_MASK = 0x3FE0;  // 000011111111100000
+var PLN_MASK = 0x1E;    // 000000000000011110
+var LUN_MASK = 0x1;     // 000000000000000001
 var GAL_SHIFT = 14;
 var SYS_SHIFT = 5;
 var PLN_SHIFT = 1;
@@ -358,6 +358,9 @@ if (g_page === "frames") {
  * @param isObject
  */
 function log(text, level, isObject) {
+    if (g_logLevel === LOG.Tmi) {
+        console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
+    }
     if (level < g_logLevel) {
         return;
     }

@@ -296,6 +296,14 @@ function populateConfig() {
         }
         if (data.length !== 0) {
             var conf = confirm("Are you sure you want to change the galaxy data? This cannot be undone.");
+            if (!data.universe) {
+                data.universe = {};
+            }
+
+            if (!data.players) {
+                data.players = {}
+            }
+
             if (conf) {
                 setValue("galaxyData", data);
                 g_galaxyData = JSON.parse(data);
