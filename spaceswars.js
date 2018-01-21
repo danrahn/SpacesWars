@@ -52,7 +52,7 @@ var SYS_SHIFT = 5;
 var PLN_SHIFT = 1;
 var UNI_OFFSET = storageFromCoords(new Coordinates(1, 1, 1));
 
-var g_nbScripts = 13;
+var g_nbScripts = 14;
 var thisVersion = "4.1";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
@@ -69,8 +69,10 @@ var LOG = {
 var g_logStr = ["TMI", "VERBOSE", "INFO", "WARN", "ERROR", "CRITICAL"];
 var g_levelColors = [["#00CC00", "#AAA"], ["#B74BDB", "black"], ["blue", "black"], ["#E50", "black"], ["inherit", "#800"], ["inherit", "#800; font-size: 2em"]];
 
-var g_logLevel = LOG.Tmi;
-
+var g_config = getConfig();
+if (g_uni !== 0) {
+    ensureConfig();
+}
 var g_scriptInfo = getScriptInfo();
 var g_versionInfo = getVersionInfo();
 checkVersionInfo();
@@ -85,7 +87,6 @@ var g_merchantMap = setMerchantMap();       // Maps buildings/research/fleet/def
 var nbUnis = g_versionInfo.nbUnis;
 
 var g_canLoadMap = getLoadMap();            // Map determining whether a given script can run on the page
-var g_config = getConfig();                 // Current config for the universe
 var g_galaxyData = getGalaxyData();         // Map of saved players in the galaxy
 var g_doNotSpy = getDoNotSpyData();         // Map of doNotSpy positions
 var g_fleetPoints = getFleetPointsData();   // Map of fleet points for players
@@ -358,10 +359,16 @@ if (g_page === "frames") {
  * @param isObject
  */
 function log(text, level, isObject) {
-    if (g_logLevel === LOG.Tmi) {
+    if (!g_config) {
+        console.warn("Can't log with formatting yet, config not set!");
+        console.log(text);
+        return;
+    }
+
+    if (g_config.Logging.level === LOG.Tmi) {
         console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
     }
-    if (level < g_logLevel) {
+    if (level < g_config.Logging.level) {
         return;
     }
     var output;
@@ -1184,6 +1191,9 @@ function setConfigScripts(uni) {
         list.More.deutRow = 1;
         list.More.convertClick = 1;
         list.More.mcTransport = 0;
+
+        list.Logging = {};
+        list.Logging.level = 2;
     } else {  // => index / niark / forum
         list.ClicNGo = {};
         list.ClicNGo.universes = [];
@@ -1336,7 +1346,6 @@ function checkVersionInfo() {
  * @returns {*}
  */
 function getConfig() {
-
     log("Grabbing uni" + g_uni + " config", LOG.Info);
     var config;
     try {
@@ -1348,6 +1357,170 @@ function getConfig() {
     }
 
     return config;
+}
+
+/**
+ * Make sure everything is set/initialized
+ */
+function ensureConfig() {
+    
+    if (!g_config.RConverter) {
+        g_config.RConverter = {};
+        g_config.RConverter.header = "";
+        g_config.RConverter.boom = "";
+        g_config.RConverter.destroyed = "";
+        g_config.RConverter.result = "";
+        g_config.RConverter.renta = "";
+    } else {
+        if (!g_config.RConverter.header) g_config.RConverter.header = "";
+        if (!g_config.RConverter.boom) g_config.RConverter.boom = "";
+        if (!g_config.RConverter.destroyed) g_config.RConverter.destroyed = "";
+        if (!g_config.RConverter.result) g_config.RConverter.result = "";
+        if (!g_config.RConverter.renta) g_config.RConverter.renta = "";
+    }
+    
+    if (!g_config.EasyFarm) {
+        g_config.EasyFarm = {};
+        g_config.EasyFarm.minPillage = 0;
+        g_config.EasyFarm.colorPill = "871717";
+        g_config.EasyFarm.minCDR = 0;
+        g_config.EasyFarm.colorCDR = "178717";
+        g_config.EasyFarm.defMultiplier = 1;
+        g_config.EasyFarm.granularity = 1000;
+        g_config.EasyFarm.simGranulariry = 0;
+        g_config.EasyFarm.simThreshold = 0;
+        g_config.EasyFarm.botLootLevel = 0;
+        g_config.EasyFarm.simShip = 0;
+        g_config.EasyFarm.botSn = false;
+    } else {
+        if (!g_config.EasyFarm.minPillage) g_config.EasyFarm.minPillage = 0;
+        if (!g_config.EasyFarm.colorPill) g_config.EasyFarm.colorPill = "871717";
+        if (!g_config.EasyFarm.minCDR) g_config.EasyFarm.minCDR = 0;
+        if (!g_config.EasyFarm.colorCDR) g_config.EasyFarm.colorCDR = "178717";
+        if (!g_config.EasyFarm.defMultiplier) g_config.EasyFarm.defMultiplier = 1;
+        if (!g_config.EasyFarm.granularity) g_config.EasyFarm.granularity = 1000;
+        if (!g_config.EasyFarm.simGranulariry) g_config.EasyFarm.simGranulariry = 0;
+        if (!g_config.EasyFarm.simThreshold) g_config.EasyFarm.simThreshold = 0;
+        if (!g_config.EasyFarm.botLootLevel) g_config.EasyFarm.botLootLevel = 0;
+        if (!g_config.EasyFarm.simShip) g_config.EasyFarm.simShip = 0;
+        if (!g_config.EasyFarm.botSn) g_config.EasyFarm.botSn = false;
+    }
+
+    if (!g_config.EasyTarget) {
+        g_config.EasyTarget = {};
+        g_config.EasyTarget.spyCutoff = 0;
+        g_config.EasyTarget.spyDelay = 0;
+        g_config.EasyTarget.useDoNotSpy = false;
+    } else {
+        if (!g_config.EasyTarget.spyCutoff) g_config.EasyTarget.spyCutoff = 0;
+        if (!g_config.EasyTarget.spyDelay) g_config.EasyTarget.spyDelay = 0;
+        if (!g_config.EasyTarget.useDoNotSpy) g_config.EasyTarget.useDoNotSpy = false;
+    }
+
+    if (!g_config.TChatty) {
+        g_config.TChatty = {};
+        g_config.TChatty.color = "FFFFFF";
+    } else {
+        if (!g_config.TChatty.color) g_config.TChatty.color = "FFFFFF";
+    }
+
+    if (!g_config.NoAutoComplete) {
+        g_config.NoAutoComplete = {};
+        g_config.NoAutoComplete.galaxy = true;
+        g_config.NoAutoComplete.fleet = true;
+        g_config.NoAutoComplete.floten1 = true;
+        g_config.NoAutoComplete.floten2 = true;
+        g_config.NoAutoComplete.build_fleet = true;
+        g_config.NoAutoComplete.build_def = true;
+        g_config.NoAutoComplete.sims = true;
+        g_config.NoAutoComplete.marchand = true;
+        g_config.NoAutoComplete.scrapdealer = true;
+    } else {
+        if (!g_config.NoAutoComplete.galaxy) g_config.NoAutoComplete.galaxy = true;
+        if (!g_config.NoAutoComplete.fleet) g_config.NoAutoComplete.fleet = true;
+        if (!g_config.NoAutoComplete.floten1) g_config.NoAutoComplete.floten1 = true;
+        if (!g_config.NoAutoComplete.floten2) g_config.NoAutoComplete.floten2 = true;
+        if (!g_config.NoAutoComplete.build_fleet) g_config.NoAutoComplete.build_fleet = true;
+        if (!g_config.NoAutoComplete.build_def) g_config.NoAutoComplete.build_def = true;
+        if (!g_config.NoAutoComplete.sims) g_config.NoAutoComplete.sims = true;
+        if (!g_config.NoAutoComplete.marchand) g_config.NoAutoComplete.marchand = true;
+        if (!g_config.NoAutoComplete.scrapdealer) g_config.NoAutoComplete.scrapdealer = true;
+    }
+
+    if (!g_config.Markit) {
+        g_config.Markit = {};
+        g_config.Markit.color = {};
+        g_config.Markit.color.default = "FFFFFF";
+        g_config.Markit.color.fridge = "30A5FF";
+        g_config.Markit.color.bunker = "FF9317";
+        g_config.Markit.color.raidy = "44BA1F";
+        g_config.Markit.color.dont = "FF2626";
+        g_config.Markit.coord = {};
+        g_config.Markit.ranks = 1;
+        g_config.Markit.topX = 50;
+        g_config.Markit.topColor = "FF2626";
+    } else {
+        if (!g_config.Markit.color) g_config.Markit.color = {};
+        if (!g_config.Markit.color.default) g_config.Markit.color.default = "FFFFFF";
+        if (!g_config.Markit.color.fridge) g_config.Markit.color.fridge = "30A5FF";
+        if (!g_config.Markit.color.bunker) g_config.Markit.color.bunker = "FF9317";
+        if (!g_config.Markit.color.raidy) g_config.Markit.color.raidy = "44BA1F";
+        if (!g_config.Markit.color.dont) g_config.Markit.color.dont = "FF2626";
+        if (!g_config.Markit.coord) g_config.Markit.coord = {};
+        if (!g_config.Markit.ranks) g_config.Markit.ranks = 1;
+        if (!g_config.Markit.topX) g_config.Markit.topX = 50;
+        if (!g_config.Markit.topColor) g_config.Markit.topColor = "FF2626";
+    }
+
+    if (!g_config.GalaxyRanks) {
+        g_config.GalaxyRanks = {};
+        g_config.GalaxyRanks.ranks = [5, 25, 50, 200];
+        g_config.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
+    } else {
+        if (!g_config.GalaxyRanks.ranks) g_config.GalaxyRanks.ranks = [5, 25, 50, 200];
+        if (!g_config.GalaxyRanks.values) g_config.GalaxyRanks.values = ['F05151', 'FFA600', 'E8E83C', '2C79DE', '39DB4E'];
+    }
+
+    if (!g_config.BetterEmpire) {
+        g_config.BetterEmpire = {};
+        g_config.BetterEmpire.byMainSort = 1;
+        g_config.BetterEmpire.moonsLast = 1;
+    } else {
+        if (!g_config.BetterEmpire.byMainSort) g_config.BetterEmpire.byMainSort = 1;
+        if (!g_config.BetterEmpire.moonsLast) g_config.BetterEmpire.moonsLast = 1;
+    }
+
+    if (!g_config.More) {
+        g_config.More = {};
+        g_config.More.moonsList = 1;
+        g_config.More.convertDeut = 1;
+        g_config.More.traductor = 1;
+        g_config.More.resources = 1;
+        g_config.More.redirectFleet = 1;
+        g_config.More.arrows = 1;
+        g_config.More.returns = 1;
+        g_config.More.deutRow = 1;
+        g_config.More.convertClick = 1;
+        g_config.More.mcTransport = 0;
+    } else {
+        if (!g_config.More.moonsList) g_config.More.moonsList = 1;
+        if (!g_config.More.convertDeut) g_config.More.convertDeut = 1;
+        if (!g_config.More.traductor) g_config.More.traductor = 1;
+        if (!g_config.More.resources) g_config.More.resources = 1;
+        if (!g_config.More.redirectFleet) g_config.More.redirectFleet = 1;
+        if (!g_config.More.arrows) g_config.More.arrows = 1;
+        if (!g_config.More.returns) g_config.More.returns = 1;
+        if (!g_config.More.deutRow) g_config.More.deutRow = 1;
+        if (!g_config.More.convertClick) g_config.More.convertClick = 1;
+        if (!g_config.More.mcTransport) g_config.More.mcTransport = 0;
+    }
+
+    if (!g_config.Logging) {
+        g_config.Logging = {};
+        g_config.Logging.level = 2;
+    } else {
+        if (!g_config.Logging.level) g_config.Logging.level = 2;
+    }
 }
 
 /**

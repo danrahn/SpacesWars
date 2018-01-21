@@ -20,29 +20,6 @@ function createAndLoadConfigurationPage() {
 
     setStyle();
 
-    //First time using DTR's scripts, reset the config file.
-    if (g_config.GalaxyRanks === undefined || g_config.NoAutoComplete === undefined) {
-        g_config = setConfigScripts(g_uni);
-    }
-    if (g_config.BetterEmpire === undefined) {
-        g_config.BetterEmpire = {};
-        g_config.BetterEmpire.byMainSort = 1;
-        g_config.BetterEmpire.moonsLast = 1;
-    }
-
-    if (!g_config.EasyTarget) {
-        g_config.EasyTarget = {};
-    }
-
-    if (g_config.EasyFarm.botLootLevel === undefined) {
-        g_config.EasyTarget.useDoNotSpy = false;
-        g_config.EasyFarm.simShip = 0;
-        g_config.EasyFarm.simGranularity = 0;
-        g_config.EasyFarm.simThreshold = 0;
-        g_config.EasyFarm.botLootLevel = 0;
-        g_config.EasyFarm.botSn = false;
-    }
-
     // Needed to get new tooltips to work
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
         "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
@@ -81,7 +58,7 @@ function createAndLoadConfigurationPage() {
     main.appendChild(deleteAll);
 
     // Current order: Col1: RConverter, EasyFarm, AllinDeut, iFly, TChatty, InactiveStats, EasyTarget, NoAutoComplete
-    //                Col2: Markit, GalaxyRanks, BetterEmpire, FleetPoints, More
+    //                Col2: Markit, GalaxyRanks, BetterEmpire, FleetPoints, More, Log
     for (var i = 0; i < scripts.length; i++) {
         if (i < col1Cutoff)
             col1.append(scripts[i]);
@@ -375,6 +352,9 @@ function populateConfig() {
     if (g_config.More.convertClick) inputs[16].checked = true;
     if (g_config.More.mcTransport) inputs[18].checked = true;
 
+    f.$("#logLevel").val(g_config.Logging.level);
+
+
     // Top-level activate/deactivate
     for (var i = 0; i < g_nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
@@ -409,7 +389,8 @@ function createScripts() {
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
         packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (usingOldVersion() ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
-        createMoreScript()
+        createMoreScript(),
+        createLogScript()
     ];
 }
 
@@ -569,6 +550,29 @@ function createMoreScript() {
     return packScript(more, moreContainer, "More");
 }
 
+function createLogScript() {
+    var logScript = createScriptActivity("Logging Level", 15, "Set the logging level in the developer console");
+    var logLevels = document.createElement("select");
+    logLevels.id = "logLevel";
+    for (var level in LOG) {
+        if (!LOG.hasOwnProperty(level)) {
+            continue;
+        }
+
+        logLevels.appendChild(buildNode("option", ["value"], [LOG[level]], g_logStr[LOG[level]]));
+    }
+
+    var logContainer = buildNode("div", ["class"], ["script_options"], "");
+    logContainer.appendChild(logLevels);
+    var inp = f.$(logScript).find("input");
+    inp[0].checked = "checked";
+    inp[1].checked = "";
+    inp.each(function() {
+        f.$(this).attr("disabled", "disabled");
+    });
+    return packScript(logScript, logContainer, "Log");
+}
+
 /**
  * Attach the script options to the top level script
  *
@@ -685,7 +689,9 @@ function createInputAndLabel(id, text, parent, useHide, optInputOptions, optLabe
     }
 
     var lineBreak = document.createElement("br");
-    parent.push ? parent.push(lineBreak) : parent.appendChild(lineBreak);
+    if (!useHide || usingOldVersion()) {
+        parent.push ? parent.push(lineBreak) : parent.appendChild(lineBreak);
+    }
 }
 
 /**
@@ -975,6 +981,9 @@ function saveSettings() {
                 g_config.More.deutRow = inputs[14].checked;
                 g_config.More.convertClick = inputs[16].checked;
                 g_config.More.mcTransport = inputs[18].checked;
+                break;
+            case "Logging Level":
+                g_config.Logging.level = parseInt(f.$("#logLevel").val());
                 break;
             default:
                 break;
