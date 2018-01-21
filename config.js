@@ -256,7 +256,7 @@ function populateConfig() {
         inputs;
 
     if (g_scriptInfo === undefined || g_scriptInfo === null) {
-        console.log("reset");
+        log("reset", LOG.Warn);
         g_scriptInfo = setScriptsInfo();
     }
 
@@ -976,7 +976,7 @@ function saveSettings() {
     setValue("configScripts", JSON.stringify(g_config));
     setValue("infos_scripts", JSON.stringify(g_scriptInfo));
     if (f.setConfig) {
-        console.log("Setting internal config");
+        log("Setting internal config", LOG.Info);
         f.setConfig(g_config, g_scriptInfo, g_uni);
     }
     saveButton.value = "Saved";
@@ -1024,7 +1024,7 @@ function deleteAllData() {
             try {
                 GM_deleteValue(uniKeys[j] + i);
             } catch (ex) {
-                console.log(uniKeys[j] + i + " not found");
+                log(uniKeys[j] + i + " not found", LOG.Warn);
             }
         }
     }
@@ -1032,6 +1032,6 @@ function deleteAllData() {
     try {
         GM_deleteValue("infos_version");
     } catch (ex) {
-        console.log("infos_version not found");
+        log("infos_version not found", LOG.Warn);
     }
 }

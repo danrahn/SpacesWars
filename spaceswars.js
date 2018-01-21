@@ -57,6 +57,20 @@ var thisVersion = "4.1";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
 
+var LOG = {
+    Tmi : 0,
+    Verbose : 1,
+    Info : 2,
+    Warn : 3,
+    Error : 4,
+    Critical : 5
+};
+
+var g_logStr = ["TMI", "VERBOSE", "INFO", "WARN", "ERROR", "CRITICAL"];
+var g_levelColors = [["#00CC00", "#AAA"], ["#B74BDB", "black"], ["blue", "black"], ["#E50", "black"], ["inherit", "#800"], ["inherit", "#800; font-size: 2em"]];
+
+var g_logLevel = LOG.Tmi;
+
 var g_scriptInfo = getScriptInfo();
 var g_versionInfo = getVersionInfo();
 checkVersionInfo();
@@ -174,14 +188,13 @@ if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
 
 // We're in the top level frame that holds the leftmenu and the actual content
 if (g_page === "frames") {
-    console.log("Top level frame!");
+    log("Top level frame!", LOG.Info);
     // We have to insert the js directly into the page, otherwise the inner frame
     // won't have access to these internals.
     // noinspection JSAnnotator
     window.top.document.head.appendChild(buildNode("script", ["type"], ["text/javascript"],
         `
         function notifyNewPage(page) {
-            console.log("New page: " + page);
             handleNewPage(page);
         }
     `
@@ -201,6 +214,8 @@ if (g_page === "frames") {
     handleNewPage = function(page) {
         g_page = page;
         g_keyArray.length = 0;
+
+        log("New page: " + page, LOG.Verbose);
 
         if (g_page !== "leftmenu") {
             if (f) {
@@ -239,7 +254,7 @@ if (g_page === "frames") {
 
         // Persistent left menu
         if (g_page === "leftmenu") {
-            console.log("Setting left menu");
+            log("Setting left menu", LOG.Info);
             lm = window.frames[0];
             setupSidebar();
             lm.addEventListener("keyup", function(e) {
@@ -333,7 +348,35 @@ if (g_page === "frames") {
     if (window.top.notifyNewPage)
         window.top.notifyNewPage(g_page);
     else
-        console.log("Top frame doesn't have stuff :(");
+        log("Top frame doesn't have stuff :(", LOG.Warn);
+}
+
+/**
+ * Log a message to the console
+ * @param text
+ * @param level
+ * @param isObject
+ */
+function log(text, level, isObject) {
+    if (level < g_logLevel) {
+        return;
+    }
+    var output;
+    if (level < LOG.Warn) {
+        output = console.log;
+    } else if (level < LOG.Error) {
+        output = console.warn;
+    } else {
+        output = console.error;
+    }
+
+    if (isObject) {
+        // If we want to output an object directly (dict, array, element), don't format it
+        output("%c[" + g_logStr[level] + "]", "color : " + g_levelColors[level][0]);
+        output(text);
+    } else {
+        output("%c[" + g_logStr[level] + "] " + "%c" + text, "color : " + g_levelColors[level][0], "color : " + g_levelColors[level][1]);
+    }
 }
 
 /**
@@ -343,7 +386,7 @@ if (g_page === "frames") {
  * @returns {{}}
  */
 function getLoadMap() {
-    console.log("Setting canLoad map");
+    log("Setting canLoad map", LOG.Info);
     var canLoad = {};
 
     // Type 1 - indicates any page listed is a page
@@ -533,7 +576,7 @@ function getSlashedNb(nStr) {
  * @returns {[]} The dictionary
  */
 function setDictionary() {
-    console.log("Setting dictionary: " + g_lang);
+    log("Setting dictionary: " + g_lang, LOG.Info);
 
     if (L_ && g_lang === L_.lang) {
         return L_;
@@ -542,33 +585,33 @@ function setDictionary() {
     switch (g_lang) {
         case "fr":
             tab.lang = "fr";
-            tab.newVersion = "Nouvelle version disponible.\r\nCliquez sur l'icône du menu de gauche pour plus d'informations.";
-            tab.cantxml = "Votre navigateur ne vous permet pas d'envoyer des données vers la cartographie";
+            tab.newVersion = "Nouvelle version disponible.\r\nCliquez sur l'ic\u00f4ne du menu de gauche pour plus d'informations.";
+            tab.cantxml = "Votre navigateur ne vous permet pas d'envoyer des donn\u00e9es vers la cartographie";
             tab.ClicNGo_universe = "Univers";
             tab.ClicNGo_username = "Pseudo";
-            tab.ClicNGo_number = "Numéro";
+            tab.ClicNGo_number = "Num\u00e9ro";
             tab.RConverter_HoF = "Cochez si c'est un HoF (afin d'ajouter le lien, obligatoire sur le forum)";
             tab.RConverter_help = "Appuyez sur Ctrl+C pour copier, Ctrl+V pour coller";
-            tab.iFly_deutfly = "Deutérium en vol";
-            tab.iFly_metal = "Métal";
+            tab.iFly_deutfly = "Deut\u00e9rium en vol";
+            tab.iFly_metal = "M\u00e9tal";
             tab.Markit_rank = "Place";
-            tab.More_allTo = "Tout mettre à...";
+            tab.More_allTo = "Tout mettre \u00e0...";
             tab.More_convertInto = "Tout convertir en";
             tab.More_crystal = "cristal";
-            tab.More_deuterium = "deutérium";
+            tab.More_deuterium = "deut\u00e9rium";
             tab.EasyFarm_attack = "Attaquer";
             tab.EasyFarm_looting = "Pillage";
             tab.EasyFarm_ruinsField = "Champ de ruines";
             tab.EasyFarm_spyReport = "Rapport d'espionnage";
-            tab.EasyFarm_metal = "Métal";
-            tab.EasyFarm_deuterium = "Deutérium";
-            tab.EasyFarm_defenses = "Défenses";
-            tab.AllinDeut_metal = "Métal";
+            tab.EasyFarm_metal = "M\u00e9tal";
+            tab.EasyFarm_deuterium = "Deut\u00e9rium";
+            tab.EasyFarm_defenses = "D\u00e9fenses";
+            tab.AllinDeut_metal = "M\u00e9tal";
             tab.AllinDeut_crystal = "Cristal";
-            tab.AllinDeut_deuterium = "Deutérium";
+            tab.AllinDeut_deuterium = "Deut\u00e9rium";
             tab.small_cargo = "Petit transporteur";
             tab.large_cargo = "Grand transporteur";
-            tab.light_fighter = "Chasseur léger";
+            tab.light_fighter = "Chasseur l\u00e9ger";
             tab.heavy_fighter = "Chasseur lourd";
             tab.cruiser = "Croiseur";
             tab.battleship = "Vaisseau de bataille";
@@ -578,7 +621,7 @@ function setDictionary() {
             tab.bomber = "Bombardier";
             tab.solar_satellite = "Satellite solaire";
             tab.destroyer = "Destructeur";
-            tab.deathstar = "Étoile de la mort";
+            tab.deathstar = "\u00c9toile de la mort";
             tab.battlecruiser = "Traqueur";
             tab.supernova = "Supernova";
             tab.massive_cargo = "Convoyeur";
@@ -586,14 +629,14 @@ function setDictionary() {
             tab.blast = "Foudroyeur";
             tab.extractor = "Vaisseau Extracteur";
             tab.rg = "Lanceur de missiles";
-            tab.ll = "Artillerie laser légère";
+            tab.ll = "Artillerie laser l\u00e9g\u00e8re";
             tab.hl = "Artillerie laser lourde";
             tab.gl = "Canon de Gauss";
-            tab.ic = "Artillerie à ions";
+            tab.ic = "Artillerie \u00e0 ions";
             tab.pt = "Lanceur de plasma";
             tab.ssd = "Petit bouclier";
             tab.lsd = "Grand bouclier";
-            tab.ug = "Protecteur Planètaire";
+            tab.ug = "Protecteur Plan\u00e8taire";
             tab.alliance = "Alliance";
             tab.chat = "Chat";
             tab.board = "Forum";
@@ -604,102 +647,102 @@ function setDictionary() {
             tab.universe = "Univers";
 
             tab.activate = "Activer";
-            tab.deactivate = "Désactiver";
-            tab.inactiveDescrip1 = "Afficher joueurs inactifs dans la page de classements. <br />Exige que l'univers soit balayé manuellement, car les valeurs <br />sont mises à jour car ils sont considérés dans l'univers.";
+            tab.deactivate = "D\u00e9sactiver";
+            tab.inactiveDescrip1 = "Afficher joueurs inactifs dans la page de classements. <br />Exige que l'univers soit balay\u00e9 manuellement, car les valeurs <br />sont mises \u00e0 jour car ils sont consid\u00e9r\u00e9s dans l'univers.";
             tab.inactiveDescrip2 = "Travaux dans la page de classements";
             tab.easyTargetDescrip1 = "Afficher tous les emplacements recueillies pour chaque joueur en vue de la galaxie";
             tab.easyTargetDescrip2 = "Fonctionne dans la page de galaxie";
             tab.import = "Importer";
             tab.export = "Exporter";
-            tab.EasyImportDescrip = "Pour importer, coller ici et appuyez sur l'importation. Pour exporter, appuyez sur l'exportation et copier le texte qui apparaît";
-            tab.noAutoDescrip1 = "Désactiver autocomplete de champ sur des pages spécifiques";
+            tab.EasyImportDescrip = "Pour importer, coller ici et appuyez sur l'importation. Pour exporter, appuyez sur l'exportation et copier le texte qui appara\u00eet";
+            tab.noAutoDescrip1 = "D\u00e9sactiver autocomplete de champ sur des pages sp\u00e9cifiques";
             tab.noAutoDescrip2 = "Fonctionne dans toutes les pages avec des champs de saisie semi-automatique";
             tab.noAutoGalaxy = "Galaxie";
             tab.noAutoFleet1 = "Flotte 1";
             tab.noAutoFleet2 = "Flotte 2";
             tab.noAutoFleet3 = "Flotte 3";
             tab.noAutoShip = "ChantierSpatial";
-            tab.noAutoDef = "Défenses";
+            tab.noAutoDef = "D\u00e9fenses";
             tab.noAutoSims = "Simulateurs";
             tab.noAutoMerch = "Marchand";
             tab.noAutoScrap = "Ferrailleur";
-            tab.galaxyRanksDescrip1 = "Voir les rangs des joueurs directement dans la vue de la galaxie<br /><br />Les rangs doivent être en ordre (le moins cher), et les <br />numéros valides pour qu'il soit traité correctement croissante.";
+            tab.galaxyRanksDescrip1 = "Voir les rangs des joueurs directement dans la vue de la galaxie<br /><br />Les rangs doivent \u00eatre en ordre (le moins cher), et les <br />num\u00e9ros valides pour qu'il soit trait\u00e9 correctement croissante.";
             tab.galaxyRanksDescrip2 = "Fonctionne dans la page de galaxie";
             tab.galaxyRanksOthers = "Tous les autres";
-            tab.deutRowDescrip1 = "montrer les ressources que vous avez tous en Deut côté métal / crystal / Deut";
-            tab.deutRowDescrip2 = "tous apges où l'affichage des ressources apparaît";
+            tab.deutRowDescrip1 = "montrer les ressources que vous avez tous en Deut c\u00f4t\u00e9 m\u00e9tal / crystal / Deut";
+            tab.deutRowDescrip2 = "tous apges o\u00f9 l'affichage des ressources appara\u00eet";
             tab.galaxyRanksInactive = "Voir les inactifs";
-            tab.convertCDescrip1 = "En cliquant sur le / crystal / valeur Deut métallique convertit automatiquement toutes <br />les ressources à ce type particulier.";
-            tab.convertCDescrip2 = "toutes les pages où l'affichage des ressources montre. ConvertDeut doit être activé";
-            tab.mcTransDescrip1 = "Ajoute une option pour sélectionner suffisamment de convoyeur pour le transport de toutes <br />les ressources de la planète à l'autre (u17 seulement)";
+            tab.convertCDescrip1 = "En cliquant sur le / crystal / valeur Deut m\u00e9tallique convertit automatiquement toutes <br />les ressources \u00e0 ce type particulier.";
+            tab.convertCDescrip2 = "toutes les pages o\u00f9 l'affichage des ressources montre. ConvertDeut doit \u00eatre activ\u00e9";
+            tab.mcTransDescrip1 = "Ajoute une option pour s\u00e9lectionner suffisamment de convoyeur pour le transport de toutes <br />les ressources de la plan\u00e8te \u00e0 l'autre (u17 seulement)";
             tab.mcTransDescrip2 = "Cette page de la flotte";
-            tab.empTotDescrip1 = "Voir la première colonne des totaux en raison de l'empire";
+            tab.empTotDescrip1 = "Voir la premi\u00e8re colonne des totaux en raison de l'empire";
             tab.empTotDescrip2 = "Page d'empire";
             tab.rConverterDescrip1 = "Format des journaux d'attaque";
             tab.rConverterDescrip2 = "Rapport de combat";
-            tab.easyFarmDescrip1 = "Mettez en surbrillance les éléments dans vos rapports d'espionnage qui sont plus rentables que les limites définies";
+            tab.easyFarmDescrip1 = "Mettez en surbrillance les \u00e9l\u00e9ments dans vos rapports d'espionnage qui sont plus rentables que les limites d\u00e9finies";
             tab.easyFarmDescrip2 = "Page d'posts";
-            tab.allinDeutDescrip1 = "Afficher les coûts de construction en deut";
-            tab.allinDeutDescrip2 = "Page d'bâtiments";
+            tab.allinDeutDescrip1 = "Afficher les co\u00fbts de construction en deut";
+            tab.allinDeutDescrip2 = "Page d'b\u00e2timents";
             tab.tChattyDescrip1 = "Meilleur bavarder";
             tab.tChattyDescrip2 = "Page d'bavarder";
             tab.markitDescrip1 = "Marquer les joueurs dans la galaxie";
             tab.markitDescrip2 = "Page d'galaxie";
-            tab.mMoonListDescrip1 = "Marquez les lunes bleu dans le sélecteur de la planète";
+            tab.mMoonListDescrip1 = "Marquez les lunes bleu dans le s\u00e9lecteur de la plan\u00e8te";
             tab.mMoonListDescrip2 = "Partout";
-            tab.mConvertDeutDescrip1 = "Améliorer la page marchande";
+            tab.mConvertDeutDescrip1 = "Am\u00e9liorer la page marchande";
             tab.mConvertDeutDescrip2 = "Page d'marchand";
             tab.mTraductorDescrip1 = "Traduire des messages";
             tab.mTraductorDescrip2 = "Page d'messages";
-            tab.mResourcesDescrip1 = "Sélectionnez facilement le pourcentage de production";
+            tab.mResourcesDescrip1 = "S\u00e9lectionnez facilement le pourcentage de production";
             tab.mResourcesDescrip2 = "Page d'production";
-            tab.mRedirectFleetDescrip1 = "Redirection vers la page principale de la flotte après envoi d'une flotte";
+            tab.mRedirectFleetDescrip1 = "Redirection vers la page principale de la flotte apr\u00e8s envoi d'une flotte";
             tab.mRedirectFleetDescrip2 = "Page d'flotte";
-            tab.mArrowsDescrip1 = "Régler le sélecteur de flèche";
+            tab.mArrowsDescrip1 = "R\u00e9gler le s\u00e9lecteur de fl\u00e8che";
             tab.mArrowsDescrip2 = "Partout";
-            tab.mReturnsDescrip1 = "Rendez les flottes de retour transparentes dans l'aperçu";
-            tab.mReturnsDescrip2 = "Page d'générale";
+            tab.mReturnsDescrip1 = "Rendez les flottes de retour transparentes dans l'aper\u00e7u";
+            tab.mReturnsDescrip2 = "Page d'g\u00e9n\u00e9rale";
             tab.mNone = "aucun";
             tab.mFridge = "frigo";
             tab.mBunker = "bunker";
-            tab.mAttack = "à raider";
-            tab.mDont = "à ne pas";
-            tab.mTitle = "Sélectionnez le type de marquage:";
-            tab.betterEmpDescrip1 = "Mieux trier l'affichage empire, avec la colonne «total» d'abord, et la possibilité de commander les <br />planètes selon la disposition attribué dans les paramètres, et ont lunes dernière.";
+            tab.mAttack = "\u00e0 raider";
+            tab.mDont = "\u00e0 ne pas";
+            tab.mTitle = "S\u00e9lectionnez le type de marquage:";
+            tab.betterEmpDescrip1 = "Mieux trier l'affichage empire, avec la colonne \u00abtotal\u00bb d'abord, et la possibilit\u00e9 de commander les <br />plan\u00e8tes selon la disposition attribu\u00e9 dans les param\u00e8tres, et ont lunes derni\u00e8re.";
             tab.betterEmpDescrip2 = "Fonctionne dans la page de l'empire";
             tab.betterEmpMain = "commande standard";
             tab.betterEmpMoon = "lunes derniers";
             tab.FPDescrip1 = "Ajouter des points de la flotte comme une option dans la page de classements.";
             tab.FPDescrip2 = "Travaux dans la page de classements";
-            tab.FPAlert = "Si cette personne a changé leur nom et ne devrait plus être dans les classements, appuyez sur Entrée.";
+            tab.FPAlert = "Si cette personne a chang\u00e9 leur nom et ne devrait plus \u00eatre dans les classements, appuyez sur Entr\u00e9e.";
             tab.spy = "Espionner";
             tab.closeMessage = "Fermer ce message";
 
             // Buildings/Research/abm/ipm
-            tab.metalMine = "Mine de métal";
+            tab.metalMine = "Mine de m\u00e9tal";
             tab.crystalMine = "Mine de cristal";
-            tab.deutMine = "Synthétiseur de deutérium";
-            tab.solarPlant = "Centrale électrique solaire";
-            tab.fusionReactor = "Centrale électrique de fusion";
+            tab.deutMine = "Synth\u00e9tiseur de deut\u00e9rium";
+            tab.solarPlant = "Centrale \u00e9lectrique solaire";
+            tab.fusionReactor = "Centrale \u00e9lectrique de fusion";
             tab.roboticsFactory = "Usine de robots";
             tab.naniteFactory = "Usine de nanites";
             tab.shipyard = "Chantier spatial";
-            tab.metalStorage ="Entrepôt de métal";
-            tab.crystalStorage = "Entrepôt de cristal";
-            tab.deutStorage = "Réservoir de deutérium";
+            tab.metalStorage ="Entrep\u00f4t de m\u00e9tal";
+            tab.crystalStorage = "Entrep\u00f4t de cristal";
+            tab.deutStorage = "R\u00e9servoir de deut\u00e9rium";
             tab.researchLab = "Laboratoire de recherche";
             tab.terraformer = "Terraformeur";
             tab.alliancedepot = "Station de ravitaillement";
-            tab.advancedLab = "Laboratoire avancé";
+            tab.advancedLab = "Laboratoire avanc\u00e9";
             tab.trainingCenter = "Centre de formation";
             tab.missileSile = "Silo de missiles";
             tab.lunarBase = "Base lunaire";
             tab.sensorPhalanx = "Phalange de capteur";
             tab.jumpGate = "Porte de saut spatial";
 
-            tab.metalProduction  = "Production de métal";
+            tab.metalProduction  = "Production de m\u00e9tal";
             tab.crystalProduction  = "Production de cristal";
-            tab.deuteriumProduction  = "Production de deutérium";
+            tab.deuteriumProduction  = "Production de deut\u00e9rium";
             tab.espionageTechnology  = "Espionnage";
             tab.computerTechnology  = "Ordinateur";
             tab.weaponsTechnology  = "Armement";
@@ -707,19 +750,19 @@ function setDictionary() {
             tab.armorTechnology  = "Protection des vaisseaux spatiaux";
             tab.energyTechnology  = "Energie";
             tab.hyperspaceTechnology  = "Hyperespace";
-            tab.combustionDrive  = "Réacteur à combustion";
-            tab.impulseDrive  = "Réacteur à impulsion";
+            tab.combustionDrive  = "R\u00e9acteur \u00e0 combustion";
+            tab.impulseDrive  = "R\u00e9acteur \u00e0 impulsion";
             tab.hyperspaceDrive  = "Propulsion Hyperespace";
             tab.laserTechnology  = "Laser";
             tab.ionTechnology  = "Ions";
             tab.plasmaTechnology  = "Plasma";
-            tab.intergalacticResearchNetwork  = "Réseau de Recherche Intergalactique";
-            tab.expeditionTechnology  = "Expéditions";
+            tab.intergalacticResearchNetwork  = "R\u00e9seau de Recherche Intergalactique";
+            tab.expeditionTechnology  = "Exp\u00e9ditions";
             tab.teachingtechnology  = "Enseignement";
             tab.consistency  = "Consistance";
-            tab.extractorHangar  = "Hangar à VE";
+            tab.extractorHangar  = "Hangar \u00e0 VE";
             tab.abm = "Missile d'Interception";
-            tab.ipm = "Missile Interplanétaire";
+            tab.ipm = "Missile Interplan\u00e9taire";
             break;
         case "en":
             tab.lang = "en";
@@ -920,7 +963,7 @@ function setDictionary() {
  */
 function setMerchantMap() {
 
-    console.log("Setting merchant map");
+    log("Setting merchant map", LOG.Info);
     var m = {};
 
     // Buildings
@@ -1030,7 +1073,7 @@ function setInfosVersion() {
  * @returns {{}} the list of top-level script options
  */
 function setScriptsInfo() {
-    console.log("Setting Script Info");
+    log("Setting Script Info", LOG.Info);
     var list = {};
     list.RConverter = 1;
     list.EasyFarm = 1;
@@ -1222,12 +1265,12 @@ function checkVersionInfo() {
         g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
         if (g_versionInfo.version === thisVersion && g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
-            alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
+            alert("Script install\u00e9. Appuyez sur F5.\n\nScript installed. Press F5.");
     }
 
     // ... just as updating ?
     if (g_versionInfo.version !== thisVersion) {
-        console.log("Version mismatch");
+        log("Version mismatch", LOG.Warn);
         if (!g_versionInfo.version) // 3.8 version
         {
             GM_deleteValue("infos_version");
@@ -1246,7 +1289,7 @@ function checkVersionInfo() {
 
             // get a message if can't have the gm icon without F5 refresh (frames)
             if (g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
-                alert("Script installé. Appuyez sur F5.\n\nScript installed. Press F5.");
+                alert("Script install\u00e9. Appuyez sur F5.\n\nScript installed. Press F5.");
         }
         if (g_versionInfo.version === "4.0") {
             GM_deleteValue("configScripts0");
@@ -1278,7 +1321,7 @@ function checkVersionInfo() {
             // get a message if can't have the gm icon without F5 refresh (frames)
             g_page = getInfoFromPage().loc;
             if (g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames") {
-                alert("Script mis à jour.\n\nScript updated.");
+                alert("Script mis \u00e0 jour.\n\nScript updated.");
             }
         }
     }
@@ -1291,7 +1334,7 @@ function checkVersionInfo() {
  */
 function getConfig() {
 
-    console.log("Grabbing uni" + g_uni + " config");
+    log("Grabbing uni" + g_uni + " config", LOG.Info);
     var config;
     try {
         config = JSON.parse(getValue("configScripts"));
@@ -1314,7 +1357,7 @@ function getGalaxyData() {
 
     var storage;
     try {
-        console.log("Grabbing galaxyData_" + g_uni + " from storage");
+        log("Grabbing galaxyData_" + g_uni + " from storage", LOG.Info);
         storage = JSON.parse(getValue("galaxyData"));
 
         if (!storage || !storage.universe || !storage.players) storage = {
@@ -1344,7 +1387,7 @@ function getGalaxyData() {
         return storage;
     }
 
-    console.log("Grabbing new stuff");
+    log("Grabbing new stuff", LOG.Info);
     storage.universe = internalToGalaxyData(storage.universe);
     return storage;
 }
@@ -1421,7 +1464,7 @@ function galaxyDataToInternal(data) {
         }
     }
 
-    console.log("Took " + (window.performance.now() - time) + "ms to convert from galaxyData to storage");
+    log("Took " + (window.performance.now() - time) + "ms to convert from galaxyData to storage", LOG.Verbose);
     return newUni;
 }
 
@@ -1464,7 +1507,7 @@ function internalToGalaxyData(internal) {
         }
     }
 
-    console.log("Took " + (window.performance.now() - time) + "ms to convert from storage to galaxyData");
+    log("Took " + (window.performance.now() - time) + "ms to convert from storage to galaxyData", LOG.Verbose);
     return data;
 }
 
@@ -1522,7 +1565,7 @@ function getDoNotSpyData() {
     // they have very little resources
     var doNotSpy;
     try {
-        console.log("Grabbing doNotSpy_uni" + g_uni + " from storage");
+        log("Grabbing doNotSpy_uni" + g_uni + " from storage", LOG.Info);
         doNotSpy = JSON.parse(getValue("doNotSpy"));
     } catch (ex) {
         // Create a new Array[8][500][16]
@@ -1546,7 +1589,7 @@ function getDoNotSpyData() {
 function getFleetPointsData() {
     var fp;
     try {
-        console.log("grabbing fp uni" + g_uni);
+        log("grabbing fp uni" + g_uni, LOG.Info);
         fp = JSON.parse(getValue("fleetPoints"));
         if (!fp) fp = {
             "1": {},
@@ -1571,7 +1614,7 @@ function getFleetPointsData() {
 function getInactiveList() {
     var lst;
     try {
-        console.log("Grabbing InactiveList_" + g_uni);
+        log("Grabbing InactiveList_" + g_uni, LOG.Info);
         lst = JSON.parse(getValue("inactiveList"));
         if (!lst)
             lst = {};
@@ -1589,7 +1632,7 @@ function getInactiveList() {
 function getMarkitData() {
     var markit;
     try {
-        console.log("grabbing markitData_" + g_uni + " from storage");
+        log("grabbing markitData_" + g_uni + " from storage", LOG.Info);
         markit = JSON.parse(getValue("markitData"));
         if (!markit) markit = {};
     } catch (err) {
@@ -1605,7 +1648,7 @@ function getMarkitData() {
  */
 function getScriptInfo() {
 
-    console.log("grabbing infos_scripts");
+    log("grabbing infos_scripts", LOG.Info);
     var info;
     try {
         info = JSON.parse(getValue("infos_scripts"));
@@ -1661,7 +1704,7 @@ function setupSidebar() {
     var langBox = getDomXpath("//div[@class='lm_lang']", lm.document, 0);
     var gmIcon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
         "<a href='achatbonus.php?lang=" + g_lang + "&uni=" + g_uni +
-        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrigé'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
+        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrig\u00e9'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
 
     var sfmCheck = buildNode("input", ["type", "id"], ["checkbox", "sfmCheck"], "");
@@ -2727,7 +2770,7 @@ function loadEasyFarm() {
     }
 
     if (g_dnsChanged) {
-        console.log("DNS data changed");
+        log("DNS data changed", LOG.Verbose);
         changeHandler(false /*forceSave*/);
     }
 }
@@ -2906,7 +2949,7 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
             var numAltSav = numAlt;
             numAlt = Math.max(numAlt, Math.round(((mc * 12500000 / 2000000) + (granularity / 2)) / granularity) * granularity);
             if (numAlt !== numAltSav) {
-                console.log("Increased SNs from " + numAltSav + " to " + numAlt + " to meet res requirements");
+                log("Increased SNs from " + numAltSav + " to " + numAlt + " to meet res requirements", LOG.Verbose);
             }
             mc = 0;
         } else {
@@ -3041,33 +3084,33 @@ function appendAltMessageInterface(index, message) {
 function changeHandler(forceSave) {
     g_changeCount++;
     if (++g_changeCount >= SAVE_INTERVAL || forceSave || g_saveEveryTime) {
-        console.log("Saving changed data...");
+        log("Saving changed data...", LOG.Info);
         g_changeCount = 0;
         if (g_dnsChanged) {
-            console.log("Saving DNS data");
+            log("Saving DNS data", LOG.Info);
             g_dnsChanged = false;
             setValue("doNotSpy", JSON.stringify(g_doNotSpy));
         }
 
         if (g_markitChanged) {
-            console.log("Saving markit data");
+            log("Saving markit data", LOG.Info);
             g_markitChanged = false;
             setValue("markitData", JSON.stringify(g_markit));
         }
 
         if (g_galaxyDataChanged) {
-            console.log("Saving galaxy data");
+            log("Saving galaxy data", LOG.Info);
             g_galaxyDataChanged = false;
             setGalaxyData();
         }
 
         if (g_inactivesChanged) {
-            console.log("Saving inactive list");
+            log("Saving inactive list", LOG.Info);
             g_inactivesChanged = false;
             setValue("inactiveList", JSON.stringify(g_inactiveList));
         }
     } else {
-        console.log("Not saving yet...");
+        log("Not saving yet...", LOG.Verbose);
     }
 }
 
@@ -3261,7 +3304,7 @@ function loadInactiveStatsAndFleetPoints() {
         var timeSelector = f.$('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
         var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-        if (g_lang === 'fr') types = ['Points de Flotte', 'Général', ' pas à jour!', 'Recherche', 'Bâtiment', 'Défense'];
+        if (g_lang === 'fr') types = ['Points de Flotte', 'G\u00e9n\u00e9ral', ' pas \u00e0 jour!', 'Recherche', 'B\u00e2timent', 'D\u00e9fense'];
         else types = ['Fleet Points', 'General', ' not up to date!', 'Research', 'Buildings', 'Defense'];
         if (g_lang === 'fr') {
             time = time.substring(time.indexOf('nt') + 3);
@@ -3364,7 +3407,7 @@ function loadInactiveStatsAndFleetPoints() {
             }
             f.$('#nameChange').click(function() {
                 var en = "Make sure you have gone through all the stats in the General section, as this deletes any players where general is not up to date. It also deletes EasyTarget info, so be careful!";
-                var fr = "Assurez-vous que vous avez passé par toutes les statistiques de la section générale, car cela supprime tous les joueurs où le général est pas à jour. Il supprime également des informations EasyTarget, donc soyez prudent!";
+                var fr = "Assurez-vous que vous avez pass\u00e9 par toutes les statistiques de la section g\u00e9n\u00e9rale, car cela supprime tous les joueurs o\u00f9 le g\u00e9n\u00e9ral est pas \u00e0 jour. Il supprime \u00e9galement des informations EasyTarget, donc soyez prudent!";
                 var msg = (g_lang === 'en') ? en : fr;
                 if (confirm(msg)) {
                     for (var i = 0; i < arr.length; i++) {
@@ -3848,7 +3891,7 @@ function loadBetterEmpire() {
         tot.splice(5, 0, tot[4].cloneNode(true));
 
         var order = ['NameCoordinates', 'Total'];
-        if (g_lang === 'fr') order = ['NomCoordonnées', 'Total'];
+        if (g_lang === 'fr') order = ['NomCoordonn\u00e9es', 'Total'];
 
         var items = f.$('#cp')[0].childNodes;
 
@@ -4648,7 +4691,7 @@ function showDefaultButton(storedName, newName, coords) {
 
     if (storedName && storedName !== newName) {
         // There's a different person here than what we have stored
-        console.log("Different Person at " + coords.str);
+        log("Different Person at " + coords.str, LOG.Verbose);
         if (usingOldVersion()) {
             replacePlayerInDatabase(newName, storedName, coords);
         } else {
@@ -4957,12 +5000,12 @@ function handleGalaxyViewDataChanges(changedPlayers) {
     // Only write the potentially massive text file if we need to
     // TODO: Separate into smaller chunks?
     if (g_scriptInfo.EasyTarget && g_galaxyDataChanged) {
-        console.log("Galaxy Data changed");
+        log("Galaxy Data changed", LOG.Verbose);
         changeHandler(false /*forceSave*/);
     }
 
     if (g_inactivesChanged) {
-        console.log("Inactive list changed");
+        log("Inactive list changed", LOG.Verbose);
         changeHandler(false /*forceSave*/);
     }
 }
@@ -5249,7 +5292,7 @@ function updatePlayerInfo(name, coords) {
  */
 function deleteUnusedPosition(coords, storedName) {
     g_galaxyDataChanged = true;
-    console.log("Attempting to remove " + storedName + " at " + coords.str);
+    log("Attempting to remove " + storedName + " at " + coords.str, LOG.Verbose);
     var player;
     if (storedName) {
         var index = indexOfPlanet(storedName, coords);
@@ -5488,7 +5531,7 @@ function loadTChatty() {
     textarea.addEventListener('keyup', function(e) {
         var reg = new RegExp("\[[0-9]+\:[0-9]+\:[0-9]+\]", "gi");
         this.value = this.value.replace(reg, "[x:xxx:x]");
-        if (this.value.length > 232) this.value = this.value.substring(0, 232); //¨La limite de 255 - la place que les balises colors prennent
+        if (this.value.length > 232) this.value = this.value.substring(0, 232); //\u00a8La limite de 255 - la place que les balises colors prennent
         if (this.value.charAt(0) !== "/" && this.value !== "") {
             f.document.getElementById("message").value = "[color=#" + f.document.getElementById(
                 'jscolorid').value + "]" + this.value + "[/color]";
