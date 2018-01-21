@@ -54,7 +54,6 @@ var UNI_OFFSET = storageFromCoords(new Coordinates(1, 1, 1));
 
 var g_nbScripts = 13;
 var thisVersion = "4.1";
-var user = "user";
 var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail the new icon
 var scriptsIcons = GM_ICON; // Old icon was broken
 
@@ -82,7 +81,7 @@ var SAVE_INTERVAL = 20;                     // How often to save data
 var g_changeCount = 0;                      // Number of changes without a save
 var g_markitChanged = false;                // Whether markit data has changed
 var g_dnsChanged = false;                   // Whether doNotSpy data has changed
-var g_oldVersion = undefined;               // Should we save the current script?
+var g_oldVersion;                           // Should we save the current script?
 var g_galaxyDataChanged = false;            // Whether the galaxy data has changed
 var g_inactivesChanged = false;             // Whether the list of inactive players has changed
 var g_saveEveryTime = false;                // Whether to save data whenever something changes
@@ -263,7 +262,7 @@ if (g_page === "frames") {
         }
 
         if (canLoadInPage("ClicNGo")) { // doesn't count as a script (no option to deactivate it)
-            loadClickNGo()
+            loadClickNGo();
         }
 
         if (canLoadInPage("EasyFarm") && g_scriptInfo.EasyFarm) {
@@ -287,8 +286,8 @@ if (g_page === "frames") {
             loadBetterEmpire();
         }
 
-        if (canLoadInPage("EasyTarget")
-            && (g_scriptInfo.EasyTarget || g_scriptInfo.Markit || g_scriptInfo.GalaxyRanks)) {
+        if (canLoadInPage("EasyTarget") &&
+            (g_scriptInfo.EasyTarget || g_scriptInfo.Markit || g_scriptInfo.GalaxyRanks)) {
             loadEasyTargetAndMarkit();
         }
 
@@ -297,7 +296,7 @@ if (g_page === "frames") {
         }
 
         if (canLoadInPage("TChatty") && g_scriptInfo.TChatty) {
-            loadTChatty()
+            loadTChatty();
         }
 
         // Disable autocomplete on all qualifying input fields
@@ -328,7 +327,7 @@ if (g_page === "frames") {
         if (g_page === 'simulator') {
             setSimDefaults();
         }
-    }
+    };
 
 } else {
     if (window.top.notifyNewPage)
@@ -1110,11 +1109,11 @@ function setConfigScripts(uni) {
 
         list.Markit = {};
         list.Markit.color = {};
-        list.Markit.color["default"] = "FFFFFF";
-        list.Markit.color["fridge"] = "30A5FF";
-        list.Markit.color["bunker"] = "FF9317";
-        list.Markit.color["raidy"] = "44BA1F";
-        list.Markit.color["dont"] = "FF2626";
+        list.Markit.color.default = "FFFFFF";
+        list.Markit.color.fridge = "30A5FF";
+        list.Markit.color.bunker = "FF9317";
+        list.Markit.color.raidy = "44BA1F";
+        list.Markit.color.dont = "FF2626";
         list.Markit.coord = {};
         list.Markit.ranks = 1;
         list.Markit.topX = 50;
@@ -1266,11 +1265,11 @@ function checkVersionInfo() {
                     config.EasyFarm.colorPill = "871717";
                     config.EasyFarm.colorCDR = "178717";
                     config.TChatty.color = "FFFFFF";
-                    config.Markit.color["default"] = "FFFFFF";
-                    config.Markit.color["fridge"] = "30A5FF";
-                    config.Markit.color["bunker"] = "FF9317";
-                    config.Markit.color["raidy"] = "44BA1F";
-                    config.Markit.color["dont"] = "FF2626";
+                    config.Markit.color.default = "FFFFFF";
+                    config.Markit.color.fridge = "30A5FF";
+                    config.Markit.color.bunker = "FF9317";
+                    config.Markit.color.raidy = "44BA1F";
+                    config.Markit.color.dont = "FF2626";
                     GM_setValue("configScripts" + i, JSON.stringify(config));
                 }
             }
@@ -1414,7 +1413,7 @@ function galaxyDataToInternal(data) {
             newUni.push(uni[i]);
         } else {
             if (uni[i - 1] === uni[i]) {
-                newUni[newUni.length - 1] = uni[i] + "*" + ++sameName;
+                newUni[newUni.length - 1] = uni[i] + "*" + (++sameName);
             } else {
                 sameName = 0;
                 newUni.push(uni[i]);
@@ -1668,8 +1667,9 @@ function setupSidebar() {
     var sfmCheck = buildNode("input", ["type", "id"], ["checkbox", "sfmCheck"], "");
     var aaCheck = buildNode("input", ["type", "id"], ["checkbox", "aaCheck"], "");
 
+    var saveData;
     if (!g_saveEveryTime) {
-        var saveData = buildNode("input", ["type", "style", "value"],
+        saveData = buildNode("input", ["type", "style", "value"],
             ["button", "width:16px;margin-left:4px;", "S"],
             "", "click", function() {
                 changeHandler(true /*forceSave*/);
@@ -2003,7 +2003,7 @@ function displayAlert(text, fadeTime, timeout) {
                     }
                 });
             }
-        }, timeout, fadeTime)
+        }, timeout, fadeTime);
     }
 }
 
@@ -2399,9 +2399,9 @@ function isTextInputActive() {
     var active = f.document.activeElement;
     // if the element is not null and the element has a
     // restricted id or name, return true
-    return active !== null
-        && (g_textAreas.has(active.id)
-            || g_invalidNameFields.has(active.name));
+    return active !== null &&
+        (g_textAreas.has(active.id) ||
+            g_invalidNameFields.has(active.name));
 }
 
 /**
@@ -2449,9 +2449,9 @@ function loadClickNGo() {
 
     var i;
     for (i = 0; i < nbUnis; i++)
-        html += "<option value=" + (i + 1) + ">" + L_["ClicNGo_universe"] + " " + (i + 1) + "</option>";
+        html += "<option value=" + (i + 1) + ">" + L_.ClicNGo_universe + " " + (i + 1) + "</option>";
     html += "<input id='add_username' onclick='this.value=\"\";' value='" +
-        L_["ClicNGo_username"] +
+        L_.ClicNGo_username +
         "' style='border:1px solid #545454;height:15px;padding:1px;vertical-align:middle;background-color:black;border-radius:5px 5px 5px 5px;" +
         "color:#CDD7F8;font:13px Times New Roman normal;margin:5px 0 1px 2px;text-align:center;'/>";
     html += "<input id='add_password' onclick='this.value=\"\";'  type='password' value='password' style='border:1px solid #545454;height:15px;padding:1px;" +
@@ -2463,7 +2463,7 @@ function loadClickNGo() {
     function insertClicNGoContents() {
         for (i = 0; i < g_config.ClicNGo.universes.length; i++) {
             div = buildNode("div", ["id", "name", "style"], ["clicngo_" + i, "clicngo_" + i, "margin:5px;"], "#" + (i + 1) + ": " + g_config.ClicNGo.usernames[i] +
-                " (" + L_["ClicNGo_universe"] + " " + g_config.ClicNGo.universes[i] + ")");
+                " (" + L_.ClicNGo_universe + " " + g_config.ClicNGo.universes[i] + ")");
             f.document.getElementById("clicngo_id").appendChild(div);
         }
         for (i = 0; i < g_config.ClicNGo.universes.length; i++) {
@@ -2571,7 +2571,7 @@ function loadEasyFarm() {
         aaDeleteIndex = -1;
 
     var isBot = [];
-    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_["EasyFarm_spyReport"] + "\")][contains(.,\"" + L_["EasyFarm_metal"] + "\")]", f.document, -1);
+    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_.EasyFarm_spyReport + "\")][contains(.,\"" + L_.EasyFarm_metal + "\")]", f.document, -1);
 
     appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
@@ -2678,7 +2678,7 @@ function loadEasyFarm() {
                     f.$(num).val(simShips);
                     f.$(num).parent().parent().parent()[0].childNodes[1].click();
                     f.$(num).focus();
-                    num.scrollIntoView()
+                    num.scrollIntoView();
                 }
             }
         }
@@ -2783,7 +2783,7 @@ function getResourcesFromMessage(message) {
     return {
         total : add(add(metal, crystal), deut),
         deut  : add(add(divide(metal, 4), divide(crystal, 2)), deut)
-    }
+    };
 }
 
 /**
@@ -3118,9 +3118,9 @@ async function setSimDefaults() {
 
     if (!autoSim) {
         return;
-    } else if (g_config.EasyFarm.simShip === 0
-        || g_config.EasyFarm.simGranularity === 0
-        || g_config.EasyFarm.simThreshold === 0) {
+    } else if (g_config.EasyFarm.simShip === 0 ||
+        g_config.EasyFarm.simGranularity === 0 ||
+        g_config.EasyFarm.simThreshold === 0) {
         alert("Make sure all EasyFarm options have non-zero values!");
         return;
     }
@@ -3130,7 +3130,7 @@ async function setSimDefaults() {
     if (getValue("botSim")) {
         fleetId = 216;
     } else {
-        fleetId = g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]]
+        fleetId = g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]];
     }
 
     var shipSelector = f.$("#att" +  fleetId);
@@ -3147,8 +3147,7 @@ async function setSimDefaults() {
     while (!totalVictory) {
         f.$("input[value='Simulate']").click();
         await waitForSimComplete();
-        await sleep(500);
-        // await waitFor(1000); // Don't do things super quickly
+        await sleep(500);  // Don't do things super quickly
         totalVictory = getValue("simVictory") === 1;
         setValue("simVictory", -1);
         if (totalVictory) {
@@ -3201,7 +3200,7 @@ function waitForSimComplete() {
                 return resolve();
             }
         })();
-    })
+    });
 }
 
 function sleep(ms) {
@@ -3396,7 +3395,7 @@ function loadInactiveStatsAndFleetPoints() {
             var name = div.innerHTML;
             if (g_inactiveList[name] -1) {
                 div.style.color = '#CCC';
-                div.innerHTML += ' (i)'
+                div.innerHTML += ' (i)';
             } else if (g_inactiveList[name] === 0) {
                 div.style.color = '#999';
                 div.innerHTML += ' (i I)';
@@ -3645,6 +3644,7 @@ function slowSubtract(n1, n2) {
 
     n1 = n1.toString();
     n2 = n2.toString();
+    var temp;
 
     // Cases where either number is negative
     if (n1.charAt(0) === "-") {
@@ -3655,7 +3655,7 @@ function slowSubtract(n1, n2) {
             // -10 - -2 = -10 + 2 = 2 - 10
             n2 = n2.substring(1);
             n1 = n1.substring(1);
-            var temp = n1;
+            temp = n1;
             n1 = n2;
             n2 = temp;
         }
@@ -3986,17 +3986,20 @@ function animateBackground(element, newColor, duration, deleteAfterTransition) {
             newColor.a = 0;
         }
     }
+
+    var animationFunc = function(element, oldColor, newColor, i, steps, deleteAfterTransition) {
+        element.style.backgroundColor = "rgba(" +
+            Math.round(oldColor.r + (((newColor.r - oldColor.r) / steps) * i)) + "," +
+            Math.round(oldColor.g + (((newColor.g - oldColor.g) / steps) * i)) + "," +
+            Math.round(oldColor.b + (((newColor.b - oldColor.b) / steps) * i)) + "," +
+            (oldColor.a + (((newColor.a - oldColor.a) / steps) * i)) + ")";
+        if (i === steps && deleteAfterTransition) {
+            element.style.backgroundColor = null;
+        }
+    };
+
     for (var i = 1; i <= steps; i++) {
-        setTimeout(function(element, oldColor, newColor, i, steps, deleteAfterTransition) {
-            element.style.backgroundColor = "rgba(" +
-                Math.round(oldColor.r + (((newColor.r - oldColor.r) / steps) * i)) + "," +
-                Math.round(oldColor.g + (((newColor.g - oldColor.g) / steps) * i)) + "," +
-                Math.round(oldColor.b + (((newColor.b - oldColor.b) / steps) * i)) + "," +
-                (oldColor.a + (((newColor.a - oldColor.a) / steps) * i)) + ")";
-            if (i === steps && deleteAfterTransition) {
-                element.style.backgroundColor = null;
-            }
-        }, (50/3) * i, element, oldColor, newColor, i, steps, deleteAfterTransition)
+        setTimeout(animationFunc, (50/3) * i, element, oldColor, newColor, i, steps, deleteAfterTransition);
     }
 }
 
@@ -4094,8 +4097,9 @@ function loadEasyTargetAndMarkit() {
         }
 
         // There's a player here
+        var newName;
         if (nameDiv) {
-            var newName = getNameInGalaxy(nameDiv);
+            newName = getNameInGalaxy(nameDiv);
             var rank = processRankAndInactiveData(nameDiv, newName);
 
             if (!spying) {
@@ -4207,7 +4211,7 @@ function getSfmSettings() {
             inactive : false,
             active   : false,
             bot      : false
-        }
+        };
     }
 
     return settings;
@@ -4487,7 +4491,7 @@ function appendMarkitWindow(rows) {
                 // Fade to the corresponding color
                 g_markit[coords.str] = markitTypeChecked.val();
                 var c = hexToRgb('#' + g_config.Markit.color[type]);
-                c.a = .5;
+                c.a = 0.5;
                 animateBackground(rows[coords.p - 1], c, 500, false);
             }
             f.$('#markit_choose').fadeOut(500);
@@ -4676,12 +4680,13 @@ function shouldProcessGalaxyItem(nameDiv, newName, rank, coords, settings) {
     // The player is inactive
     var inactive = nameDiv.className.indexOf("inactive") !== -1;
     var isBot = newName.indexOf("Bot_") === 0;
-    return settings
-        && ((inactive && settings.inactive)
-        || (!inactive && settings.active && !isBot)
-        || (isBot && settings.bot))
-        && ((!g_config.EasyTarget.spyCutoff || rank < g_config.EasyTarget.spyCutoff)
-        && (!g_config.EasyTarget.useDoNotSpy || !g_doNotSpy[coords.g][coords.s][coords.p]));
+    return settings &&
+        ((inactive && settings.inactive)          ||
+        (!inactive && settings.active && !isBot)  ||
+        (isBot && settings.bot))                  &&
+        ((!g_config.EasyTarget.spyCutoff  ||
+            rank < g_config.EasyTarget.spyCutoff) &&
+        (!g_config.EasyTarget.useDoNotSpy || !g_doNotSpy[coords.g][coords.s][coords.p]));
 }
 
 /**
@@ -4812,7 +4817,7 @@ function addGalaxyRowClickHandler(rows, row, coords) {
                     c.a = 0.5;
                     animateBackground(rows[g_targetPlanet - 1], c, 600, false);
                 } else {
-                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true)
+                    animateBackground(rows[g_targetPlanet - 1], g_targetPlanet % 2 === 0 ? "#111111" : "transparent", 600, true);
                 }
             }
 
@@ -4889,8 +4894,9 @@ function appendGoBox() {
     });
     var names = ["Inactive", "Active", "Bot"];
     var checks = [];
+    var div;
     for (var i = 0; i < names.length; i++) {
-        var div = buildNode("div", ["style"], ["width:100px;display:inline"], "");
+        div = buildNode("div", ["style"], ["width:100px;display:inline"], "");
         var check = buildNode("input", ["type", "name", "id"], ["checkbox", names[i] + "_check", names[i] + "_check"], "");
         check.style.display = "none";
         var styleCheck = buildNode("label", ["for", "style"], [names[i] + "_check", "width:20px;height:20px;min-height:1px;margin:2px;background-color:#444;border:1px solid #999"], "&nbsp&nbsp&nbsp&nbsp", "click", function() {
@@ -5076,11 +5082,12 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name) {
 function replacePlayerInDatabase(newName, storedName, coords) {
     // There's a different person at this location than what we have stored
     g_galaxyDataChanged = true;
+    var locations, j;
     if (!g_galaxyData.players[newName]) {
         // If the owner of a planet has changed, and the new owner is not in the list, assume that
         // the user changed names and change things accordingly. I think
-        var locations = g_galaxyData.players[storedName];
-        for (var j = 0; j < locations.length; j++) {
+        locations = g_galaxyData.players[storedName];
+        for (j = 0; j < locations.length; j++) {
             setPlayerLocation(newName, coordsFromStorage(locations[j]));
         }
 
@@ -5370,7 +5377,7 @@ function autoCompleteSelected(p) {
     var pages = g_config.NoAutoComplete;
     if (pages[p]) return true;
     else if (pages.sims && p.indexOf('sim') !== -1) {
-        return true
+        return true;
     }
     return false;
 }
@@ -5416,7 +5423,7 @@ function loadiFly() {
     while (f.document.getElementById("data_tooltip_" + i)) {
         ressources = f.document.getElementById("data_tooltip_" + i).getElementsByTagName(
             "div");
-        if (ressources[0].innerHTML.indexOf(L_["iFly_metal"]) !== -1) {
+        if (ressources[0].innerHTML.indexOf(L_.iFly_metal) !== -1) {
             metal = ressources[0].innerHTML.replace(/[^0-9]/g, '');
             cristal = ressources[1].innerHTML.replace(/[^0-9]/g, '');
             deut = ressources[2].innerHTML.replace(/[^0-9]/g, '');
@@ -5434,7 +5441,7 @@ function loadiFly() {
         parseInt(cristal_total / 2) + deut_total;
 
     var html = "<div class='padding5 linkgreen'>iFly :</div>";
-    html += "<div class='default_space padding5 curvedot'>" + L_["iFly_deutfly"] +
+    html += "<div class='default_space padding5 curvedot'>" + L_.iFly_deutfly +
         " : " + getSlashedNb(equivalent_deut_total) + "</div>";
     f.document.getElementById("data_tooltip_10000").appendChild(buildNode("div", [], [],
         html));
@@ -5600,7 +5607,7 @@ function saveFleetPage() {
             }
             setValue("attackData", JSON.stringify(attackData));
             setTimeout(function() {
-                f.$('input[type=submit]')[0].click()
+                f.$('input[type=submit]')[0].click();
             }, Math.random() * 400 + 200); // It takes awhile to enter ships, take a bit longer here
             // }
         } else {
@@ -5659,7 +5666,7 @@ function getSeconds(time) {
 function continueAttack() {
     if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
-            f.$('input[type=submit]')[0].click()
+            f.$('input[type=submit]')[0].click();
         }, Math.random() * 100 + 50); // Just Enter/Enter/Enter, doesn't take as long
     }
 }
@@ -5671,7 +5678,7 @@ function setupFleet2() {
 function sendAttack() {
     if (autoAttack && parseInt(getValue("autoAttackIndex")) >= 0) {
         setTimeout(function() {
-            f.$('input[type=submit]')[0].click()
+            f.$('input[type=submit]')[0].click();
         }, Math.random() * 100 + 50); // Again, just pressing enter. Much faster.
     }
 }
@@ -5745,16 +5752,16 @@ function loadConvertDeut() {
         var script = "";
         for (var i = 0; i < a.length; i++)
             script += a[i].getAttribute("onclick");
-        var div = buildNode("div", [], [], L_["More_convertInto"] +
+        var div = buildNode("div", [], [], L_.More_convertInto +
             ' : <a style="color:#F2A10A" id="allMetal" href="javascript:" onclick="' + script +
             'document.getElementById(\'metal2\').checked=\'checked\'; calcul();">' +
             "metal" +
             '</a> | <a style="color:#55BBFF" id="allCryst" href="javascript:" onclick="' + script +
             'document.getElementById(\'cristal2\').checked=\'checked\'; calcul();">' +
-            L_["More_crystal"] +
+            L_.More_crystal +
             '</a> | <a style="color:#7BE654" id="allDeut" href="javascript:" onclick="' + script +
             'document.getElementById(\'deut2\').checked=\'checked\'; calcul();">' +
-            L_["More_deuterium"] + '</a>');
+            L_.More_deuterium + '</a>');
         f.document.getElementById("marchand_suba").parentNode.insertBefore(div, f.document.getElementById(
             "marchand_suba"));
         if (getValue("resourceRedirect") !== 0) {
@@ -5860,8 +5867,7 @@ function loadTraductor() {
  * Additional production options in the production page
  */
 function loadResources() {
-    var html = "<div class='ressources_sub1a' style='float:left'>" + L_[
-        "More_allTo"] + "</div>";
+    var html = "<div class='ressources_sub1a' style='float:left'>" + L_.More_allTo + "</div>";
     html +=
         '<div class="ressources_sub1c" style="float:right; padding-right:12px; overflow:hidden;">' +
         '<select size="1" style="border:none;" onchange="var selects = document.getElementById(\'main\')' +

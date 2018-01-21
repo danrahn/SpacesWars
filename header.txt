@@ -26,3 +26,6 @@
 // 1- var name 'location' makes Opera bugging
 // 2- add innerHTML after addEventListener don't work (Clic&Go, weird, maybe because of my code)
 
+/*jshint bitwise: false*/
+/* globals f: true */
+/* globals $ */

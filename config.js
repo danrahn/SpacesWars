@@ -370,7 +370,11 @@ function populateConfig() {
     // Top-level activate/deactivate
     for (var i = 0; i < g_nbScripts; i++) {
         script = /(.*)_activate/.exec(actives[i].id)[1];
-        (g_scriptInfo[script]) ? actives[i].checked = true : actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
+        if (g_scriptInfo[script]) {
+            actives[i].checked = true;
+        } else {
+            actives[i].parentNode.getElementsByTagName("input")[1].checked = "false";
+        }
     }
 }
 
@@ -443,8 +447,8 @@ function createEasyTargetScript() {
     var targetContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyTargetTextArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
     ], '');
-    var importBtn = buildNode('input', ['type', 'value'], ['button', L_['import']], '');
-    var exportBtn = buildNode('input', ['type', 'value'], ['button', L_['export']], '');
+    var importBtn = buildNode('input', ['type', 'value'], ['button', L_.import], '');
+    var exportBtn = buildNode('input', ['type', 'value'], ['button', L_.export], '');
     targetContainer.appendChild(importBtn);
     targetContainer.appendChild(exportBtn);
     targetContainer.appendChild(easyTargetTextArea);
@@ -589,9 +593,9 @@ function createScriptActivity(name, n, tooltipText) {
     var tooltip = buildNode("div", ["class", "id", "style"], ["tooltip", "tooltip_" + n, "cursor:help"], name);
     var toolText = buildNode("div", ["id", "class"], ["data_tooltip_" + n, "hidden"], tooltipText);
     var activate = buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], "");
-    var activateLabel = buildNode("label", ["for"], [name + "_activate"], L_['activate']);
+    var activateLabel = buildNode("label", ["for"], [name + "_activate"], L_.activate);
     var deactivate = buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], "");
-    var deactivateLabel = buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"]);
+    var deactivateLabel = buildNode("label", ["for"], [name + "_deactivate"], L_.deactivate);
     var scrActive = buildNode("div", ["class"], ["script_active"], "");
     scrActive.appendChild(activate);
     scrActive.appendChild(activateLabel);
@@ -690,9 +694,9 @@ function createRadioScriptOption(name, niceName) {
     var arr = [];
     arr.push(f.document.createTextNode(niceName + " : "));
     arr.push(buildNode("input", ["type", "name", "id"], ["radio", name + "_active", name + "_activate"], ""));
-    arr.push(buildNode("label", ["for"], [name + '_activate'], L_["activate"]));
+    arr.push(buildNode("label", ["for"], [name + '_activate'], L_.activate));
     arr.push(buildNode("input", ["type", "name", "id", "checked"], ["radio", name + "_active", name + "_deactivate", "checked"], ""));
-    arr.push(buildNode("label", ["for"], [name + "_deactivate"], L_["deactivate"] + "<br />"));
+    arr.push(buildNode("label", ["for"], [name + "_deactivate"], L_.deactivate + "<br />"));
     return arr;
 }
 
@@ -750,6 +754,10 @@ function createEasyFarmOptions() {
     simType.id = "simShip";
     simType.appendChild(buildNode("option", ["value"], [0], "None"));
     for (var ship in g_fleetNames) {
+        if (!g_fleetNames.hasOwnProperty(ship)) {
+            continue;
+        }
+
         ship = parseInt(ship);
         if (rejectList.indexOf(ship) === -1) {
             simType.appendChild(buildNode("option", ["value"], [ship], g_fleetNames[ship]));
