@@ -389,7 +389,7 @@ function log(text, level, isObject) {
     }
     if (level < g_config.Logging.level) {
         return;
-    } else if (level < LOG.Warn && autoAttack) {
+    } else if (level < LOG.Warn && autoAttack && g_config.Logging.muteForAutoAttack) {
         // Only log Warn+ if autoattacking
         return;
     }
@@ -1236,6 +1236,7 @@ function setConfigScripts(uni) {
 
         list.Logging = {};
         list.Logging.level = 2;
+        list.Logging.muteForAutoAttack = true;
     } else {  // => index / niark / forum
         list.ClicNGo = {};
         list.ClicNGo.universes = [];
@@ -1572,8 +1573,10 @@ function ensureConfig() {
     if (!g_config.Logging) {
         g_config.Logging = {};
         g_config.Logging.level = 2;
+        g_config.Logging.muteForAutoAttack = true;
     } else {
         if (g_config.Logging.level === undefined) g_config.Logging.level = 2;
+        if (g_config.Logging.muteForAutoAttack === undefined) g_config.Logging.muteForAutoAttack = true;
     }
 }
 
@@ -1713,6 +1716,11 @@ function galaxyDataToInternal(data) {
  */
 function internalToGalaxyData(internal) {
     log("Calling internalToGalaxyData(" + ([internal].toString()) + ")", LOG.Tmi);
+    log("Setting min log level to VERBOSE to prevent crashing. This is an intensive method", LOG.Info);
+    var logOld = g_config.Logging.level;
+    if (logOld < LOG.Verbose) {
+        g_config.Logging.level = LOG.Verbose;
+    }
 
     var time = window.performance.now();
     var data = {};
@@ -1748,6 +1756,8 @@ function internalToGalaxyData(internal) {
     }
 
     log("Took " + (window.performance.now() - time) + "ms to convert from storage to galaxyData", LOG.Verbose);
+    log("Restoring logging level", LOG.Info);
+    g_config.Logging.level = logOld;
     return data;
 }
 
@@ -2869,6 +2879,7 @@ function checkEasyFarmRedirect() {
 function loadEasyFarm() {
     log("Calling loadEasyFarm(" + ([].toString()) + ")", LOG.Tmi);
 
+    var time =window.performance.now();
     checkEasyFarmRedirect();
     var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
     var needsSim = [];
@@ -2910,6 +2921,7 @@ function loadEasyFarm() {
     var isBot = [];
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_.EasyFarm_spyReport + "\")][contains(.,\"" + L_.EasyFarm_metal + "\")]", f.document, -1);
 
+    log("StartIndex=" + startIndex, LOG.Info);
     appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -2931,6 +2943,7 @@ function loadEasyFarm() {
         var hasShips = shipDeut !== 0;
 
         candidate = uncheckMessageIfNeeded(resources, shipDeut, minPillage, messages[i]);
+        log("Message " + i + ": candidate=" + candidate + ", minPillage=" + minPillage, LOG.Info);
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
@@ -2940,15 +2953,16 @@ function loadEasyFarm() {
         var defenses = messages[i].children[1];
         if (defenses.children.length > 5) {
             defenses = defenses.children[5].children;
-            for (var j = 0; j < defenses.length; j++) {
-                var def = defenses[j].innerText.substring(0, defenses[j].innerText.indexOf(" :"));
-                var n = getNbFromStringtab(defenses[j].innerText.substr(defenses[j].innerText.indexOf(": ") + 2).split(","));
-                if (def === L_.ug) {
-                    shouldAttack = shouldAttack && n <= 100;
-                }
+            if (defenses.length > 2) {
+                shouldAttack = false;
+            } else {
+                for (var j = 0; j < defenses.length; j++) {
+                    var def = defenses[j].innerText.substring(0, defenses[j].innerText.indexOf(" :"));
 
-                if (def !== L_.abm && def !== L_.ipm) {
-                    totDef += n;
+                    if (def !== L_.abm && def !== L_.ipm) {
+                        shouldAttack = false;
+                        break;
+                    }
                 }
             }
         } else {
@@ -2956,11 +2970,7 @@ function loadEasyFarm() {
             shouldAttack = false;
         }
 
-        shouldAttack = shouldAttack && totDef < 500000;
-        needsSim[i] = autoAttackWithSim && candidate && ((!shouldAttack && parseInt(g_uni) === 17) || (totDef !== 0 && parseInt(g_uni) !== 17));
-        if (parseInt(g_uni) !== 17 && totDef > 0) {
-            shouldAttack = false; // No guesswork if we're not on uni17. And even on uni17 this isn't perfect
-        }
+        needsSim[i] = autoAttackWithSim && candidate && !shouldAttack;
 
         // Set tooltip info
         var toolTip = buildTooltip(resources, messages[i], shipDeut);
@@ -2997,6 +3007,7 @@ function loadEasyFarm() {
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
+            log("shouldAttack=" + shouldAttack + ", needsSim=" + needsSim[i] + ", autoAttack=" + autoAttack + ", attackIndex=" + attackIndex, LOG.Info);
             if ((shouldAttack || needsSim[i]) && autoAttack && i >= startIndex) {
                 if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
@@ -3067,6 +3078,8 @@ function loadEasyFarm() {
         log("DNS data changed", LOG.Verbose);
         changeHandler(false /*forceSave*/);
     }
+
+    log("Took " + (window.performance.now() - time) + "ms to process messages", LOG.Verbose);
 }
 
 /**
@@ -3123,6 +3136,8 @@ function getResourcesFromMessage(message) {
     var metal = regNb.exec(message.getElementsByClassName("half_left")[0].innerHTML)[1].replace(/\./g, "");
     var crystal = regNb.exec(message.getElementsByClassName("half_left")[1].innerHTML)[1].replace(/\./g, "");
     var deut = regNb.exec(message.getElementsByClassName("half_left")[2].innerHTML)[1].replace(/\./g, "");
+
+    // We need to get exact values, even when autoattacking
     return {
         total : add(add(metal, crystal), deut),
         deut  : add(add(divide(metal, 4), divide(crystal, 2)), deut)
@@ -3189,7 +3204,7 @@ function uncheckMessageIfNeeded(resources, shipDeut, minPillage, message) {
  */
 function buildTooltip(resources, message, totalDeut) {
     log("Calling buildTooltip(" + ([resources, message, totalDeut].toString()) + ")", LOG.Tmi);
-
+    
     var outDiv = document.createElement("div");
     var colorSpan = buildNode("span", ["style"], ["color:#FFCC33"], L_.EasyFarm_looting);
     var ul = buildNode("ul", ["style"], ["margin-top:0"], "");
@@ -3257,7 +3272,7 @@ function setSpyReportClick(waves, mc, href, message, numAlt, shipAlt) {
             var numAltSav = numAlt;
             numAlt = Math.max(numAlt, Math.round(((mc * 12500000 / 2000000) + (granularity / 2)) / granularity) * granularity);
             if (numAlt !== numAltSav) {
-                log("Increased SNs from " + numAltSav + " to " + numAlt + " to meet res requirements", LOG.Verbose);
+                log("Increased SNs from " + numAltSav + " to " + numAlt + " to meet res requirements", LOG.Warn);
             }
             mc = 0;
         } else {
@@ -3357,7 +3372,7 @@ function appendAltMessageInterface(index, message) {
             waves : -1
         };
         setValue("attackData", JSON.stringify(data));
-        f.$(this.parentNode.parentNode).find("a:contains('" + L_.mAttack + "')")[0].click();
+        f.$(this.parentNode.parentNode).find("a:contains('" + L_.EasyFarm_attack + "')")[0].click();
     });
 
     // Simulate button
@@ -4196,6 +4211,11 @@ function loadMcTransport() {
  */
 function loadBetterEmpire() {
     log("Calling loadBetterEmpire(" + ([].toString()) + ")", LOG.Tmi);
+
+    if (f.location.href.indexOf("token") !== -1) {
+        // Individual planet, do nothing
+        return;
+    }
 
     // TODO: Fix when single planet is selected
     var space, i, j, row, planets;
@@ -6050,7 +6070,7 @@ function saveFleetPage() {
             var shipSel;
             if (attackData.type !== -1) {
                 shipSel = f.$("#ship" + g_merchantMap[g_fleetNames[attackData.type]]);
-                var maxAttack = parseInt(shipSel.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
+                var maxAttack = parseFloat(shipSel.parent().parent().children()[1].childNodes[0].innerHTML.replace(/\./g, ""));
                 var totalAttShip = 0;
                 var futureAttShip = attackData.val;
                 for (i = 0; i < attackData.waves; i++) {
@@ -6059,6 +6079,7 @@ function saveFleetPage() {
                 }
                 enoughAttackType = maxAttack >= totalAttShip;
             }
+
             if (fleetOut + attackData.waves > fleetMax || max < totalShips || !enoughAttackType) {
                 deleteValue("attackData");
                 deleteValue("autoAttackIndex");
@@ -6079,7 +6100,7 @@ function saveFleetPage() {
                 g_interval = setInterval(function(minReturn) {
                     var text = "Requirements not met! Next fleet back in " + (minReturn - g_intervalCount) + " seconds";
                     if (minReturn === 30) {
-                        text = "Requirements not met! Trying again in " + (minReturn - g_intervalCount) + "seconds";
+                        text = "Requirements not met! Trying again in " + (minReturn - g_intervalCount) + " seconds";
                     }
                     f.$("#main").children()[0].innerHTML = text;
                     if (g_intervalCount++ === minReturn) {
@@ -6436,13 +6457,14 @@ function loadRedirectFleet() {
 function processSim() {
     log("Calling processSim(" + ([].toString()) + ")", LOG.Tmi);
 
-    var winString = "The attacker has won the battle!";
-    var nextRoundForm = $("#formulaireID");
-    var victory = nextRoundForm.length && nextRoundForm.parent().children()[0].innerHTML === winString;
+    var winStringEn = "The attacker has won the battle!";
+    var winStringFr = "L'attaquant gagne la bataille !";
+    var sel = $(".rc_contain.curvedtot");
+    // var nextRoundForm = $("#formulaireID");
+    var victory = sel[sel.length - 2].children[0].innerHTML === winStringEn || sel[sel.length - 2].children[0].innerHTML === winStringFr;
     // Things get wonky with very high values and it'll tell us we lost units when we haven't.
     // M/C/D seems to be correct though, so make sure those are all 0.
     var regex = new RegExp(/<font color="#7BE654">([\d.E+]+)<\/font>/);
-    var sel = $(".rc_contain.curvedtot");
     var text = sel[sel.length - 1].children[0].innerHTML;
     regex.exec(text);
     var lostUnits = 0;

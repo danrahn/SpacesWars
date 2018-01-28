@@ -353,6 +353,8 @@ function populateConfig() {
     if (g_config.More.mcTransport) inputs[18].checked = true;
 
     f.$("#logLevel").val(g_config.Logging.level);
+    inputs = options[8].getElementsByTagName("input");
+    if (g_config.Logging.muteForAutoAttack) inputs[0].checked = true;
 
 
     // Top-level activate/deactivate
@@ -570,6 +572,14 @@ function createLogScript() {
     inp.each(function() {
         f.$(this).attr("disabled", "disabled");
     });
+
+    logContainer.appendChild(document.createElement("br"));
+    var box = createCheckBoxItems(["Mute for autoAttack"], 155)[0];
+    logContainer.append(box);
+    if (!usingOldVersion()) {
+        box.style.display = "none";
+    }
+
     return packScript(logScript, logContainer, "Log");
 }
 
@@ -983,7 +993,9 @@ function saveSettings() {
                 g_config.More.mcTransport = inputs[18].checked;
                 break;
             case "Logging Level":
+                inputs = options[8].getElementsByTagName("input");
                 g_config.Logging.level = parseInt(f.$("#logLevel").val());
+                g_config.Logging.muteForAutoAttack = inputs[0].checked;
                 break;
             default:
                 break;
