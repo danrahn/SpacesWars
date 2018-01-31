@@ -2921,7 +2921,6 @@ function loadEasyFarm() {
     var isBot = [];
     var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_.EasyFarm_spyReport + "\")][contains(.,\"" + L_.EasyFarm_metal + "\")]", f.document, -1);
 
-    log("StartIndex=" + startIndex, LOG.Info);
     appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
         messages[i].getElementsByClassName("checkbox")[0].checked = "checked";
@@ -2943,7 +2942,11 @@ function loadEasyFarm() {
         var hasShips = shipDeut !== 0;
 
         candidate = uncheckMessageIfNeeded(resources, shipDeut, minPillage, messages[i]);
-        log("Message " + i + ": candidate=" + candidate + ", minPillage=" + minPillage, LOG.Info);
+        if (attackIndex !== -1 && attackIndex !== aaDeleteIndex) {
+            // If we already found a valid attack index we don't need
+            // to process any more of this entry
+            continue;
+        }
 
         var shouldAttack = !hasShips && candidate;
         var totDef = 0;
@@ -3007,7 +3010,6 @@ function loadEasyFarm() {
 
             // Set the attack index if it's not already set, we either should attack or simulate,
             // autoAttack is enabled, and the message is greater than the startIndex
-            log("shouldAttack=" + shouldAttack + ", needsSim=" + needsSim[i] + ", autoAttack=" + autoAttack + ", attackIndex=" + attackIndex, LOG.Info);
             if ((shouldAttack || needsSim[i]) && autoAttack && i >= startIndex) {
                 if (attackIndex === -1 || attackIndex === aaDeleteIndex) {
                     attackIndex = i;
@@ -3204,7 +3206,7 @@ function uncheckMessageIfNeeded(resources, shipDeut, minPillage, message) {
  */
 function buildTooltip(resources, message, totalDeut) {
     log("Calling buildTooltip(" + ([resources, message, totalDeut].toString()) + ")", LOG.Tmi);
-    
+
     var outDiv = document.createElement("div");
     var colorSpan = buildNode("span", ["style"], ["color:#FFCC33"], L_.EasyFarm_looting);
     var ul = buildNode("ul", ["style"], ["margin-top:0"], "");
@@ -4437,7 +4439,7 @@ function getPlayerAtLocation(coords) {
  * @param coords
  */
 function setPlayerLocation(player, coords) {
-    log("Calling setPlayerLocation(" + ([player, coords].toString()) + ")", LOG.Tmi);
+    log("Calling setPlayerLocation(" + ([player, coords.str].toString()) + ")", LOG.Tmi);
 
     if (!g_galaxyData.universe[coords.g]) {
         g_galaxyData.universe[coords.g] = {};
@@ -4534,6 +4536,12 @@ function loadEasyTargetAndMarkit() {
                     createEasyTargetButtons(rows, nameDiv, newName, storedName, coords);
                 }
                 showDefaultButton(storedName, newName, coords);
+            } else if (g_scriptInfo.EasyTarget) {
+                if (storedName && storedName !== newName) {
+                    replacePlayerInDatabase(newName, storedName, coords);
+                } else if (!storedName) {
+                    setPlayerLocation(newName, coords);
+                }
             }
 
             if (shouldProcessGalaxyItem(nameDiv, newName, rank, coords, sfmSettings)) {
