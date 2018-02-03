@@ -383,15 +383,15 @@ function log(text, level, isObject) {
         console.log(text);
         return;
     }
-
-    if (g_config.Logging.level === LOG.Extreme) {
-        console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
-    }
     if (level < g_config.Logging.level) {
         return;
     } else if (level < LOG.Warn && autoAttack && g_config.Logging.muteForAutoAttack) {
         // Only log Warn+ if autoattacking
         return;
+    }
+
+    if (g_config.Logging.level === LOG.Extreme) {
+        console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
     }
 
     var output;
@@ -3751,11 +3751,11 @@ function loadInactiveStatsAndFleetPoints() {
                     for (var i = 0; i < arr.length; i++) {
                         if (g_fleetPoints[who][arr[i][0]] && g_fleetPoints[who][arr[i][0]][1][1] !== dte.getTime()) {
                             delete g_fleetPoints[who][arr[i][0]];
-                            var locations = g_galaxyData.players[arr[i][0]] ? g_galaxyData.players[arr[i][0]] : [];
+                            var locations = getPlayerLocations(arr[i][0]);
                             for (var j = 0; j < locations.length; j++) {
-                                deletePlayerLocation(coordsFromStorage(locations[j]));
+                                deleteUniLocation(coordsFromStorage(locations[j]));
                             }
-                            delete g_galaxyData.players[arr[i][0]];
+                            deletePlayerLocations(arr[i][0]);
                         }
                     }
                     setValue("fleetPoints", JSON.stringify(g_fleetPoints));
@@ -4434,12 +4434,42 @@ function getPlayerAtLocation(coords) {
 }
 
 /**
+ * Return the locations of the given player, or an
+ * empty list if no locations are found
+ * @param name
+ */
+function getPlayerLocations(name) {
+    if (g_galaxyData.players[name]) {
+        return g_galaxyData.players[name];
+    }
+
+    return [];
+}
+
+/**
+ * remove player locations from the galaxy data
+ * @param name
+ */
+function deletePlayerLocations(name) {
+    delete g_galaxyData.players[name];
+}
+
+/**
+ * Bulk change/set the locations of a player
+ * @param name
+ * @param locations
+ */
+function setPlayerLocations(name, locations) {
+    g_galaxyData.players[name] = locations;
+}
+
+/**
  * Assign the given coordinates to the given player
  * @param player
  * @param coords
  */
-function setPlayerLocation(player, coords) {
-    log("Calling setPlayerLocation(" + ([player, coords.str].toString()) + ")", LOG.Tmi);
+function setUniLocation(player, coords) {
+    log("Calling setUniLocation(" + ([player, coords.str].toString()) + ")", LOG.Tmi);
 
     if (!g_galaxyData.universe[coords.g]) {
         g_galaxyData.universe[coords.g] = {};
@@ -4456,8 +4486,8 @@ function setPlayerLocation(player, coords) {
  * Delete the location at the given coordinates
  * @param coords
  */
-function deletePlayerLocation(coords) {
-    log("Calling deletePlayerLocation(" + ([coords].toString()) + ")", LOG.Tmi);
+function deleteUniLocation(coords) {
+    log("Calling deleteUniLocation(" + ([coords].toString()) + ")", LOG.Tmi);
 
     if (g_galaxyData.universe[coords.g] && g_galaxyData.universe[coords.g][coords.s]) {
         delete g_galaxyData.universe[coords.g][coords.s][coords.p];
@@ -4540,7 +4570,7 @@ function loadEasyTargetAndMarkit() {
                 if (storedName && storedName !== newName) {
                     replacePlayerInDatabase(newName, storedName, coords);
                 } else if (!storedName) {
-                    setPlayerLocation(newName, coords);
+                    setUniLocation(newName, coords);
                 }
             }
 
@@ -4827,7 +4857,7 @@ function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
             alert("Replacing " + storedName + " with " + newName);
             replacePlayerInDatabase(newName, storedName, coords);
         } else {
-            setPlayerLocation(newName, coords);
+            setUniLocation(newName, coords);
         }
         updatePlayerInfo(newName, coords);
         f.$(this).fadeOut(500, function() {
@@ -4841,7 +4871,7 @@ function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
     });
 
     saveDiv.addEventListener("click", function () {
-        setPlayerLocation(newName, coords);
+        setUniLocation(newName, coords);
         updatePlayerInfo(newName, coords);
         f.$(this).fadeOut(500, function() {
             f.$(savedDiv).fadeTo(500, 0.5);
@@ -4855,7 +4885,7 @@ function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
 
     savedDiv.addEventListener("click", function() {
         // "Clean Slate" - delete any person who might be stored there already
-        deleteUnusedPosition(coords, newName);  // This also covers deletePlayerLocation
+        deleteUnusedPosition(coords, newName);  // This also covers deleteUniLocation
         f.$(this).fadeOut(500, function() {
             f.$(saveDiv).fadeIn(500);
         });
@@ -5067,7 +5097,7 @@ function addTargetPlanetKeyListener(rows) {
                 return;
             }
 
-            var player = g_galaxyData.players[n];
+            var player = getPlayerLocations(n);
             var index = indexOfPlanet(n, oldCoords);
             if (key === KEY.N) {
                 newCoords = coordsFromStorage(player[(index + 1) % player.length]);
@@ -5112,7 +5142,7 @@ function showDefaultButton(storedName, newName, coords) {
     } else if (!storedName) {
         // Found a new player at a new position
         if (usingOldVersion()) {
-            setPlayerLocation(newName, coords);
+            setUniLocation(newName, coords);
             g_galaxyDataChanged = true;
         } else {
             f.$("#save_1_" + coords.p)[0].style.display = "block";
@@ -5566,23 +5596,23 @@ function replacePlayerInDatabase(newName, storedName, coords) {
     // There's a different person at this location than what we have stored
     g_galaxyDataChanged = true;
     var locations, j;
-    if (!g_galaxyData.players[newName]) {
+    if (getPlayerLocations(newName).length === 0) {
         // If the owner of a planet has changed, and the new owner is not in the list, assume that
         // the user changed names and change things accordingly. I think
-        locations = g_galaxyData.players[storedName];
+        locations = getPlayerLocations(storedName);
         for (j = 0; j < locations.length; j++) {
-            setPlayerLocation(newName, coordsFromStorage(locations[j]));
+            setUniLocation(newName, coordsFromStorage(locations[j]));
         }
 
-        g_galaxyData.players[newName] = g_galaxyData.players[storedName];
-        delete g_galaxyData.players[storedName];
+        setPlayerLocations(newName, getPlayerLocations(storedName));
+        deletePlayerLocations(storedName);
     }
 
     // If the old player exists, remove the planet/moon from their lists
     // I think the g_galaxyData.players entry gets updated later?
-    setPlayerLocation(newName, coords);
-    if (g_galaxyData.players[storedName]) {
-        locations = g_galaxyData.players[storedName];
+    setUniLocation(newName, coords);
+    locations = getPlayerLocations(storedName);
+    if (locations) {
         for (j = 0; j < locations.length; j++) {
             if (coordsEqualStoredData(coords, locations[j])) {
                 g_galaxyData.players[storedName].splice(j, 1);
@@ -5614,11 +5644,7 @@ function coordsEqualStoredData(coords, location) {
 function indexOfPlanet(name, coords) {
     log("Calling indexOfPlanet(" + ([name, coords].toString()) + ")", LOG.Tmi);
 
-    var locations = g_galaxyData.players[name];
-    if (!locations) {
-        return -1;
-    }
-
+    var locations = getPlayerLocations(name);
     for (var i = 0; i < locations.length; i++) {
         if (coordsEqualStoredData(coords, locations[i])) {
             return i;
@@ -5716,14 +5742,16 @@ function getLun(val) {
 function updatePlayerInfo(name, coords) {
     log("Calling updatePlayerInfo(" + ([name, coords].toString()) + ")", LOG.Tmi);
 
-    if (!g_galaxyData.players[name]) {
+    if (getPlayerLocations(name).length === 0) {
         // No entry for this particular player, create it
         g_galaxyDataChanged = true;
-        g_galaxyData.players[name] = [];
+        setPlayerLocations(name, []);
     }
 
     var changedPlayer = false;
     // If we haven't added this planet location yet
+    // TODO: consolidate actions - changes to .universe also updates .players
+    // TODO: Use a set? How would that work with JSON.parse? Array conversion
     if (indexOfPlanet(name, coords) === -1) {
         changedPlayer = true;
 
@@ -5784,7 +5812,7 @@ function deleteUnusedPosition(coords, storedName) {
         }
     }
 
-    deletePlayerLocation(coords);
+    deleteUniLocation(coords);
 }
 
 /**
@@ -5816,10 +5844,9 @@ function writeLocationsOnMarkitTarget(name, i) {
     }
 
     var html = "<div><span style='color:#FFCC33'>Locations :</span><br />";
-    var personExists = !!g_galaxyData.players[name];
-    var loc = personExists ? g_galaxyData.players[name] : [];
-    for (var j = 0; j < loc.length; j++) {
-        var locStr = coordsStrFromStorage(loc[j], true /*lune*/);
+    var locations = getPlayerLocations(name);
+    for (var j = 0; j < locations.length; j++) {
+        var locStr = coordsStrFromStorage(locations[j], true /*lune*/);
         var space = (j < 9) ? "&nbsp" : "";
         html += (j + 1) + space + " : " + locStr;
         html += "<br />";
@@ -5844,12 +5871,11 @@ function createEasyTargetLocationDiv(nameDiv, name, coords, i, rows) {
 
     var insert = f.document.createElement("div");
     insert.id = "easyTargetList" + i;
-    // TODO: getPlayerLocations = function(name) { return g_galaxyData.players[name]; }
-    var personExists = !!g_galaxyData.players[name];
-    for (var j = 0; personExists && j < g_galaxyData.players[name].length; j++) {
+    var locations = getPlayerLocations(name);
+    for (var j = 0; j < locations.length; j++) {
         var element = f.document.createElement('a');
-        element.innerHTML = coordsStrFromStorage(g_galaxyData.players[name][j], true /*lune*/);
-        if (coordsStrFromStorage(g_galaxyData.players[name][j], false /*lune*/) === coords.str) {
+        element.innerHTML = coordsStrFromStorage(locations[j], true /*lune*/);
+        if (coordsStrFromStorage(locations[j], false /*lune*/) === coords.str) {
             // If we've expanded our target planet, make it stand out
             element.style.color = '#7595EB';
         }
@@ -5867,7 +5893,7 @@ function createEasyTargetLocationDiv(nameDiv, name, coords, i, rows) {
     nameDiv.parentNode.parentNode.appendChild(insert);
 
     // Go to the correct system when clicking on a location
-    for (j = 0; personExists && j < g_galaxyData.players[name].length; j++) {
+    for (j = 0; j < locations.length; j++) {
         (function(i, j, name) {
             f.$('#target_' + (i + 1) + '_' + (j + 1)).click(function() {
                 var coordStr = this.innerHTML;
