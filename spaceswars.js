@@ -2232,6 +2232,9 @@ function globalShortcutHandler(e) {
                     f.$('.flotte_bas .space a')[2].click();
                 } else if (key === KEY.S) {
                     f.$('input[type=submit]')[0].click();
+                } else if (key === KEY.D) {
+                    // won't work if "Deploy" isn't actually an option
+                    f.$('#inpuT_1').val("4").prop("checked", true)
                 }
             }
             break;
@@ -4424,13 +4427,13 @@ function animateBackground(element, newColor, duration, deleteAfterTransition) {
  * @returns {string | undefined}
  */
 function getPlayerAtLocation(coords) {
-    log("Calling getPlayerAtLocation(" + ([coords].toString()) + ")", LOG.Tmi);
+    log("Calling getPlayerAtLocation(" + ([coords.str].toString()) + ")", LOG.Tmi);
 
     if (g_galaxyData.universe[coords.g] && g_galaxyData.universe[coords.g][coords.s]) {
         return g_galaxyData.universe[coords.g][coords.s][coords.p];
-    } else {
-        return undefined;
     }
+
+    return undefined;
 }
 
 /**
@@ -4487,7 +4490,7 @@ function setUniLocation(player, coords) {
  * @param coords
  */
 function deleteUniLocation(coords) {
-    log("Calling deleteUniLocation(" + ([coords].toString()) + ")", LOG.Tmi);
+    log("Calling deleteUniLocation(" + ([coords.str].toString()) + ")", LOG.Tmi);
 
     if (g_galaxyData.universe[coords.g] && g_galaxyData.universe[coords.g][coords.s]) {
         delete g_galaxyData.universe[coords.g][coords.s][coords.p];
@@ -4702,7 +4705,7 @@ function getIsSpying() {
  * @param exists
  */
 function markIfNeeded(row, coords, exists) {
-    log("Calling markIfNeeded(" + ([row, coords, exists].toString()) + ")", LOG.Tmi);
+    log("Calling markIfNeeded(" + ([row, coords.str, exists].toString()) + ")", LOG.Tmi);
 
     // This person is marked!
     if (g_scriptInfo.Markit && g_markit[coords.str]) {
@@ -4846,7 +4849,7 @@ function setHighlightColor(regMatch, item) {
  * @param coords - the coordinates of this position
  */
 function createEasyTargetButtons(rows, nameDiv, newName, storedName, coords) {
-    log("Calling createEasyTargetButtons(" + ([rows, nameDiv, newName, storedName, coords].toString()) + ")", LOG.Tmi);
+    log("Calling createEasyTargetButtons(" + ([rows, nameDiv, newName, storedName, coords.str].toString()) + ")", LOG.Tmi);
 
     var replaceDiv = createGalaxyDataButton(g_saveIcon, 0, coords.p, 1);
     var saveDiv = createGalaxyDataButton(g_saveIcon, 1, coords.p, 1);
@@ -5125,7 +5128,7 @@ function addTargetPlanetKeyListener(rows) {
  * @param coords
  */
 function showDefaultButton(storedName, newName, coords) {
-    log("Calling showDefaultButton(" + ([storedName, newName, coords].toString()) + ")", LOG.Tmi);
+    log("Calling showDefaultButton(" + ([storedName, newName, coords.str].toString()) + ")", LOG.Tmi);
 
     if (!g_scriptInfo.EasyTarget) {
         return;
@@ -5162,7 +5165,7 @@ function showDefaultButton(storedName, newName, coords) {
  * @param settings
  */
 function shouldProcessGalaxyItem(nameDiv, newName, rank, coords, settings) {
-    log("Calling shouldProcessGalaxyItem(" + ([nameDiv, newName, rank, coords, settings].toString()) + ")", LOG.Tmi);
+    log("Calling shouldProcessGalaxyItem(" + ([nameDiv, newName, rank, coords.str, settings].toString()) + ")", LOG.Tmi);
 
     // The player is inactive
     var inactive = nameDiv.className.indexOf("inactive") !== -1;
@@ -5184,7 +5187,7 @@ function shouldProcessGalaxyItem(nameDiv, newName, rank, coords, settings) {
  * @param coords
  */
 function deleteIfNeeded(row, storedName, coords) {
-    log("Calling deleteIfNeeded(" + ([row, storedName, coords].toString()) + ")", LOG.Tmi);
+    log("Calling deleteIfNeeded(" + ([row, storedName, coords.str].toString()) + ")", LOG.Tmi);
 
     if (g_scriptInfo.EasyTarget && getPlayerAtLocation(coords)) {
         if (usingOldVersion()) {
@@ -5231,7 +5234,7 @@ function appendEasyTargetTooltipToWindow(name, i) {
  * @param coords
  */
 function appendTargetIcon(row, coords) {
-    log("Calling appendTargetIcon(" + ([row, coords].toString()) + ")", LOG.Tmi);
+    log("Calling appendTargetIcon(" + ([row, coords.str].toString()) + ")", LOG.Tmi);
 
     var div = buildNode('a', ['class', 'id', 'style'], ['tooltip', 'tooltip_' + (coords.p - 1), 'float:left; width:15px;'], "");
     var img = buildNode('img', ['src', 'id'], ['http://i.imgur.com/vCZBxno.png', 'img_' + coords.p], "");
@@ -5247,7 +5250,7 @@ function appendTargetIcon(row, coords) {
  * @param rows
  */
 function highlightTargetPlanet(nameDiv, coords, rows) {
-    log("Calling highlightTargetPlanet(" + ([nameDiv, coords, rows].toString()) + ")", LOG.Tmi);
+    log("Calling highlightTargetPlanet(" + ([nameDiv, coords.str, rows].toString()) + ")", LOG.Tmi);
 
     nameDiv.parentNode.parentNode.style.backgroundColor = 'rgba(0, 100, 0, .8)';
     if (g_scriptInfo.Markit && g_markit[coords.str]) {
@@ -5270,7 +5273,7 @@ function highlightTargetPlanet(nameDiv, coords, rows) {
  * @param coords
  */
 function addMarkitTargetClick(coords) {
-    log("Calling addMarkitTargetClick(" + ([coords].toString()) + ")", LOG.Tmi);
+    log("Calling addMarkitTargetClick(" + ([coords.str].toString()) + ")", LOG.Tmi);
 
     f.$('#img_' + coords.p).click(function() {
         f.$('#markit_current').html(coords.p);
@@ -5291,7 +5294,7 @@ function addMarkitTargetClick(coords) {
  * @param coords
  */
 function addGalaxyRowClickHandler(rows, row, coords) {
-    log("Calling addGalaxyRowClickHandler(" + ([rows, row, coords].toString()) + ")", LOG.Tmi);
+    log("Calling addGalaxyRowClickHandler(" + ([rows, row, coords.str].toString()) + ")", LOG.Tmi);
 
     for (var j = 1; j < 14; j += 2) {
         f.$(row.childNodes[j]).click(function(e) {
@@ -5534,7 +5537,7 @@ function galaxySort(a, b) {
  * @returns {string}
  */
 function easyTargetRedirect(oldCoords, newCoords, rows, name) {
-    log("Calling easyTargetRedirect(" + ([oldCoords, newCoords, rows, name].toString()) + ")", LOG.Tmi);
+    log("Calling easyTargetRedirect(" + ([oldCoords, newCoords.str, rows, name].toString()) + ")", LOG.Tmi);
 
     if (newCoords.g === oldCoords.g && newCoords.s === oldCoords.s) {
         // Same galaxy and system. We need to unmark the current planet,
@@ -5591,7 +5594,7 @@ function easyTargetRedirect(oldCoords, newCoords, rows, name) {
  * @param coords
  */
 function replacePlayerInDatabase(newName, storedName, coords) {
-    log("Calling replacePlayerInDatabase(" + ([newName, storedName, coords].toString()) + ")", LOG.Tmi);
+    log("Calling replacePlayerInDatabase(" + ([newName, storedName, coords.str].toString()) + ")", LOG.Tmi);
 
     // There's a different person at this location than what we have stored
     g_galaxyDataChanged = true;
@@ -5629,9 +5632,11 @@ function replacePlayerInDatabase(newName, storedName, coords) {
  * @returns {boolean}
  */
 function coordsEqualStoredData(coords, location) {
-    log("Calling coordsEqualStoredData(" + ([coords, location].toString()) + ")", LOG.Tmi);
+    // For lower level functions, do the simple check first to avoid a function call if possible
+    if (LOG.Tmi < g_config.Logging.level) log("Calling coordsEqualStoredData(" + ([coords.str, location].toString()) + ")", LOG.Tmi);
 
-    return coords.g === getGal(location) && coords.s === getSys(location) && coords.p === getPln(location);
+    // Test the least likely cases first
+    return coords.s === getSys(location) && coords.p === getPln(location) && coords.g === getGal(location);
 }
 
 /**
@@ -5642,7 +5647,7 @@ function coordsEqualStoredData(coords, location) {
  * @returns {number}
  */
 function indexOfPlanet(name, coords) {
-    log("Calling indexOfPlanet(" + ([name, coords].toString()) + ")", LOG.Tmi);
+    log("Calling indexOfPlanet(" + ([name, coords.str].toString()) + ")", LOG.Tmi);
 
     var locations = getPlayerLocations(name);
     for (var i = 0; i < locations.length; i++) {
@@ -5660,7 +5665,7 @@ function indexOfPlanet(name, coords) {
  * @returns {number}
  */
 function storageFromCoords(coords) {
-    log("Calling storageFromCoords(" + ([coords].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling storageFromCoords(" + ([coords.str].toString()) + ")", LOG.Tmi);
 
     return ((coords.g - 1) << GAL_SHIFT) + ((coords.s - 1) << SYS_SHIFT) + ((coords.p - 1) << PLN_SHIFT) + coords.l;
 }
@@ -5671,7 +5676,7 @@ function storageFromCoords(coords) {
  * @returns {Coordinates}
  */
 function coordsFromStorage(storage) {
-    log("Calling coordsFromStorage(" + ([storage].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling coordsFromStorage(" + ([storage].toString()) + ")", LOG.Tmi);
 
     return new Coordinates(getGal(storage), getSys(storage), getPln(storage), getLun(storage));
 }
@@ -5695,7 +5700,7 @@ function coordsStrFromStorage(storage, lune) {
  * @returns {number}
  */
 function getGal(val) {
-    log("Calling getGal(" + ([val].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling getGal(" + ([val].toString()) + ")", LOG.Tmi);
 
     // +1 to go from 0-based to 1-based indexing
     return ((val & GAL_MASK) >> GAL_SHIFT) + 1;
@@ -5707,7 +5712,7 @@ function getGal(val) {
  * @returns {number}
  */
 function getSys(val) {
-    log("Calling getSys(" + ([val].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling getSys(" + ([val].toString()) + ")", LOG.Tmi);
 
     return ((val & SYS_MASK) >> SYS_SHIFT) + 1;
 }
@@ -5718,7 +5723,7 @@ function getSys(val) {
  * @returns {number}
  */
 function getPln(val) {
-    log("Calling getPln(" + ([val].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling getPln(" + ([val].toString()) + ")", LOG.Tmi);
 
     return ((val & PLN_MASK) >> PLN_SHIFT) + 1;
 }
@@ -5729,7 +5734,7 @@ function getPln(val) {
  * @returns {number}
  */
 function getLun(val) {
-    log("Calling getLun(" + ([val].toString()) + ")", LOG.Tmi);
+    if (LOG.Tmi < g_config.Logging.level) log("Calling getLun(" + ([val].toString()) + ")", LOG.Tmi);
 
     return val & LUN_MASK;
 }
@@ -5740,7 +5745,7 @@ function getLun(val) {
  * @param coords
  */
 function updatePlayerInfo(name, coords) {
-    log("Calling updatePlayerInfo(" + ([name, coords].toString()) + ")", LOG.Tmi);
+    log("Calling updatePlayerInfo(" + ([name, coords.str].toString()) + ")", LOG.Tmi);
 
     if (getPlayerLocations(name).length === 0) {
         // No entry for this particular player, create it
@@ -5779,7 +5784,7 @@ function updatePlayerInfo(name, coords) {
  * @param storedName
  */
 function deleteUnusedPosition(coords, storedName) {
-    log("Calling deleteUnusedPosition(" + ([coords, storedName].toString()) + ")", LOG.Tmi);
+    log("Calling deleteUnusedPosition(" + ([coords.str, storedName].toString()) + ")", LOG.Tmi);
 
     g_galaxyDataChanged = true;
     log("Attempting to remove " + storedName + " at " + coords.str, LOG.Verbose);
@@ -5865,7 +5870,7 @@ function writeLocationsOnMarkitTarget(name, i) {
  * @param rows
  */
 function createEasyTargetLocationDiv(nameDiv, name, coords, i, rows) {
-    log("Calling createEasyTargetLocationDiv(" + ([nameDiv, name, coords, i, rows].toString()) + ")", LOG.Tmi);
+    log("Calling createEasyTargetLocationDiv(" + ([nameDiv, name, coords.str, i, rows].toString()) + ")", LOG.Tmi);
 
     var oldInsert = f.document.getElementById("easyTargetList" + i);
 
