@@ -3509,6 +3509,13 @@ async function setSimDefaults() {
         fleetId = g_merchantMap[g_fleetNames[g_config.EasyFarm.simShip]];
     }
 
+    // Open simulation in a new tab instead of a new window
+    f.$("#formulaireID")[0].onsubmit = function() {
+        var win = window.open('', 'formulaire','');
+        win.blur();
+        window.focus();
+    };
+
     var shipSelector = f.$("#att" +  fleetId);
     var totalShip  = shipSelector.val();
     totalShip = Math.floor(totalShip / g_config.EasyFarm.simGranularity) * g_config.EasyFarm.simGranularity;
@@ -5665,7 +5672,7 @@ function indexOfPlanet(name, coords) {
  * @returns {number}
  */
 function storageFromCoords(coords) {
-    if (LOG.Tmi < g_config.Logging.level) log("Calling storageFromCoords(" + ([coords.str].toString()) + ")", LOG.Tmi);
+    if (g_config && LOG.Tmi < g_config.Logging.level) log("Calling storageFromCoords(" + ([coords.str].toString()) + ")", LOG.Tmi);
 
     return ((coords.g - 1) << GAL_SHIFT) + ((coords.s - 1) << SYS_SHIFT) + ((coords.p - 1) << PLN_SHIFT) + coords.l;
 }
