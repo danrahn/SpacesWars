@@ -4,8 +4,6 @@
 //
 // @include     http://spaceswars.com/*/frames.php*
 // @include     http://www.spaceswars.com/*/frames.php*
-// @include     http://spaceswars.com/*/simulator.php*
-// @include     http://www.spaceswars.com/*/simulator.php*
 //
 // @grant GM_setValue
 // @grant GM_getValue

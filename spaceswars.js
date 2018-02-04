@@ -38,16 +38,6 @@ var g_info = getInfoFromPage();
 var g_page = g_info.loc;
 var g_uni = g_info.universe;
 
-// We allow the main script to run on simulator pages so we can
-// process simulations and communicate with other outer loop processes
-if (g_page === "simulator") {
-    if ($(".divtop.curvedtot")[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
-        processSim();
-    }
-    // noinspection JSAnnotator
-    return;
-}
-
 // Masks for the new storage:
 // 18 bits. Lowest order for moon (t/f), next 4 for
 // planet (0-15), next 9 for system (0-511), last 4
@@ -80,6 +70,7 @@ checkVersionInfo();
 
 var g_lang = g_versionInfo.language;
 f = null;  // The window/frame with the actual game
+simFrame = null;
 var lm;    // Left Menu
 
 // Language dictionary. FR and EN
@@ -191,6 +182,10 @@ if (g_page !== "forum" && g_page !== "simulator" && !g_saveEveryTime) {
 // We're in the top level frame that holds the leftmenu and the actual content
 if (g_page === "frames") {
     log("Top level frame!", LOG.Info);
+
+    document.getElementsByTagName("frameset")[0].appendChild(buildNode("frame", ["name"], ["sim"]));
+    simFrame = window.frames[2];
+
     // We have to insert the js directly into the page, otherwise the inner frame
     // won't have access to these internals.
     // noinspection JSAnnotator
@@ -206,7 +201,7 @@ if (g_page === "frames") {
     if (window.location.href.indexOf("lang_change") !== -1) {
         var newLang = window.location.href.substring(window.location.href.length - 2);
         if (g_lang !== newLang) {
-            log("Language changed to " + g_lang, LOG.Verbose)
+            log("Language changed to " + g_lang, LOG.Verbose);
             g_lang = newLang;
             L_ = setDictionary();
         }
@@ -219,6 +214,15 @@ if (g_page === "frames") {
         g_keyArray.length = 0;
 
         log("New page: " + page, LOG.Verbose);
+
+        if (g_page === "simulator") {
+            var selector = simFrame.document.querySelectorAll(".divtop.curvedtot");
+            if (selector && selector[1] && selector[1].innerHTML.indexOf("Attacker Simulation") !== -1) {
+                log("Processing sim", LOG.Info);
+                processSim();
+                return;
+            }
+        }
 
         if (g_page !== "leftmenu") {
             if (f) {
@@ -3511,10 +3515,12 @@ async function setSimDefaults() {
 
     // Open simulation in a new tab instead of a new window
     f.$("#formulaireID")[0].onsubmit = function() {
-        var win = window.open('', 'formulaire','');
-        win.blur();
-        window.focus();
+        window.open('', 'formulaire','');
     };
+
+    // Set our "sim" frame to the actual name used so
+    // we can load our sim inline, saving a bunch of resources, yay!
+    f.$(window.frames[2]).prop("name", "formulaire");
 
     var shipSelector = f.$("#att" +  fleetId);
     var totalShip  = shipSelector.val();
@@ -3563,6 +3569,11 @@ async function setSimDefaults() {
 
         shipSelector.val(curShip);
     }
+
+    // Clear out the frame and reset the name, so that normal
+    // simulations will act as expected
+    f.$(window.frames[2]).prop("name", "sim");
+    window.frames[2].document.body.innerHTML = "";
 
     deleteValue("autoSim");
     setValue("simShips", curShip);
@@ -6505,7 +6516,7 @@ function processSim() {
 
     var winStringEn = "The attacker has won the battle!";
     var winStringFr = "L'attaquant gagne la bataille !";
-    var sel = $(".rc_contain.curvedtot");
+    var sel = simFrame.document.querySelectorAll(".rc_contain.curvedtot");
     // var nextRoundForm = $("#formulaireID");
     var victory = sel[sel.length - 2].children[0].innerHTML === winStringEn || sel[sel.length - 2].children[0].innerHTML === winStringFr;
     // Things get wonky with very high values and it'll tell us we lost units when we haven't.
@@ -6524,9 +6535,6 @@ function processSim() {
     }
 
     setValue("simVictory", (victory && !lostUnits) ? 1 : 0);
-    if (getValue("autoSim")) {
-        close();
-    }
 }
 
 /**
