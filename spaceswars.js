@@ -6519,9 +6519,10 @@ function processSim() {
     var sel = simFrame.document.querySelectorAll(".rc_contain.curvedtot");
     // var nextRoundForm = $("#formulaireID");
     var victory = sel[sel.length - 2].children[0].innerHTML === winStringEn || sel[sel.length - 2].children[0].innerHTML === winStringFr;
+
     // Things get wonky with very high values and it'll tell us we lost units when we haven't.
     // M/C/D seems to be correct though, so make sure those are all 0.
-    var regex = new RegExp(/<font color="#7BE654">([\d.E+]+)<\/font>/);
+    var regex = new RegExp(/<font color="#7BE654">([\d.E+]+)<\/font>/g);
     var text = sel[sel.length - 1].children[0].innerHTML;
     regex.exec(text);
     var lostUnits = 0;
