@@ -58,7 +58,14 @@ var GM_ICON = "http://i.imgur.com/OrSr0G6.png"; // Old icon was broken, all hail
 var scriptsIcons = GM_ICON; // Old icon was broken
 
 var g_logStr = ["TMI", "VERBOSE", "INFO", "WARN", "ERROR", "CRITICAL"];
-var g_levelColors = [["#00CC00", "#AAA"], ["#B74BDB", "black"], ["blue", "black"], ["#E50", "black"], ["inherit", "#800"], ["inherit", "#800; font-size: 2em"]];
+var g_levelColors = [
+    ["#00CC00", "#AAA"],
+    ["#B74BDB", "black"],
+    ["blue", "black"],
+    ["#E50", "black"],
+    ["inherit", "#800"],
+    ["inherit", "#800; font-size: 2em"]
+];
 
 var g_config = getConfig();
 if (g_uni !== 0) {
@@ -164,6 +171,8 @@ setKeyArray();
 var autoAttack = !!parseInt(getValue("autoAttackMasterSwitch")) && usingOldVersion();
 var autoAttackWithSim = !!parseInt(getValue("simAutoAttack"));
 
+// If we're autoAttacking, don't bother with exact
+// math and allow scientific notation
 var multiply = autoAttack ? fastMult : slowMult;
 var divide = autoAttack ? fastDivide : slowDivide;
 var add = autoAttack ? fastAdd : slowAdd;
@@ -242,6 +251,9 @@ if (g_page === "frames") {
                 }
             }
 
+            // We were autoattacking and waiting for a fleet to reutn,
+            // but the user changed the page. Clear the interval to prevent
+            // unwanted redirection
             if (g_interval) {
                 clearInterval(g_interval);
                 g_intervalCount = 1;
@@ -270,7 +282,29 @@ if (g_page === "frames") {
             lm.addEventListener('keydown', function(e) {
                 globalKeypressHandler(e);
             });
-            var shortcutDiv = buildNode("div", ["id", "style"], ["keystrokes", "position:fixed;bottom:5px;left:0;font-size:12pt;color:green;background-color:rgba(0,0,0,.7);border:2px solid black;vertical-align:middle;line-height:50px;padding-left:15px;width:300px;height:50px;"], "KEYSTROKES");
+
+            // Can probably  be removed. Shows the current keystrokes. Work is also needed
+            // to prevent certain characters from showing up in this box
+            var shortcutDiv = buildNode(
+                "div", 
+                ["id", "style"], 
+                [
+                    "keystrokes",
+                    `
+                    position: fixed;  
+                    bottom: 5px;
+                    left: 0;  
+                    font-size: 12pt;  
+                    color: green;
+                    background-color: rgba(0,0,0,.7);  
+                    border: 2px solid black;  
+                    vertical-align: middle;  
+                    line-height: 50px;  
+                    padding-left: 15px;  
+                    width: 300px;  
+                    height: 50px;
+                    `
+                ], "KEYSTROKES");
             if (!usingOldVersion())
             {
                 shortcutDiv.style.display = "none";
@@ -395,7 +429,9 @@ function log(text, level, isObject) {
     }
 
     if (g_config.Logging.level === LOG.Extreme) {
-        console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")", "color: " + g_levelColors[0][0], "color: " + g_levelColors[0][1]);
+        console.log("%c[TMI] " + "%cCalled log with (" + text + ", " + level + ", " + isObject + ")",
+            "color: " + g_levelColors[0][0],
+            "color: " + g_levelColors[0][1]);
     }
 
     var output;
@@ -694,13 +730,16 @@ function setDictionary() {
 
             tab.activate = "Activer";
             tab.deactivate = "D\u00e9sactiver";
-            tab.inactiveDescrip1 = "Afficher joueurs inactifs dans la page de classements. <br />Exige que l'univers soit balay\u00e9 manuellement, car les valeurs <br />sont mises \u00e0 jour car ils sont consid\u00e9r\u00e9s dans l'univers.";
+            tab.inactiveDescrip1 = "Afficher joueurs inactifs dans la page de classements. <br />" +
+                "Exige que l'univers soit balay\u00e9 manuellement, car les valeurs <br />" + 
+                "sont mises \u00e0 jour car ils sont consid\u00e9r\u00e9s dans l'univers.";
             tab.inactiveDescrip2 = "Travaux dans la page de classements";
             tab.easyTargetDescrip1 = "Afficher tous les emplacements recueillies pour chaque joueur en vue de la galaxie";
             tab.easyTargetDescrip2 = "Fonctionne dans la page de galaxie";
             tab.import = "Importer";
             tab.export = "Exporter";
-            tab.EasyImportDescrip = "Pour importer, coller ici et appuyez sur l'importation. Pour exporter, appuyez sur l'exportation et copier le texte qui appara\u00eet";
+            tab.EasyImportDescrip = "Pour importer, coller ici et appuyez sur l'importation. " +
+                "Pour exporter, appuyez sur l'exportation et copier le texte qui appara\u00eet";
             tab.noAutoDescrip1 = "D\u00e9sactiver autocomplete de champ sur des pages sp\u00e9cifiques";
             tab.noAutoDescrip2 = "Fonctionne dans toutes les pages avec des champs de saisie semi-automatique";
             tab.noAutoGalaxy = "Galaxie";
@@ -712,21 +751,26 @@ function setDictionary() {
             tab.noAutoSims = "Simulateurs";
             tab.noAutoMerch = "Marchand";
             tab.noAutoScrap = "Ferrailleur";
-            tab.galaxyRanksDescrip1 = "Voir les rangs des joueurs directement dans la vue de la galaxie<br /><br />Les rangs doivent \u00eatre en ordre (le moins cher), et les <br />num\u00e9ros valides pour qu'il soit trait\u00e9 correctement croissante.";
+            tab.galaxyRanksDescrip1 = "Voir les rangs des joueurs directement dans la vue de la galaxie<br /><br />" + 
+                "Les rangs doivent \u00eatre en ordre (le moins cher), et les <br />" + 
+                "num\u00e9ros valides pour qu'il soit trait\u00e9 correctement croissante.";
             tab.galaxyRanksDescrip2 = "Fonctionne dans la page de galaxie";
             tab.galaxyRanksOthers = "Tous les autres";
             tab.deutRowDescrip1 = "montrer les ressources que vous avez tous en Deut c\u00f4t\u00e9 m\u00e9tal / crystal / Deut";
             tab.deutRowDescrip2 = "tous apges o\u00f9 l'affichage des ressources appara\u00eet";
             tab.galaxyRanksInactive = "Voir les inactifs";
-            tab.convertCDescrip1 = "En cliquant sur le / crystal / valeur Deut m\u00e9tallique convertit automatiquement toutes <br />les ressources \u00e0 ce type particulier.";
+            tab.convertCDescrip1 = "En cliquant sur le / crystal / valeur Deut m\u00e9tallique convertit automatiquement toutes <br />" + 
+                "les ressources \u00e0 ce type particulier.";
             tab.convertCDescrip2 = "toutes les pages o\u00f9 l'affichage des ressources montre. ConvertDeut doit \u00eatre activ\u00e9";
-            tab.mcTransDescrip1 = "Ajoute une option pour s\u00e9lectionner suffisamment de convoyeur pour le transport de toutes <br />les ressources de la plan\u00e8te \u00e0 l'autre (u17 seulement)";
+            tab.mcTransDescrip1 = "Ajoute une option pour s\u00e9lectionner suffisamment de convoyeur pour le transport de toutes <br />" + 
+                "les ressources de la plan\u00e8te \u00e0 l'autre (u17 seulement)";
             tab.mcTransDescrip2 = "Cette page de la flotte";
             tab.empTotDescrip1 = "Voir la premi\u00e8re colonne des totaux en raison de l'empire";
             tab.empTotDescrip2 = "Page d'empire";
             tab.rConverterDescrip1 = "Format des journaux d'attaque";
             tab.rConverterDescrip2 = "Rapport de combat";
-            tab.easyFarmDescrip1 = "Mettez en surbrillance les \u00e9l\u00e9ments dans vos rapports d'espionnage qui sont plus rentables que les limites d\u00e9finies";
+            tab.easyFarmDescrip1 = "Mettez en surbrillance les \u00e9l\u00e9ments dans vos " +
+                "rapports d'espionnage qui sont plus rentables que les limites d\u00e9finies";
             tab.easyFarmDescrip2 = "Page d'posts";
             tab.allinDeutDescrip1 = "Afficher les co\u00fbts de construction en deut";
             tab.allinDeutDescrip2 = "Page d'b\u00e2timents";
@@ -754,7 +798,9 @@ function setDictionary() {
             tab.mAttack = "\u00e0 raider";
             tab.mDont = "\u00e0 ne pas";
             tab.mTitle = "S\u00e9lectionnez le type de marquage:";
-            tab.betterEmpDescrip1 = "Mieux trier l'affichage empire, avec la colonne \u00abtotal\u00bb d'abord, et la possibilit\u00e9 de commander les <br />plan\u00e8tes selon la disposition attribu\u00e9 dans les param\u00e8tres, et ont lunes derni\u00e8re.";
+            tab.betterEmpDescrip1 = "Mieux trier l'affichage empire, avec la colonne \u00abtotal\u00bb d'abord, " +
+                "et la possibilit\u00e9 de commander les <br />" +
+                "plan\u00e8tes selon la disposition attribu\u00e9 dans les param\u00e8tres, et ont lunes derni\u00e8re.";
             tab.betterEmpDescrip2 = "Fonctionne dans la page de l'empire";
             tab.betterEmpMain = "commande standard";
             tab.betterEmpMoon = "lunes derniers";
@@ -876,7 +922,9 @@ function setDictionary() {
 
             tab.activate = "Activate";
             tab.deactivate = "Deactivate";
-            tab.inactiveDescrip1 = "Show inactive players inthe statistics page.<br />Requires that the universe be manually scanned,<br />as values are updated as they are seen in the universe.";
+            tab.inactiveDescrip1 = "Show inactive players inthe statistics page.<br />" + 
+                "Requires that the universe be manually scanned,<br />" + 
+                "as values are updated as they are seen in the universe.";
             tab.inactiveDescrip2 = "Works in the statistics page";
             tab.easyTargetDescrip1 = "Show all gathered locations for each players in galaxy view";
             tab.easyTargetDescrip2 = "Works in the galaxy page";
@@ -894,7 +942,9 @@ function setDictionary() {
             tab.noAutoSims = "Simulators";
             tab.noAutoMerch = "Mercant";
             tab.noAutoScrap = "Scrapdealer";
-            tab.galaxyRanksDescrip1 = "Show the ranks of players directly in galaxy view.<br /><br />The ranks must be in increasing order (lowest first),<br />and valid numbers, for it to be processed correctly.";
+            tab.galaxyRanksDescrip1 = "Show the ranks of players directly in galaxy view.<br /><br />" + 
+                "The ranks must be in increasing order (lowest first),<br />" + 
+                "and valid numbers, for it to be processed correctly.";
             tab.galaxyRanksDescrip2 = "Works in the galaxy page";
             tab.galaxyRanksOthers = "All others";
             tab.galaxyRanksInactive = "Show Inactives";
@@ -936,7 +986,8 @@ function setDictionary() {
             tab.mAttack = "Attack";
             tab.mDont = "Don't Attack";
             tab.mTitle = "Select Marking Type:";
-            tab.betterEmpDescrip1 = "Better sort the empire view, with the 'total' column first, and the option to order <br />the planets according to the arrangement assigned in settings, and have moons last.";
+            tab.betterEmpDescrip1 = "Better sort the empire view, with the 'total' column first, and the option to order <br />" + 
+                "the planets according to the arrangement assigned in settings, and have moons last.";
             tab.betterEmpDescrip2 = "Works in the empire page";
             tab.betterEmpMain = "Standard ordering";
             tab.betterEmpMoon = "Moons last";
@@ -1332,7 +1383,8 @@ function checkVersionInfo() {
         g_versionInfo = setInfosVersion();
         g_scriptInfo = setScriptsInfo();
         // get a message if can't have the gm icon without F5 refresh (frames)
-        if (g_versionInfo.version === thisVersion && g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
+        if (g_versionInfo.version === thisVersion &&
+            g_page !== "niark" && g_page !== "index" && g_page !== "forum" && g_page !== "leftmenu" && g_page !== "frames")
             alert("Script install\u00e9. Appuyez sur F5.\n\nScript installed. Press F5.");
     }
 
@@ -1612,7 +1664,9 @@ function getGalaxyData() {
 
     if (!storage.universe.length && storage.universe.length !== 0) {
         // The user is upgrading versions. Attempt to convert their old data
-        if (confirm("It looks like your galaxy data is not in the latest format. Would you like to attempt to convert it? If not, it will be erased.")) {
+        var message = "It looks like your galaxy data is not in the latest format. " +
+            "Would you like to attempt to convert it? If not, it will be erased.";
+        if (confirm(message)) {
             storage = convertOldGalaxyData(storage);
         } else {
             storage = {
@@ -1976,7 +2030,8 @@ function setupSidebar() {
     var langBox = getDomXpath("//div[@class='lm_lang']", lm.document, 0);
     var gmIcon = buildNode("div", ["class", "style"], ["lm_lang", "float:right; margin-right:5px;"],
         "<a href='achatbonus.php?lang=" + g_lang + "&uni=" + g_uni +
-        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrig\u00e9'>" + "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
+        "&config=1' target='Hauptframe' title='Scripts_SpacesWars_Corrig\u00e9'>" +
+        "<img width='16px' height='16px' src='" + GM_ICON + "' alt='GM'/></a>");
     langBox.appendChild(gmIcon);
 
     var sfmCheck = buildNode("input", ["type", "id"], ["checkbox", "sfmCheck"], "");
@@ -2584,7 +2639,8 @@ function messagePageKeyHandler(key) {
         case KEY.Z:
             if (usingOldVersion() && active.className.toLowerCase() === "message_space0 curvedtot") {
                 setValue("autoSim", 1);
-                setValue("botSim", g_config.EasyFarm.botSn && active.children[1].children[0].childNodes[0].textContent.toLowerCase().indexOf("bot_col") !== -1);
+                var colNode = active.children[1].children[0].childNodes[0].textContent;
+                setValue("botSim", g_config.EasyFarm.botSn && colNode.toLowerCase().indexOf("bot_col") !== -1);
                 setValue("autoSimIndex", f.$(active).find(".supFleet")[0].id.substring(8));
                 f.$(active.childNodes[3]).find("a:contains('Simule')")[0].click();
             }
@@ -2888,7 +2944,8 @@ function loadEasyFarm() {
 
     var time =window.performance.now();
     checkEasyFarmRedirect();
-    var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000, 1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
+    var fleetDeut = [1500, 4500, 1250, 3500, 8500, 18750, 12500, 5500, 500, 25000,
+        1000, 40000, 3250000, 27500, 12500000, 3750000, 55000, 71500, 37500];
     var needsSim = [];
     var simIndex;
     var simShips = getValue("simShips");
@@ -2926,7 +2983,23 @@ function loadEasyFarm() {
         aaDeleteIndex = -1;
 
     var isBot = [];
-    var messages = getDomXpath("//div[@class='message_space0 curvedtot'][contains(.,\"" + L_.EasyFarm_spyReport + "\")][contains(.,\"" + L_.EasyFarm_metal + "\")]", f.document, -1);
+    var messages = getDomXpath(
+        "//div[@class='message_space0 curvedtot'][contains(.,\"" + L_.EasyFarm_spyReport + "\")][contains(.,\"" + L_.EasyFarm_metal + "\")]",
+        f.document,
+        -1);
+
+    if (autoAttack)
+    {
+        // Highlight players spying you when autoattacking for higher visibility
+        var otherSpyActivities = getDomXpath(
+            "//div[@class='message_space0 curvedtot'][contains(.,\"" + "Espionage activity" + "\")]",
+            f.document,
+            -1);
+
+        for (var activity = 0; activity < otherSpyActivities.length; activity++) {
+            otherSpyActivities[activity].style.backgroundColor = "#C74E12";
+        }
+    }
 
     appendMessagesTooltipBase();
     for (var i = 0; i < messages.length; i++) {
@@ -3168,7 +3241,13 @@ function getFleetDataFromMessage(message, fleetDeut) {
     for (var j = 0; j < g_fleetNames.length; j++) {
         if (message.innerHTML.indexOf(g_fleetNames[j] + " : ") !== -1) {
             // get deut value of ship j
-            shipDeut = add(shipDeut, multiply(regNb.exec(message.getElementsByClassName("half_left")[classRank].innerHTML)[1].replace(/,/g, ""), fleetDeut[j]));
+            shipDeut = add(
+                shipDeut,
+                multiply(
+                    regNb.exec(message.getElementsByClassName("half_left")[classRank].innerHTML)[1].replace(/,/g, ""),
+                    fleetDeut[j]
+                )
+            );
             classRank++;
         }
     }
@@ -3370,19 +3449,26 @@ function appendAltMessageInterface(index, message) {
     });
 
     // Attack button
-    var submit = buildNode("input", ["type", "value", "id", "style"], ["button", "Attack", "attack" + index, "padding: 3px"], "", "click", function() {
-        var id = parseInt(this.id.substring(6));
-        var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
-        mc = Math.round((parseInt(mc) + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
-        var data = {
-            type  : f.$("#shipSelect" + id)[0].value,
-            val   : f.$("#fleetNum" + id)[0].value,
-            mc    : mc,
-            waves : -1
-        };
-        setValue("attackData", JSON.stringify(data));
-        f.$(this.parentNode.parentNode).find("a:contains('" + L_.EasyFarm_attack + "')")[0].click();
-    });
+    var submit = buildNode(
+        "input",
+        ["type", "value", "id", "style"],
+        ["button", "Attack", "attack" + index, "padding: 3px"],
+        "",
+        "click",
+        function() {
+            var id = parseInt(this.id.substring(6));
+            var mc = f.$("#res" + id)[0].innerHTML.replace(/\./g, "");
+            mc = Math.round((parseInt(mc) + (g_config.EasyFarm.granularity / 2)) / g_config.EasyFarm.granularity) * g_config.EasyFarm.granularity;
+            var data = {
+                type  : f.$("#shipSelect" + id)[0].value,
+                val   : f.$("#fleetNum" + id)[0].value,
+                mc    : mc,
+                waves : -1
+            };
+            setValue("attackData", JSON.stringify(data));
+            f.$(this.parentNode.parentNode).find("a:contains('" + L_.EasyFarm_attack + "')")[0].click();
+        }
+    );
 
     // Simulate button
     var simulate = buildNode("input", ["type", "value", "id", "style"], ["button", "Sim", "sim" + index, "padding: 3px"], "", "click", function() {
@@ -3662,7 +3748,8 @@ function loadInactiveStatsAndFleetPoints() {
         // TODO:: What's with the mix of string and ints? Does it actually work?
         var timeSelector = f.$('.divtop.curvedtot');
         var time = timeSelector[0].innerHTML;
-        var months = ['Months:', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+        var months = ['Months:', 'January', 'February', 'March', 'April', 'May',
+            'June', 'July', 'August', 'September', 'October', 'November', 'December'];
         if (g_lang === 'fr') types = ['Points de Flotte', 'G\u00e9n\u00e9ral', ' pas \u00e0 jour!', 'Recherche', 'B\u00e2timent', 'D\u00e9fense'];
         else types = ['Fleet Points', 'General', ' not up to date!', 'Research', 'Buildings', 'Defense'];
         if (g_lang === 'fr') {
@@ -3727,14 +3814,21 @@ function loadInactiveStatsAndFleetPoints() {
             head.appendChild(buildNode('div', ['class'], ['stats_player_2'], (g_lang === 'fr') ? 'Joueur' : 'Player'));
             head.appendChild(buildNode('div', ['class'], ['stats_player_2'], "Points"));
             head.appendChild(buildNode('div', ['class', 'style'], ['stats_player_3', 'width:150px'], "Info"));
-            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'], (g_lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
+            head.appendChild(buildNode('a', ['href', 'class', 'style', 'id'], ['#', 'stats_player_2', 'width:100px', 'nameChange'],
+                (g_lang === 'fr') ? 'Nouveau nom?' : 'Name change?'));
             players = f.document.getElementsByClassName('space0')[2];
             while (players.firstChild) players.removeChild(players.firstChild);
             var arr = [];
             for (var k in g_fleetPoints[who]) {
                 if (g_fleetPoints[who].hasOwnProperty(k)) {
                     // We want to always be precise. Always use slowSubtract
-                    arr.push([k, slowSubtract(slowSubtract(slowSubtract(g_fleetPoints[who][k]['1'][0], g_fleetPoints[who][k]['3'][0]), g_fleetPoints[who][k]['4'][0]), g_fleetPoints[who][k]['5'][0])]);
+                    arr.push([k, slowSubtract(
+                        slowSubtract(
+                            slowSubtract(
+                                g_fleetPoints[who][k]['1'][0],
+                                g_fleetPoints[who][k]['3'][0]),
+                            g_fleetPoints[who][k]['4'][0]),
+                        g_fleetPoints[who][k]['5'][0])]);
                 }
             }
 
@@ -3765,8 +3859,11 @@ function loadInactiveStatsAndFleetPoints() {
                 players.appendChild(container);
             }
             f.$('#nameChange').click(function() {
-                var en = "Make sure you have gone through all the stats in the General section, as this deletes any players where general is not up to date. It also deletes EasyTarget info, so be careful!";
-                var fr = "Assurez-vous que vous avez pass\u00e9 par toutes les statistiques de la section g\u00e9n\u00e9rale, car cela supprime tous les joueurs o\u00f9 le g\u00e9n\u00e9ral est pas \u00e0 jour. Il supprime \u00e9galement des informations EasyTarget, donc soyez prudent!";
+                var en = "Make sure you have gone through all the stats in the General section, as this deletes any " + 
+                    "players where general is not up to date. It also deletes EasyTarget info, so be careful!";
+                var fr = "Assurez-vous que vous avez pass\u00e9 par toutes les statistiques de la section g\u00e9n\u00e9rale," + 
+                    " car cela supprime tous les joueurs o\u00f9 le g\u00e9n\u00e9ral est pas \u00e0 jour. Il supprime" +
+                    " \u00e9galement des informations EasyTarget, donc soyez prudent!";
                 var msg = (g_lang === 'en') ? en : fr;
                 if (confirm(msg)) {
                     for (var i = 0; i < arr.length; i++) {
@@ -3856,11 +3953,13 @@ function loadDeutRow() {
     var aid = add(add(divide(m, 4), divide(c, 2)), d);
     var outer = buildNode('div', ['class'], ['default_1c3'], "");
     var picHolder = buildNode('div', ['class', 'style'], ['curvedtot', 'float:left;background-color:#333;width:40px;padding:1px'], "");
-    var pic = buildNode('div', ['class', 'style'], ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
+    var pic = buildNode('div', ['class', 'style'],
+        ['dhi1', 'float:left;background:url("http://i.imgur.com/PZnkeNS.png") no-repeat top left;width:40px;height:12px;'], "");
     var textHolder = buildNode('div', ['class', 'style', 'id'], ['default_1c1b', 'overflow:auto;padding-left:7px', 'ov_allindeut'], "");
     var title = buildNode('div', ['class', 'style'], ['decault_1c1b', 'float:left;width:60px'], "AllInDeut : ");
     var amountHolder = buildNode('div', ['style'], ['float:right;width:auto'], "");
-    var amount = buildNode('a', ['href', 'class', 'title', 'style', 'id'], ['#', 'ov_align_r', aid, 'text-align:right;width:auto;float:right;color:#7BE654;', 'allin'], getSlashedNb(aid));
+    var amount = buildNode('a', ['href', 'class', 'title', 'style', 'id'],
+        ['#', 'ov_align_r', aid, 'text-align:right;width:auto;float:right;color:#7BE654;', 'allin'], getSlashedNb(aid));
     amountHolder.appendChild(amount);
     textHolder.appendChild(title);
     textHolder.appendChild(amountHolder);
@@ -4205,7 +4304,12 @@ function loadMcTransport() {
         num += Math.ceil(consumption / 125000000000) * 10000 + 20000;
         mc[0].setAttribute('placeholder', getSlashedNb(num));
         //mc[0].value = "";
-        var div = buildNode('div', ['class', 'style'], ['flotte_bas', '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'], '');
+        var div = buildNode('div', ['class', 'style'],
+            [
+                'flotte_bas',
+                '-moz-user-select: -moz-none;-khtml-user-select: none;-webkit-user-select: none;-ms-user-select: none;user-select: none;'
+            ],
+            '');
         var text = buildNode('a', ['class', 'id'], ['link_ship_selected', 'transport'], "MC Transport");
         //var less = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'ten', 'font-size: 5pt'], "(-10) &nbsp;");
         //var more = buildNode('a', ['class', 'id', 'style'], ['link_ship_selected', 'hundred', 'font-size: 5pt'], " &nbsp;(+10)");
@@ -4968,7 +5072,11 @@ function appendMarkitWindow(rows) {
         f.$('#markit_choose').hide();
         f.$('#markit_submit').click(function() {
             g_markitChanged = true;
-            var coords = new Coordinates(f.$('#galaxy')[0].value, f.document.getElementsByName('system')[0].value, parseInt(f.$('#markit_current')[0].innerHTML));
+            var coords = new Coordinates(
+                f.$('#galaxy')[0].value,
+                f.document.getElementsByName('system')[0].value,
+                parseInt(f.$('#markit_current')[0].innerHTML)
+            );
             var markitTypeChecked = f.$('input[name="markit_type"]:checked');
             var type = markitTypeChecked.val();
 
@@ -5010,7 +5118,11 @@ function buildMarkitWindow() {
     var chooseBox = buildNode(
         'div',
         ['class', 'id', 'style'],
-        ['divtop', 'markit_choose', 'width:200px; margin:auto; height:auto; border-radius:15px; text-align:center; position:relative; bottom:400px; opacity:0.8;'],
+        [
+            'divtop',
+            'markit_choose',
+            'width:200px; margin:auto; height:auto; border-radius:15px; text-align:center; position:relative; bottom:400px; opacity:0.8;'
+        ],
         "<div class='space0'>" + L_.mTitle + "</div>"
     );
 
@@ -5423,13 +5535,20 @@ function appendGoBox() {
         div = buildNode("div", ["style"], ["width:100px;display:inline"], "");
         var check = buildNode("input", ["type", "name", "id"], ["checkbox", names[i] + "_check", names[i] + "_check"], "");
         check.style.display = "none";
-        var styleCheck = buildNode("label", ["for", "style"], [names[i] + "_check", "width:20px;height:20px;min-height:1px;margin:2px;background-color:#444;border:1px solid #999"], "&nbsp&nbsp&nbsp&nbsp", "click", function() {
-            if (this.style.backgroundColor === "rgb(68, 68, 68)") {
-                this.style.backgroundColor ="#111";
-            } else {
-                this.style.backgroundColor = "#444";
+        var styleCheck = buildNode(
+            "label",
+            ["for", "style"],
+            [names[i] + "_check", "width:20px;height:20px;min-height:1px;margin:2px;background-color:#444;border:1px solid #999"],
+            "&nbsp&nbsp&nbsp&nbsp",
+            "click",
+            function() {
+                if (this.style.backgroundColor === "rgb(68, 68, 68)") {
+                    this.style.backgroundColor ="#111";
+                } else {
+                    this.style.backgroundColor = "#444";
+                }
             }
-        });
+        );
         if (i === 0) {
             f.$(check).prop("checked", true);
             styleCheck.style.backgroundColor = "#111";
@@ -5849,7 +5968,11 @@ function deleteUnusedPosition(coords, storedName) {
 function createGalaxyDataButton(saveIcon, id, index, opacity) {
     log("Calling createGalaxyDataButton(" + ([saveIcon, id, index, opacity].toString()) + ")", LOG.Tmi);
 
-    return buildNode('img', ['src', 'id', "style"], [saveIcon, 'save_' + id + "_" + index, "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:" + opacity], "");
+    return buildNode(
+        'img',
+        ['src', 'id', "style"],
+        [saveIcon, 'save_' + id + "_" + index, "float:right;width:15px;height:15px;margin-bottom:-4px;margin-left:2px;opacity:" + opacity],
+        "");
 }
 
 /**
@@ -6401,8 +6524,11 @@ function loadTraductor() {
                     text)[1];
             text += "</div>";
             // This was causing failures I believe. Since I never use this script, I don't plan on doing anything with it atm
-            //text = text.replace(/<span class=b>(.*)<\/span>/g, "<b>$1</b>"); text = text.replace(/<span class=u>(.*)<\/span>/g, "<u>$1</u>"); text = text.replace(/<span class=i>(.*)<\/span>/g, "<em>$1</em>");
-            f.document.getElementById("gm_traductionofword").innerHTML = "<div style='background-color:black; opacity:0.8; border:1px solid white; color:white; padding:5px;'>" + text + "</div>";
+            //text = text.replace(/<span class=b>(.*)<\/span>/g, "<b>$1</b>");
+            // // text = text.replace(/<span class=u>(.*)<\/span>/g, "<u>$1</u>");
+            // // text = text.replace(/<span class=i>(.*)<\/span>/g, "<em>$1</em>");
+            f.document.getElementById("gm_traductionofword").innerHTML =
+                "<div style='background-color:black; opacity:0.8; border:1px solid white; color:white; padding:5px;'>" + text + "</div>";
         }
     }
     var html1 = "<option style='background:url(\"" + scriptsIcons +

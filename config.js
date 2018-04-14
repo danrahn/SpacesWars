@@ -22,7 +22,27 @@ function createAndLoadConfigurationPage() {
 
     // Needed to get new tooltips to work
     getDomXpath("//body", f.document, 0).appendChild(buildNode("script", ["type"], ["text/javascript"],
-        "$(document).ready(function(){\nsetTimeout(function(){\n$('.tooltip').tooltip({width: 'auto', height: 'auto', fontcolor: '#FFF', bordercolor: '#666',padding: '5px', bgcolor: '#111', fontsize: '10px'});\n}, 10);\n}); "
+        `
+        $(document).ready(
+            function(){
+                setTimeout(
+                    function(){
+                        $('.tooltip').tooltip(
+                            {
+                                width: 'auto',
+                                height: 'auto',
+                                fontcolor: '#FFF',
+                                bordercolor: '#666',
+                                padding: '5px',
+                                bgcolor: '#111',
+                                fontsize: '10px'
+                            }
+                        );
+                    }, 10
+                );
+            }
+        );
+        `
     ));
 
     var scripts = createScripts();
@@ -384,13 +404,17 @@ function createScripts() {
         packScript(createScriptActivity("AllinDeut", 3, L_.allinDeutDescrip1 + spanText + L_.allinDeutDescrip2 + "</span>"), null, "AllinDeut"),
         packScript(createScriptActivity("IFly", 4, "???" + spanText + "???</span>"), null, "IFly"),
         packScript(createScriptActivity("TChatty", 5, L_.tChattyDescrip1 + spanText + L_.tChattyDescrip2 + "</span>"), null, "TChatty"),
-        packScript(createScriptActivity("InactiveStats", 9, L_.inactiveDescrip1 + spanText + L_.inactiveDescrip2 + "</span>"), null, "InactiveStats"),
+        packScript(
+            createScriptActivity("InactiveStats", 9, L_.inactiveDescrip1 + spanText + L_.inactiveDescrip2 + "</span>"), null, "InactiveStats"
+        ),
         createEasyTargetScript(),
         createAutoCompleteScript(),
         createMarkitScript(),
         createGalaxyRanksScript(),
         createBetterEmpireScript(),
-        packScript(createScriptActivity("FleetPoints", 14, L_.FPDescrip1 + spanText + L_.FPDescrip2 + (usingOldVersion() ? "" : " (No longer working, sorry!)") + "</span>"), null, "FleetPoints"),
+        packScript(createScriptActivity("FleetPoints", 14,
+            L_.FPDescrip1 + spanText + L_.FPDescrip2 + (usingOldVersion() ? "" : " (No longer working, sorry!)") + "</span>"),
+            null, "FleetPoints"),
         createMoreScript(),
         createLogScript()
     ];
@@ -406,7 +430,8 @@ function createScripts() {
  * @returns {Element}
  */
 function createRConvScript() {
-    var rConverter = createScriptActivity("RConverter", 1, L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
+    var rConverter = createScriptActivity("RConverter", 1,
+        L_.rConverterDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.rConverterDescrip2 + "</span>");
     var converterContainer = buildNode('div', ['class'], ['script_options'], '');
     var rConvOptions = createRConvOptions();
     for (var i = 0; i < rConvOptions.length; i++) {
@@ -420,7 +445,8 @@ function createRConvScript() {
  * @returns {Element}
  */
 function createEasyFarmScript() {
-    var easyFarm = createScriptActivity("EasyFarm", 2, L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
+    var easyFarm = createScriptActivity("EasyFarm", 2,
+        L_.easyFarmDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyFarmDescrip2 + "</span>");
     var easyFarmContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyFarmOptions = createEasyFarmOptions();
     for (var i = 0; i < easyFarmOptions.length; i++) {
@@ -434,7 +460,8 @@ function createEasyFarmScript() {
  * @returns {Element}
  */
 function createEasyTargetScript() {
-    var easyTarget = createScriptActivity("EasyTarget", 11, L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
+    var easyTarget = createScriptActivity("EasyTarget", 11,
+        L_.easyTargetDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.easyTargetDescrip2 + "</span>");
     var targetContainer = buildNode('div', ['class'], ['script_options'], '');
     var easyTargetTextArea = buildNode('textarea', ['rows', 'placeholder', 'id'], ['5', L_.EasyImportDescrip, 'EasyTarget_text'
     ], '');
@@ -465,8 +492,14 @@ function createEasyTargetScript() {
  * @returns {Element}
  */
 function createAutoCompleteScript() {
-    var autoComplete = createScriptActivity("NoAutoComplete", 12, L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
-    var autoOptions = createCheckBoxItems([L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3, L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap], 100);
+    var autoComplete = createScriptActivity("NoAutoComplete", 12,
+        L_.noAutoDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.noAutoDescrip2 + "</span>");
+    var autoOptions = createCheckBoxItems(
+        [
+            L_.noAutoGalaxy, L_.noAutoFleet1, L_.noAutoFleet2, L_.noAutoFleet3,
+            L_.noAutoShip, L_.noAutoDef, L_.noAutoSims, L_.noAutoMerch, L_.noAutoScrap
+        ],
+        100);
     var widthConstraint = buildNode('div', ['style'], ['max-width:300px'], '');
     var autoContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto'], '');
     for (var i = 0; i < autoOptions.length; i++) {
@@ -496,7 +529,8 @@ function createMarkitScript() {
  * @returns {Element}
  */
 function createGalaxyRanksScript() {
-    var galaxyRanks = createScriptActivity("GalaxyRanks", 10, L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
+    var galaxyRanks = createScriptActivity("GalaxyRanks", 10,
+        L_.galaxyRanksDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.galaxyRanksDescrip2 + "</span>");
     var rankContainer = buildNode('div', ['class'], ['script_options'], '');
     var rankOptions = createRankOptions(g_config.GalaxyRanks.ranks.length);
     for (var i = 0; i < rankOptions.length; i++) {
@@ -516,7 +550,8 @@ function createGalaxyRanksScript() {
  * @returns {Element}
  */
 function createBetterEmpireScript() {
-    var betterEmpire = createScriptActivity("BetterEmpire", 13, L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
+    var betterEmpire = createScriptActivity("BetterEmpire", 13,
+        L_.betterEmpDescrip1 + "<br /><br /><span class=scriptDesc>" + L_.betterEmpDescrip2 + "</span>");
     var empContainer = buildNode('div', ['class', 'style'], ['script_options', 'overflow:auto;'], '');
     var empOptions = createCheckBoxItems([L_.betterEmpMain, L_.betterEmpMoon], 150);
     empOptions[0].style.clear = 'both';
@@ -817,7 +852,11 @@ function createMarkitOptions() {
     }
     result.push(document.createElement('br'));
 
-    var option = createScriptOption(['label', 'input'], [['for'], ['type', 'id', 'value', 'style']], [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']], ['Markit coordinates : ', '']);
+    var option = createScriptOption(
+        ['label', 'input'],
+        [['for'], ['type', 'id', 'value', 'style']],
+        [['markit_reset'], ['button', 'markit_reset', 'Reset', 'width:20%;min-width:40px;']],
+        ['Markit coordinates : ', '']);
     for (j = 0; j < option.length; j++) {
         result.push(option[j]);
     }
@@ -885,9 +924,12 @@ function createMoreOptions() {
 }
 
 function createMoreDesc() {
-    var names = ["DeutRow", "ConvertClick", "mcTransport", "MoonList", "ConvertDeut", "Traductor", "Resources", "RedirectFleet", "Arrows", "Returns"];
-    var d1 = [L_.deutRowDescrip1, L_.convertCDescrip1, L_.mcTransDescrip1, L_.mMoonListDescrip1, L_.mConvertDeutDescrip1, L_.mTraductorDescrip1, L_.mResourcesDescrip1, L_.mRedirectFleetDescrip1, L_.mArrowsDescrip1, L_.mReturnsDescrip1];
-    var d2 = [L_.deutRowDescrip2, L_.convertCDescrip2, L_.mcTransDescrip2, L_.mMoonListDescrip2, L_.mConvertDeutDescrip2, L_.mTraductorDescrip2, L_.mResourcesDescrip2, L_.mRedirectFleetDescrip2, L_.mArrowsDescrip2, L_.mReturnsDescrip2];
+    var names = ["DeutRow", "ConvertClick", "mcTransport", "MoonList", "ConvertDeut",
+        "Traductor", "Resources", "RedirectFleet", "Arrows", "Returns"];
+    var d1 = [L_.deutRowDescrip1, L_.convertCDescrip1, L_.mcTransDescrip1, L_.mMoonListDescrip1, L_.mConvertDeutDescrip1,
+        L_.mTraductorDescrip1, L_.mResourcesDescrip1, L_.mRedirectFleetDescrip1, L_.mArrowsDescrip1, L_.mReturnsDescrip1];
+    var d2 = [L_.deutRowDescrip2, L_.convertCDescrip2, L_.mcTransDescrip2, L_.mMoonListDescrip2, L_.mConvertDeutDescrip2,
+        L_.mTraductorDescrip2, L_.mResourcesDescrip2, L_.mRedirectFleetDescrip2, L_.mArrowsDescrip2, L_.mReturnsDescrip2];
     var spanText = "<br />(<span class=scriptDesc>";
 
     var container = [];
